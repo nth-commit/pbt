@@ -1,4 +1,7 @@
-import { Gen } from 'pbt-generator-core';
+import { pipe, last } from 'ix/iterable';
+import { map, take } from 'ix/iterable/operators';
+import { Gen, GenResult } from 'pbt-generator-core';
+import { indexed, mapIndexed, takeWhileInclusive } from './iterableOperators';
 
 export type PropertyValidationFailure = {
   kind: 'validationFailure';
@@ -10,6 +13,15 @@ export type PropertyValidationFailure = {
 
 export type PropertyFailure = {
   kind: 'failure';
+  problem:
+    | {
+        kind: 'predicate';
+      }
+    | {
+        kind: 'exhaustion';
+        iterationsRequested: number;
+        iterationsCompleted: number;
+      };
 };
 
 export type PropertySuccess = {
@@ -21,6 +33,8 @@ export type PropertyResult = PropertyValidationFailure | PropertySuccess | Prope
 export interface Property<T> {
   (iterations: number): PropertyResult;
 }
+
+export type PropertyFunction<T> = (x: T) => boolean;
 
 const validateIterations = (iterations: number): PropertyValidationFailure | null => {
   if (iterations < 1) {
@@ -46,23 +60,69 @@ const validateIterations = (iterations: number): PropertyValidationFailure | nul
   return null;
 };
 
-export const property = <T>(g: Gen<T>, f: (x: T) => boolean): Property<T> => {
+type PropertyIterationResult = 'success' | 'predicateFailure' | 'exhaustionFailure';
+
+const runIteration = <T>(genResult: GenResult<T>, f: PropertyFunction<T>): PropertyIterationResult => {
+  switch (genResult.kind) {
+    case 'instance':
+      return f(genResult.value) ? 'success' : 'predicateFailure';
+    case 'exhaustion':
+      return 'exhaustionFailure';
+  }
+};
+
+const exhaustionFailure = (iterationsRequested: number, iterationsCompleted: number): PropertyFailure => ({
+  kind: 'failure',
+  problem: {
+    kind: 'exhaustion',
+    iterationsRequested,
+    iterationsCompleted,
+  },
+});
+
+const predicateFailure = (): PropertyFailure => ({
+  kind: 'failure',
+  problem: {
+    kind: 'predicate',
+  },
+});
+
+const success = (): PropertySuccess => ({
+  kind: 'success',
+});
+
+export const property = <T>(g: Gen<T>, f: PropertyFunction<T>): Property<T> => {
   return iterations => {
     const iterationsValidationError = validateIterations(iterations);
     if (iterationsValidationError) return iterationsValidationError;
 
-    for (const genInstance of g(0, 0)) {
-      if (genInstance.kind === 'instance') {
-        if (f(genInstance.value) === false) {
-          return {
-            kind: 'failure',
-          };
-        }
-      }
+    const lastIteration = last(
+      pipe(
+        g(0, 0),
+        indexed(),
+        take(iterations),
+        mapIndexed(genResult => runIteration(genResult, f)),
+        takeWhileInclusive(x => x.value === 'success'),
+        map(({ index, value }) => ({
+          iterationNumber: index + 1,
+          iterationResult: value,
+        })),
+      ),
+    );
+
+    if (!lastIteration) {
+      return exhaustionFailure(iterations, 0);
     }
 
-    return {
-      kind: 'success',
-    };
+    switch (lastIteration.iterationResult) {
+      case 'success':
+        return lastIteration.iterationNumber < iterations
+          ? exhaustionFailure(iterations, lastIteration.iterationNumber)
+          : success();
+      case 'exhaustionFailure':
+        return exhaustionFailure(iterations, lastIteration.iterationNumber - 1);
+      case 'predicateFailure':
+        return predicateFailure();
+    }
   };
 };

@@ -8,6 +8,7 @@
   ],
   "types": "./lib/index.d.ts",
   "dependencies": {
+    "ix": "^3.0.2",
     "pbt-generator-core": "0.0.0"
   },
   "devDependencies": {

@@ -1,12 +1,12 @@
 import * as fc from 'fast-check';
 import { property } from '../src';
-import { arbitraryDecimal, arbitraryGenValues, arbitraryPredicate } from './helpers/arbitraries';
+import { arbitraryDecimal, arbitraryGenValues, arbitraryPropertyFunction } from './helpers/arbitraries';
 import { DEFAULT_MAX_ITERATIONS } from './helpers/constants';
 import { GenStub } from './helpers/stubs';
 
 test('Given iterations = 0, the property returns a validation failure', () => {
   fc.assert(
-    fc.property(arbitraryGenValues(), arbitraryPredicate(), (values, f) => {
+    fc.property(arbitraryGenValues(), arbitraryPropertyFunction(), (values, f) => {
       const p = property(GenStub.fromArray(values), f);
 
       const result = p(0);
@@ -24,7 +24,7 @@ test('Given iterations = 0, the property returns a validation failure', () => {
 
 test('Given iterations < 0, the property returns a validation failure', () => {
   fc.assert(
-    fc.property(arbitraryGenValues(), arbitraryPredicate(), fc.integer(-1), (values, f, iterations) => {
+    fc.property(arbitraryGenValues(), arbitraryPropertyFunction(), fc.integer(-1), (values, f, iterations) => {
       const p = property(GenStub.fromArray(values), f);
 
       const result = p(iterations);
@@ -44,7 +44,7 @@ test('Given iterations is a decimal, the property returns a validation failure',
   fc.assert(
     fc.property(
       arbitraryGenValues(),
-      arbitraryPredicate(),
+      arbitraryPropertyFunction(),
       arbitraryDecimal(1, DEFAULT_MAX_ITERATIONS),
       (values, f, iterations) => {
         const p = property(GenStub.fromArray(values), f);
