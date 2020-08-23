@@ -1,7 +1,8 @@
-import { Gen, GenResult, Seed } from 'pbt-generator-core';
-import { pipe, last } from 'ix/iterable';
-import { map, take } from 'ix/iterable/operators';
+import { Gen, GenResult, Seed, Size } from 'pbt-generator-core';
+import { pipe, last, of } from 'ix/iterable';
+import { map, take, flatMap } from 'ix/iterable/operators';
 import { indexed, mapIndexed, takeWhileInclusive } from './iterableOperators';
+import { PropertyParameter, ForAllGen } from './parameters';
 
 export type PropertyConfig = {
   iterations: number;
@@ -67,6 +68,30 @@ const validateIterations = (iterations: number): PropertyValidationFailure | nul
 
 type PropertyIterationResult = 'success' | 'predicateFailure' | 'exhaustionFailure';
 
+const beginIteration = <T>(p: PropertyParameter<T>, seed: Seed, size: Size): Iterable<GenResult<T>> => {
+  if (typeof p === 'function') {
+    return p(seed, size);
+  }
+
+  return pipe(
+    p.gen(seed, size),
+    flatMap(genResult => {
+      switch (genResult.kind) {
+        case 'instance':
+          return genResult.value
+            .map<GenResult<T>>(x => ({
+              kind: 'instance',
+              value: x,
+              shrink: null as any,
+            }))
+            .values();
+        case 'exhaustion':
+          return of(genResult);
+      }
+    }),
+  );
+};
+
 const runIteration = <T>(genResult: GenResult<T>, f: PropertyFunction<T>): PropertyIterationResult => {
   switch (genResult.kind) {
     case 'instance':
@@ -96,12 +121,12 @@ const success = (): PropertySuccess => ({
   kind: 'success',
 });
 
-export const property = <T>(g: Gen<T>, f: PropertyFunction<T>): Property<T> => {
+export const property = <T>(p: PropertyParameter<T>, f: PropertyFunction<T>): Property<T> => {
   return ({ iterations, seed }) => {
     const iterationsValidationError = validateIterations(iterations);
     if (iterationsValidationError) return iterationsValidationError;
 
-    const genResults = g(seed, 0);
+    const genResults = beginIteration(p, seed, 0);
 
     const lastIteration = last(
       pipe(
