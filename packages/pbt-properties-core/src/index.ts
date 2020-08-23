@@ -1,7 +1,12 @@
+import { Gen, GenResult, Seed } from 'pbt-generator-core';
 import { pipe, last } from 'ix/iterable';
 import { map, take } from 'ix/iterable/operators';
-import { Gen, GenResult } from 'pbt-generator-core';
 import { indexed, mapIndexed, takeWhileInclusive } from './iterableOperators';
+
+export type PropertyConfig = {
+  iterations: number;
+  seed: Seed;
+};
 
 export type PropertyValidationFailure = {
   kind: 'validationFailure';
@@ -31,7 +36,7 @@ export type PropertySuccess = {
 export type PropertyResult = PropertyValidationFailure | PropertySuccess | PropertyFailure;
 
 export interface Property<T> {
-  (iterations: number): PropertyResult;
+  (config: PropertyConfig): PropertyResult;
 }
 
 export type PropertyFunction<T> = (x: T) => boolean;
@@ -92,13 +97,15 @@ const success = (): PropertySuccess => ({
 });
 
 export const property = <T>(g: Gen<T>, f: PropertyFunction<T>): Property<T> => {
-  return iterations => {
+  return ({ iterations, seed }) => {
     const iterationsValidationError = validateIterations(iterations);
     if (iterationsValidationError) return iterationsValidationError;
 
+    const genResults = g(seed, 0);
+
     const lastIteration = last(
       pipe(
-        g(0, 0),
+        genResults,
         indexed(),
         take(iterations),
         mapIndexed(genResult => runIteration(genResult, f)),

@@ -1,4 +1,7 @@
-export type Seed = number;
+export type Seed = {
+  nextInt(): number;
+  split(): [Seed, Seed];
+};
 
 export type Size = number;
 
