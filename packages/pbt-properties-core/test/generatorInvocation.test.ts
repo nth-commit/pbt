@@ -1,17 +1,27 @@
 import * as fc from 'fast-check';
 import { property } from '../src';
-import { arbitraryGen, arbitraryPropertyFixture, arbitraryPropertyFunction } from './helpers/arbitraries';
+import {
+  arbitraryExtendableTuple,
+  arbitraryPropertyConfig,
+  arbitraryGen,
+  arbitraryPropertyFunction,
+} from './helpers/arbitraries';
 
 test('The generator receives the seed', () => {
+  const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
+    .extend(() => arbitraryGen())
+    .extend(() => arbitraryPropertyFunction())
+    .toArbitrary();
+
   fc.assert(
-    fc.property(arbitraryPropertyFixture(), arbitraryGen(), arbitraryPropertyFunction(), (fixture, g, f) => {
+    fc.property(arb, ([config, g, f]) => {
       const spyGen = jest.fn(g);
       const p = property(spyGen, f);
 
-      p(fixture);
+      p(config);
 
       expect(spyGen).toBeCalledTimes(1);
-      expect(spyGen).toBeCalledWith(fixture.seed, 0);
+      expect(spyGen).toBeCalledWith(config.seed, 0);
     }),
   );
 });

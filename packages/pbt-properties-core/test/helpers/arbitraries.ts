@@ -1,8 +1,29 @@
 import * as fc from 'fast-check';
 import { Gen, Seed } from 'pbt-generator-core';
-import { PropertyFunction } from '../../src';
+import { PropertyFunction, PropertyConfig } from '../../src';
 import { DEFAULT_MAX_ITERATIONS } from './constants';
 import { GenStub } from './stubs';
+
+export type Extender<T extends any[], U> = (...args: T) => fc.Arbitrary<U>;
+
+export type ExtendableTupleArbitrary<T extends any[]> = {
+  extend: <U>(f: Extender<T, U>) => ExtendableTupleArbitrary<[...T, U]>;
+  toArbitrary: () => fc.Arbitrary<[...T]>;
+};
+
+export const arbitraryExtendableTuple = <T>(arb: fc.Arbitrary<T>): ExtendableTupleArbitrary<[T]> => {
+  const createExtendableTuple = <TPrev extends any[]>(
+    arbitrary: fc.Arbitrary<TPrev>,
+  ): ExtendableTupleArbitrary<TPrev> => ({
+    toArbitrary: () => arbitrary,
+    extend: <TNext>(f: Extender<TPrev, TNext>) => {
+      const nextArb: fc.Arbitrary<[...TPrev, TNext]> = arbitrary.chain(args => f(...args).map(x => [...args, x]));
+      return createExtendableTuple<[...TPrev, TNext]>(nextArb);
+    },
+  });
+
+  return createExtendableTuple<[T]>(arb.map(x => [x]));
+};
 
 export type PropertyFixture = {
   values: unknown[];
@@ -12,7 +33,8 @@ export type PropertyFixture = {
 
 export const arbitraryGenValue = (): fc.Arbitrary<unknown> => fc.anything();
 
-export const arbitraryGenValues = (): fc.Arbitrary<unknown[]> => fc.array(arbitraryGenValue());
+export const arbitraryGenValues = (minLength = 0): fc.Arbitrary<unknown[]> =>
+  fc.array(arbitraryGenValue(), minLength, 200);
 
 export const arbitraryGen = (): fc.Arbitrary<Gen<unknown>> =>
   fc.oneof(
@@ -41,14 +63,13 @@ export const arbitrarySeed = (): fc.Arbitrary<Seed> =>
     return seed;
   });
 
-export const arbitraryPropertyFixture = <T = unknown>(
+export const arbitraryPropertyConfig = (
   maxIterations: number = DEFAULT_MAX_ITERATIONS,
-): fc.Arbitrary<PropertyFixture> =>
-  fc
+): fc.Arbitrary<PropertyConfig> => {
+  return fc
     .tuple(arbitraryIterations(maxIterations), arbitrarySeed())
-    .chain<PropertyFixture>(([iterations, seed]) =>
-      fc.array(arbitraryGenValue(), iterations, maxIterations).map(values => ({ values, iterations, seed })),
-    );
+    .map(([iterations, seed]) => ({ iterations, seed }));
+};
 
 export const arbitraryDecimal = (min?: number, max?: number): fc.Arbitrary<number> =>
   fc.float(min || Number.MIN_SAFE_INTEGER, max || Number.MAX_SAFE_INTEGER).filter(x => x.toString().includes('.'));
