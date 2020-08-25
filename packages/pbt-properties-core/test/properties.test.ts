@@ -107,6 +107,29 @@ test('Given iterations exceeds generator capacity, the property does not hold', 
   );
 });
 
+test('Given iterations exceeds generator capacity, and the generator is empty, the property does not hold', () => {
+  const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
+    .extend(() => arbitrarySucceedingPropertyFunction())
+    .toArbitrary();
+
+  fc.assert(
+    fc.property(arb, ([config, f]) => {
+      const p = property(GenStub.empty(), f);
+
+      const result = p(config);
+
+      expect(result).toEqual({
+        kind: 'failure',
+        problem: {
+          kind: 'exhaustion',
+          iterationsRequested: config.iterations,
+          iterationsCompleted: 0,
+        },
+      });
+    }),
+  );
+});
+
 test('Given an exhausting generator, the property does not hold', () => {
   const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
     .extend(({ iterations }) => arbitraryGenValues(iterations))
