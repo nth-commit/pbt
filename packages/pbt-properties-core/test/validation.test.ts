@@ -3,22 +3,22 @@ import { property } from '../src';
 import {
   arbitraryDecimal,
   arbitraryExtendableTuple,
-  arbitraryGenValues,
+  arbitraryGenOfAtLeastLength,
+  arbitraryGens,
   arbitraryPropertyConfig,
   arbitraryPropertyFunction,
 } from './helpers/arbitraries';
 import { DEFAULT_MAX_ITERATIONS } from './helpers/constants';
-import { GenStub } from './helpers/stubs';
 
 test('Given iterations = 0, the property returns a validation failure', () => {
   const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
-    .extend(() => arbitraryGenValues())
+    .extend(({ iterations }) => arbitraryGens(arbitraryGenOfAtLeastLength(iterations)))
     .extend(() => arbitraryPropertyFunction())
     .toArbitrary();
 
   fc.assert(
-    fc.property(arb, ([config, values, f]) => {
-      const p = property(GenStub.fromArray(values), f);
+    fc.property(arb, ([config, gs, f]) => {
+      const p = property(...gs, f);
 
       const result = p({ ...config, iterations: 0 });
 
@@ -35,14 +35,14 @@ test('Given iterations = 0, the property returns a validation failure', () => {
 
 test('Given iterations < 0, the property returns a validation failure', () => {
   const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
-    .extend(() => arbitraryGenValues())
+    .extend(({ iterations }) => arbitraryGens(arbitraryGenOfAtLeastLength(iterations)))
     .extend(() => arbitraryPropertyFunction())
     .extend(() => fc.integer(-1))
     .toArbitrary();
 
   fc.assert(
-    fc.property(arb, ([config, values, f, iterations]) => {
-      const p = property(GenStub.fromArray(values), f);
+    fc.property(arb, ([config, gs, f, iterations]) => {
+      const p = property(...gs, f);
 
       const result = p({ ...config, iterations });
 
@@ -59,14 +59,14 @@ test('Given iterations < 0, the property returns a validation failure', () => {
 
 test('Given iterations is a decimal, the property returns a validation failure', () => {
   const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
-    .extend(() => arbitraryGenValues())
+    .extend(({ iterations }) => arbitraryGens(arbitraryGenOfAtLeastLength(iterations)))
     .extend(() => arbitraryPropertyFunction())
     .extend(() => arbitraryDecimal(1, DEFAULT_MAX_ITERATIONS))
     .toArbitrary();
 
   fc.assert(
-    fc.property(arb, ([config, values, f, iterations]) => {
-      const p = property(GenStub.fromArray(values), f);
+    fc.property(arb, ([config, gs, f, iterations]) => {
+      const p = property(...gs, f);
 
       const result = p({ ...config, iterations });
 

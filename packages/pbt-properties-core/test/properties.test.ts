@@ -47,40 +47,6 @@ test('Given a succeeding property function, the test function is only called onc
   );
 });
 
-test('Given a succeeding property function, the property holds', () => {
-  const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGenValues(iterations))
-    .extend(() => arbitrarySucceedingPropertyFunction())
-    .toArbitrary();
-
-  fc.assert(
-    fc.property(arb, ([config, values, f]) => {
-      const p = property(GenStub.fromArray(values), f);
-
-      const result = p(config);
-
-      expect(result).toEqual({ kind: 'success' });
-    }),
-  );
-});
-
-test('Given a false predicate, the property does not hold', () => {
-  const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGenValues(iterations))
-    .toArbitrary();
-
-  fc.assert(
-    fc.property(arb, ([config, values]) => {
-      const f = (_: unknown) => false;
-      const p = property(GenStub.fromArray(values), f);
-
-      const result = p(config);
-
-      expect(result).toEqual({ kind: 'failure', problem: { kind: 'predicate' } });
-    }),
-  );
-});
-
 test('Given iterations exceeds generator capacity, the property does not hold', () => {
   const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
     .extend(({ iterations }) => arbitraryGenValues(iterations))
