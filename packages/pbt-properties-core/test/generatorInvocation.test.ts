@@ -25,3 +25,7 @@ test('The generator receives the seed', () => {
     }),
   );
 });
+
+test('Fail', () => {
+  expect(true).toEqual(false);
+});
