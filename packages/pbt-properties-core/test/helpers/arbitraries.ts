@@ -36,12 +36,19 @@ export const arbitraryGenValue = (): fc.Arbitrary<unknown> => fc.anything();
 export const arbitraryGenValues = (minLength = 0): fc.Arbitrary<unknown[]> =>
   fc.array(arbitraryGenValue(), minLength, 200);
 
+export const arbitraryGenOfAtLeastLength = (length: number): fc.Arbitrary<Gen<unknown>> =>
+  arbitraryGenValues(length).map(values => GenStub.fromArray(values));
+
+export const arbitraryNonEmptyGen = (): fc.Arbitrary<Gen<unknown>> => arbitraryGenOfAtLeastLength(1);
+
+export const arbitraryExhaustingGen = (): fc.Arbitrary<Gen<unknown>> =>
+  arbitraryGenValues().map(values => GenStub.exhaustAfter(values));
+
 export const arbitraryGen = (): fc.Arbitrary<Gen<unknown>> =>
-  fc.oneof(
-    arbitraryGenValues().map(values => GenStub.fromArray(values)),
-    arbitraryGenValues().map(values => GenStub.exhaustAfter(values)),
-    fc.constant(GenStub.exhausted()),
-  );
+  fc.oneof(arbitraryNonEmptyGen(), arbitraryExhaustingGen(), fc.constant(GenStub.exhausted()));
+
+export const arbitraryGens = (genArb: fc.Arbitrary<Gen<unknown>>): fc.Arbitrary<Array<Gen<unknown>>> =>
+  fc.array(genArb, 0, 20);
 
 export const arbitrarySucceedingPropertyFunction = <T extends Array<Gen<any>>>(): fc.Arbitrary<PropertyFunction<T>> =>
   fc.constant(() => true);
