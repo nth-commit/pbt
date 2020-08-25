@@ -71,7 +71,7 @@ test('Given a false predicate, the property does not hold', () => {
 
   fc.assert(
     fc.property(arb, ([config, values]) => {
-      const f = () => false;
+      const f = (_: unknown) => false;
       const p = property(GenStub.fromArray(values), f);
 
       const result = p(config);
