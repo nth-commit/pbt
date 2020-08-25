@@ -43,11 +43,13 @@ export const arbitraryGen = (): fc.Arbitrary<Gen<unknown>> =>
     fc.constant(GenStub.exhausted()),
   );
 
-export const arbitrarySucceedingPropertyFunction = <T>(): fc.Arbitrary<PropertyFunction<T>> => fc.constant(() => true);
+export const arbitrarySucceedingPropertyFunction = <T extends Array<Gen<any>>>(): fc.Arbitrary<PropertyFunction<T>> =>
+  fc.constant(() => true);
 
-export const arbitraryFailingPropertyFunction = <T>(): fc.Arbitrary<PropertyFunction<T>> => fc.constant(() => false);
+export const arbitraryFailingPropertyFunction = <T extends Array<Gen<any>>>(): fc.Arbitrary<PropertyFunction<T>> =>
+  fc.constant(() => false);
 
-export const arbitraryPropertyFunction = <T>(): fc.Arbitrary<PropertyFunction<T>> =>
+export const arbitraryPropertyFunction = <T extends Array<Gen<any>>>(): fc.Arbitrary<PropertyFunction<T>> =>
   fc.oneof(arbitrarySucceedingPropertyFunction(), arbitraryFailingPropertyFunction());
 
 export const arbitraryIterations = (maxIterations: number = DEFAULT_MAX_ITERATIONS): fc.Arbitrary<number> =>

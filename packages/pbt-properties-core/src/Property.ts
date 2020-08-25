@@ -5,39 +5,50 @@ import { success, exhaustionFailure, predicateFailure, PropertyResult } from './
 import { indexed, mapIndexed, takeWhileInclusive } from './iterableOperators';
 import { PropertyConfig, validateConfig } from './PropertyConfig';
 
+type GenOutput<T> = T extends Gen<infer U> ? U : never;
+
+type GenOutputs<T extends Array<Gen<any>>> = { [P in keyof T]: GenOutput<T[P]> };
+
 export interface Property<T> {
   (config: PropertyConfig): PropertyResult;
   _?: T;
 }
 
-export type PropertyFunction<T> = (x: T) => boolean;
+export type PropertyFunction<T extends Array<Gen<any>>> = (...args: GenOutputs<T>) => boolean;
 
 type PropertyIterationResult = 'success' | 'predicateFailure' | 'exhaustionFailure';
 
-const runIteration = <T>(genResult: GenResult<T>, f: PropertyFunction<T>): PropertyIterationResult => {
-  switch (genResult.kind) {
-    case 'instance':
-      return f(genResult.value) ? 'success' : 'predicateFailure';
-    case 'exhaustion':
-      return 'exhaustionFailure';
-  }
-};
-
-export const property = <T>(g: Gen<T>, f: PropertyFunction<T>): Property<T> => {
+export const property = <T extends Array<Gen<any>>>(...args: [...T, PropertyFunction<T>]): Property<GenOutputs<T>> => {
   return config => {
     const validationError = validateConfig(config);
     if (validationError) return validationError;
 
     const { iterations, seed } = config;
+    const gens = args.slice(0, args.length - 1) as T;
+    const f = args[args.length - 1] as PropertyFunction<T>;
 
-    const genResults = g(seed, 0);
+    /* istanbul ignore next */
+    if (gens.length === 0 || gens.length > 1) throw 'unhandled';
+
+    const gen = gens[0];
+
+    const genIterable = gen(seed, 0);
 
     const lastIteration = last(
       pipe(
-        genResults,
+        genIterable,
         indexed(),
         take(iterations),
-        mapIndexed(genResult => runIteration(genResult, f)),
+        mapIndexed(
+          (genResult): PropertyIterationResult => {
+            switch (genResult.kind) {
+              case 'instance':
+                return (f as any)(genResult.value) ? 'success' : 'predicateFailure';
+              case 'exhaustion':
+                return 'exhaustionFailure';
+            }
+          },
+        ),
         takeWhileInclusive(x => x.value === 'success'),
         map(({ index, value }) => ({
           iterationNumber: index + 1,
