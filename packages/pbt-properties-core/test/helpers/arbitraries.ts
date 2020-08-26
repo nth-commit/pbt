@@ -17,12 +17,12 @@ export const arbitraryExtendableTuple = <T>(arb: fc.Arbitrary<T>): ExtendableTup
   ): ExtendableTupleArbitrary<TPrev> => ({
     toArbitrary: () => arbitrary,
     extend: <TNext>(f: Extender<TPrev, TNext>) => {
-      const nextArb: fc.Arbitrary<[...TPrev, TNext]> = arbitrary.chain(args => f(...args).map(x => [...args, x]));
+      const nextArb: fc.Arbitrary<[...TPrev, TNext]> = arbitrary.chain((args) => f(...args).map((x) => [...args, x]));
       return createExtendableTuple<[...TPrev, TNext]>(nextArb);
     },
   });
 
-  return createExtendableTuple<[T]>(arb.map(x => [x]));
+  return createExtendableTuple<[T]>(arb.map((x) => [x]));
 };
 
 export type PropertyFixture = {
@@ -47,7 +47,7 @@ const resolveGenConstraints = (constraints: Partial<GenConstraints>): GenConstra
 
 export const arbitraryGen = (constraints: Partial<GenConstraints> = {}): fc.Arbitrary<Gen<unknown>> => {
   const resolvedConstraints = resolveGenConstraints(constraints);
-  return arbitraryGenValues(resolvedConstraints.minLength).map(values => GenStub.exhaustAfter(values));
+  return arbitraryGenValues(resolvedConstraints.minLength).map((values) => GenStub.exhaustAfter(values));
 };
 
 export type GensConstraints = GenConstraints & {
@@ -69,7 +69,7 @@ export const arbitraryGens = (constraints: Partial<GensConstraints>): fc.Arbitra
 export const arbitraryNonEmptyGen = (): fc.Arbitrary<Gen<unknown>> => arbitraryGen({ minLength: 1 });
 
 export const arbitraryExhaustingGen = (): fc.Arbitrary<Gen<unknown>> =>
-  arbitraryGenValues().map(values => GenStub.exhaustAfter(values));
+  arbitraryGenValues().map((values) => GenStub.exhaustAfter(values));
 
 export const arbitrarySucceedingPropertyFunction = <T extends Array<Gen<any>>>(): fc.Arbitrary<PropertyFunction<T>> =>
   fc.constant(() => true);
@@ -84,7 +84,7 @@ export const arbitraryIterations = (maxIterations: number = DEFAULT_MAX_ITERATIO
   fc.integer(1, maxIterations);
 
 export const arbitrarySeed = (): fc.Arbitrary<Seed> =>
-  fc.nat().map(nextInt => {
+  fc.nat().map((nextInt) => {
     let seed: Seed = {
       nextInt: () => nextInt,
       split: () => [seed, seed],
@@ -102,13 +102,13 @@ export const arbitraryPropertyConfig = (
 };
 
 export const arbitraryDecimal = (min?: number, max?: number): fc.Arbitrary<number> =>
-  fc.float(min || Number.MIN_SAFE_INTEGER, max || Number.MAX_SAFE_INTEGER).filter(x => x.toString().includes('.'));
+  fc.float(min || Number.MIN_SAFE_INTEGER, max || Number.MAX_SAFE_INTEGER).filter((x) => x.toString().includes('.'));
 
 export const arbitrarilyShuffleArray = <T>(arr: T[]): fc.Arbitrary<T[]> => {
-  return fc.array(fc.nat(), arr.length, arr.length).map(orders =>
+  return fc.array(fc.nat(), arr.length, arr.length).map((orders) =>
     arr
       .map((value, i) => ({ value: value, order: orders[i] }))
       .sort((a, b) => a.order - b.order)
-      .map(x => x.value),
+      .map((x) => x.value),
   );
 };

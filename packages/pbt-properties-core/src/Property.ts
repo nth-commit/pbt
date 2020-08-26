@@ -14,7 +14,7 @@ export interface Property<T> {
   _?: T;
 }
 
-const constantProperty = (f: PropertyFunction<[]>): Property<[]> => config => {
+const constantProperty = (f: PropertyFunction<[]>): Property<[]> => (config) => {
   const validationError = validateConfig(config);
   if (validationError) return validationError;
 
@@ -28,10 +28,9 @@ const constantProperty = (f: PropertyFunction<[]>): Property<[]> => config => {
   return success();
 };
 
-const variableProperty = <TGens extends Gens>(
-  gs: TGens,
-  f: PropertyFunction<TGens>,
-): Property<GenValues<TGens>> => config => {
+const variableProperty = <TGens extends Gens>(gs: TGens, f: PropertyFunction<TGens>): Property<GenValues<TGens>> => (
+  config,
+) => {
   const validationError = validateConfig(config);
   if (validationError) return validationError;
 

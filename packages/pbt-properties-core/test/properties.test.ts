@@ -51,7 +51,7 @@ test('Given an exhausting generator, the property does not hold', () => {
   const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
     .extend(({ iterations }) =>
       arbitraryGens({ minLength: iterations })
-        .map(gs => [...gs, GenStub.exhausted()])
+        .map((gs) => [...gs, GenStub.exhausted()])
         .chain(arbitrarilyShuffleArray),
     )
     .extend(() => arbitrarySucceedingPropertyFunction())
