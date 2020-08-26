@@ -3,11 +3,11 @@ import { property } from '../src';
 import {
   arbitraryExtendableTuple,
   arbitraryPropertyConfig,
-  arbitraryGenValues,
   arbitraryGenValue,
-  arbitraryIterations,
+  arbitraryGens,
   arbitraryPropertyFunction,
   arbitrarySucceedingPropertyFunction,
+  arbitrarilyShuffleArray,
 } from './helpers/arbitraries';
 import { GenStub } from './helpers/stubs';
 
@@ -31,14 +31,14 @@ test('The test function receives a value from the generator', () => {
 
 test('Given a succeeding property function, the test function is only called once for each iteration', () => {
   const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGenValues(iterations))
+    .extend(({ iterations }) => arbitraryGens({ minLength: iterations, minGens: 0 }))
     .extend(() => arbitrarySucceedingPropertyFunction())
     .toArbitrary();
 
   fc.assert(
-    fc.property(arb, ([config, values, f]) => {
+    fc.property(arb, ([config, gs, f]) => {
       const spyF = jest.fn<boolean, unknown[]>(f);
-      const p = property(GenStub.fromArray(values), spyF);
+      const p = property(...gs, spyF);
 
       p(config);
 
@@ -47,40 +47,19 @@ test('Given a succeeding property function, the test function is only called onc
   );
 });
 
-test('Given iterations exceeds generator capacity, the property does not hold', () => {
+test('Given an exhausting generator, the property does not hold', () => {
   const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGenValues(iterations))
-    .extend(() => arbitrarySucceedingPropertyFunction())
-    .extend(() => arbitraryIterations())
-    .toArbitrary();
-
-  fc.assert(
-    fc.property(arb, ([config, values, f, iterationsDiff]) => {
-      const p = property(GenStub.fromArray(values), f);
-
-      const iterations = values.length + iterationsDiff;
-      const result = p({ ...config, iterations });
-
-      expect(result).toEqual({
-        kind: 'failure',
-        problem: {
-          kind: 'exhaustion',
-          iterationsRequested: iterations,
-          iterationsCompleted: values.length,
-        },
-      });
-    }),
-  );
-});
-
-test('Given iterations exceeds generator capacity, and the generator is empty, the property does not hold', () => {
-  const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
+    .extend(({ iterations }) =>
+      arbitraryGens({ minLength: iterations })
+        .map(gs => [...gs, GenStub.exhausted()])
+        .chain(arbitrarilyShuffleArray),
+    )
     .extend(() => arbitrarySucceedingPropertyFunction())
     .toArbitrary();
 
   fc.assert(
-    fc.property(arb, ([config, f]) => {
-      const p = property(GenStub.empty(), f);
+    fc.property(arb, ([config, gs, f]) => {
+      const p = property(...gs, f);
 
       const result = p(config);
 
@@ -90,32 +69,6 @@ test('Given iterations exceeds generator capacity, and the generator is empty, t
           kind: 'exhaustion',
           iterationsRequested: config.iterations,
           iterationsCompleted: 0,
-        },
-      });
-    }),
-  );
-});
-
-test('Given an exhausting generator, the property does not hold', () => {
-  const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGenValues(iterations))
-    .extend(() => arbitrarySucceedingPropertyFunction())
-    .extend(() => arbitraryIterations())
-    .toArbitrary();
-
-  fc.assert(
-    fc.property(arb, ([config, values, f, iterationsDiff]) => {
-      const p = property(GenStub.exhaustAfter(values), f);
-
-      const iterations = values.length + iterationsDiff;
-      const result = p({ ...config, iterations });
-
-      expect(result).toEqual({
-        kind: 'failure',
-        problem: {
-          kind: 'exhaustion',
-          iterationsRequested: iterations,
-          iterationsCompleted: values.length,
         },
       });
     }),

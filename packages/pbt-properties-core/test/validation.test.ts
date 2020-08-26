@@ -3,7 +3,6 @@ import { property } from '../src';
 import {
   arbitraryDecimal,
   arbitraryExtendableTuple,
-  arbitraryGenOfAtLeastLength,
   arbitraryGens,
   arbitraryPropertyConfig,
   arbitraryPropertyFunction,
@@ -12,7 +11,7 @@ import { DEFAULT_MAX_ITERATIONS } from './helpers/constants';
 
 test('Given iterations = 0, the property returns a validation failure', () => {
   const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGens(arbitraryGenOfAtLeastLength(iterations)))
+    .extend(({ iterations }) => arbitraryGens({ minLength: iterations, minGens: 0 }))
     .extend(() => arbitraryPropertyFunction())
     .toArbitrary();
 
@@ -35,7 +34,7 @@ test('Given iterations = 0, the property returns a validation failure', () => {
 
 test('Given iterations < 0, the property returns a validation failure', () => {
   const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGens(arbitraryGenOfAtLeastLength(iterations)))
+    .extend(({ iterations }) => arbitraryGens({ minLength: iterations, minGens: 0 }))
     .extend(() => arbitraryPropertyFunction())
     .extend(() => fc.integer(-1))
     .toArbitrary();
@@ -59,7 +58,7 @@ test('Given iterations < 0, the property returns a validation failure', () => {
 
 test('Given iterations is a decimal, the property returns a validation failure', () => {
   const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGens(arbitraryGenOfAtLeastLength(iterations)))
+    .extend(({ iterations }) => arbitraryGens({ minLength: iterations, minGens: 0 }))
     .extend(() => arbitraryPropertyFunction())
     .extend(() => arbitraryDecimal(1, DEFAULT_MAX_ITERATIONS))
     .toArbitrary();

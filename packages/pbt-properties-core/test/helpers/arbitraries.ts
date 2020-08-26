@@ -36,19 +36,40 @@ export const arbitraryGenValue = (): fc.Arbitrary<unknown> => fc.anything();
 export const arbitraryGenValues = (minLength = 0): fc.Arbitrary<unknown[]> =>
   fc.array(arbitraryGenValue(), minLength, 200);
 
-export const arbitraryGenOfAtLeastLength = (length: number): fc.Arbitrary<Gen<unknown>> =>
-  arbitraryGenValues(length).map(values => GenStub.fromArray(values));
+export type GenConstraints = {
+  minLength: number;
+};
 
-export const arbitraryNonEmptyGen = (): fc.Arbitrary<Gen<unknown>> => arbitraryGenOfAtLeastLength(1);
+const resolveGenConstraints = (constraints: Partial<GenConstraints>): GenConstraints => ({
+  minLength: 0,
+  ...constraints,
+});
+
+export const arbitraryGen = (constraints: Partial<GenConstraints> = {}): fc.Arbitrary<Gen<unknown>> => {
+  const resolvedConstraints = resolveGenConstraints(constraints);
+  return arbitraryGenValues(resolvedConstraints.minLength).map(values => GenStub.exhaustAfter(values));
+};
+
+export type GensConstraints = GenConstraints & {
+  minGens: number;
+  genArbitrary: fc.Arbitrary<Gen<unknown>>;
+};
+
+const resolveGensConstraints = (constraints: Partial<GensConstraints>): GensConstraints => ({
+  minGens: 1,
+  genArbitrary: arbitraryGen(constraints),
+  ...resolveGenConstraints(constraints),
+});
+
+export const arbitraryGens = (constraints: Partial<GensConstraints>): fc.Arbitrary<Array<Gen<unknown>>> => {
+  const resolvedConstraints = resolveGensConstraints(constraints);
+  return fc.array(resolvedConstraints.genArbitrary, resolvedConstraints.minGens, 20);
+};
+
+export const arbitraryNonEmptyGen = (): fc.Arbitrary<Gen<unknown>> => arbitraryGen({ minLength: 1 });
 
 export const arbitraryExhaustingGen = (): fc.Arbitrary<Gen<unknown>> =>
   arbitraryGenValues().map(values => GenStub.exhaustAfter(values));
-
-export const arbitraryGen = (): fc.Arbitrary<Gen<unknown>> =>
-  fc.oneof(arbitraryNonEmptyGen(), arbitraryExhaustingGen(), fc.constant(GenStub.exhausted()));
-
-export const arbitraryGens = (genArb: fc.Arbitrary<Gen<unknown>>): fc.Arbitrary<Array<Gen<unknown>>> =>
-  fc.array(genArb, 0, 20);
 
 export const arbitrarySucceedingPropertyFunction = <T extends Array<Gen<any>>>(): fc.Arbitrary<PropertyFunction<T>> =>
   fc.constant(() => true);
@@ -82,3 +103,12 @@ export const arbitraryPropertyConfig = (
 
 export const arbitraryDecimal = (min?: number, max?: number): fc.Arbitrary<number> =>
   fc.float(min || Number.MIN_SAFE_INTEGER, max || Number.MAX_SAFE_INTEGER).filter(x => x.toString().includes('.'));
+
+export const arbitrarilyShuffleArray = <T>(arr: T[]): fc.Arbitrary<T[]> => {
+  return fc.array(fc.nat(), arr.length, arr.length).map(orders =>
+    arr
+      .map((value, i) => ({ value: value, order: orders[i] }))
+      .sort((a, b) => a.order - b.order)
+      .map(x => x.value),
+  );
+};
