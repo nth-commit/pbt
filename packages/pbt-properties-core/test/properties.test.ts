@@ -1,5 +1,5 @@
-import * as fc from 'fast-check';
 import { property } from '../src';
+import { stableAssert, stableProperty } from './helpers/stableApi';
 import {
   arbitraryExtendableTuple,
   arbitraryPropertyConfig,
@@ -17,8 +17,8 @@ test('The test function receives a value from the generator', () => {
     .extend(() => arbitraryPropertyFunction())
     .toArbitrary();
 
-  fc.assert(
-    fc.property(arb, ([config, x, f]) => {
+  stableAssert(
+    stableProperty(arb, ([config, x, f]) => {
       const spyF = jest.fn<boolean, unknown[]>(f);
       const p = property(GenStub.singleton(x), spyF);
 
@@ -35,8 +35,8 @@ test('Given a succeeding property function, the test function is only called onc
     .extend(() => arbitrarySucceedingPropertyFunction())
     .toArbitrary();
 
-  fc.assert(
-    fc.property(arb, ([config, gs, f]) => {
+  stableAssert(
+    stableProperty(arb, ([config, gs, f]) => {
       const spyF = jest.fn<boolean, unknown[]>(f);
       const p = property(...gs, spyF);
 
@@ -57,8 +57,8 @@ test('Given an exhausting generator, the property does not hold', () => {
     .extend(() => arbitrarySucceedingPropertyFunction())
     .toArbitrary();
 
-  fc.assert(
-    fc.property(arb, ([config, gs, f]) => {
+  stableAssert(
+    stableProperty(arb, ([config, gs, f]) => {
       const p = property(...gs, f);
 
       const result = p(config);
