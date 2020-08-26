@@ -12,7 +12,7 @@ export namespace GenStub {
   export const empty = <T>(): Gen<T> => () => IterableStub.none();
 
   export const exhaustAfter = <T>(xs: T[]): Gen<T> => () => {
-    const instances: Array<GenInstance<T>> = xs.map(x => ({
+    const instances: Array<GenInstance<T>> = xs.map((x) => ({
       kind: 'instance',
       shrink: () => IterableStub.none(),
       value: x,

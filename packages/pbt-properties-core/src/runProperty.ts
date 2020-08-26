@@ -83,13 +83,13 @@ const runProperty = <TGens extends Gens>(
         (genResults: Array<GenResult<any>>): PropertyIterationStatus => {
           if (genResults.every(isGenResultAnInstance)) {
             const unsafeF = f as any;
-            const unsafeValues = genResults.map(x => x.value);
+            const unsafeValues = genResults.map((x) => x.value);
             return (unsafeF(...unsafeValues) as boolean) ? 'success' : 'predicateFailure';
           }
           return 'exhaustionFailure';
         },
       ),
-      takeWhileInclusive(x => x.value === 'success'),
+      takeWhileInclusive((x) => x.value === 'success'),
       map(
         ({ index, value }): PropertyIterationResult => ({
           iterationNumber: index + 1,
