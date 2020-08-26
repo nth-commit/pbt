@@ -1,5 +1,5 @@
-import * as fc from 'fast-check';
 import { property } from '../src';
+import { stableAssert, stableProperty } from './helpers/stableApi';
 import {
   arbitraryExtendableTuple,
   arbitraryPropertyConfig,
@@ -13,8 +13,8 @@ test('Given a succeeding property function, the property holds', () => {
     .extend(() => arbitrarySucceedingPropertyFunction())
     .toArbitrary();
 
-  fc.assert(
-    fc.property(arb, ([config, gs, f]) => {
+  stableAssert(
+    stableProperty(arb, ([config, gs, f]) => {
       const p = property(...gs, f);
 
       const result = p(config);
@@ -29,8 +29,8 @@ test('Given a false predicate, the property does not hold', () => {
     .extend(({ iterations }) => arbitraryGens({ minLength: iterations, minGens: 0 }))
     .toArbitrary();
 
-  fc.assert(
-    fc.property(arb, ([config, gs]) => {
+  stableAssert(
+    stableProperty(arb, ([config, gs]) => {
       const f = (_: unknown) => false;
       const p = property(...gs, f);
 

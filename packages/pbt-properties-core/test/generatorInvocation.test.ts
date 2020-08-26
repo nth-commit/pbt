@@ -1,5 +1,5 @@
-import * as fc from 'fast-check';
 import { property } from '../src';
+import { stableAssert, stableProperty } from './helpers/stableApi';
 import {
   arbitraryExtendableTuple,
   arbitraryPropertyConfig,
@@ -13,8 +13,8 @@ test('The generator receives the seed', () => {
     .extend(() => arbitraryPropertyFunction())
     .toArbitrary();
 
-  fc.assert(
-    fc.property(arb, ([config, g, f]) => {
+  stableAssert(
+    stableProperty(arb, ([config, g, f]) => {
       const spyGen = jest.fn(g);
       const p = property(spyGen, f);
 

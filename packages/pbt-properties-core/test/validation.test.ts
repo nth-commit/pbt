@@ -1,5 +1,6 @@
 import * as fc from 'fast-check';
 import { property } from '../src';
+import { stableAssert, stableProperty } from './helpers/stableApi';
 import {
   arbitraryDecimal,
   arbitraryExtendableTuple,
@@ -15,8 +16,8 @@ test('Given iterations = 0, the property returns a validation failure', () => {
     .extend(() => arbitraryPropertyFunction())
     .toArbitrary();
 
-  fc.assert(
-    fc.property(arb, ([config, gs, f]) => {
+  stableAssert(
+    stableProperty(arb, ([config, gs, f]) => {
       const p = property(...gs, f);
 
       const result = p({ ...config, iterations: 0 });
@@ -39,8 +40,8 @@ test('Given iterations < 0, the property returns a validation failure', () => {
     .extend(() => fc.integer(-1))
     .toArbitrary();
 
-  fc.assert(
-    fc.property(arb, ([config, gs, f, iterations]) => {
+  stableAssert(
+    stableProperty(arb, ([config, gs, f, iterations]) => {
       const p = property(...gs, f);
 
       const result = p({ ...config, iterations });
@@ -63,8 +64,8 @@ test('Given iterations is a decimal, the property returns a validation failure',
     .extend(() => arbitraryDecimal(1, DEFAULT_MAX_ITERATIONS))
     .toArbitrary();
 
-  fc.assert(
-    fc.property(arb, ([config, gs, f, iterations]) => {
+  stableAssert(
+    stableProperty(arb, ([config, gs, f, iterations]) => {
       const p = property(...gs, f);
 
       const result = p({ ...config, iterations });
