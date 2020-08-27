@@ -4,7 +4,7 @@ import { map, take } from 'ix/iterable/operators';
 import { indexed, mapIndexed, takeWhileInclusive } from './iterableOperators';
 import { PropertyConfig, validateConfig } from './PropertyConfig';
 
-type Gens = Array<Gen<any>>;
+export type Gens = [Gen<any>, ...Gen<any>[]];
 
 type GenValue<T> = T extends Gen<infer U> ? U : never;
 
