@@ -1,6 +1,6 @@
 import * as fc from 'fast-check';
 import { Gen, Seed } from 'pbt-generator-core';
-import { PropertyFunction, PropertyConfig } from '../../src';
+import { Gens, PropertyFunction, PropertyConfig } from '../../src';
 import { DEFAULT_MAX_ITERATIONS } from './constants';
 import { GenStub } from './stubs';
 
@@ -61,9 +61,9 @@ const resolveGensConstraints = (constraints: Partial<GensConstraints>): GensCons
   ...resolveGenConstraints(constraints),
 });
 
-export const arbitraryGens = (constraints: Partial<GensConstraints>): fc.Arbitrary<Array<Gen<unknown>>> => {
+export const arbitraryGens = (constraints: Partial<GensConstraints>): fc.Arbitrary<Gens> => {
   const resolvedConstraints = resolveGensConstraints(constraints);
-  return fc.array(resolvedConstraints.genArbitrary, resolvedConstraints.minGens, 20);
+  return fc.array(resolvedConstraints.genArbitrary, resolvedConstraints.minGens, 20) as fc.Arbitrary<Gens>;
 };
 
 export const arbitraryNonEmptyGen = (): fc.Arbitrary<Gen<unknown>> => arbitraryGen({ minLength: 1 });
@@ -71,13 +71,13 @@ export const arbitraryNonEmptyGen = (): fc.Arbitrary<Gen<unknown>> => arbitraryG
 export const arbitraryExhaustingGen = (): fc.Arbitrary<Gen<unknown>> =>
   arbitraryGenValues().map((values) => GenStub.exhaustAfter(values));
 
-export const arbitrarySucceedingPropertyFunction = <T extends Array<Gen<any>>>(): fc.Arbitrary<PropertyFunction<T>> =>
+export const arbitrarySucceedingPropertyFunction = <T extends Gens>(): fc.Arbitrary<PropertyFunction<T>> =>
   fc.constant(() => true);
 
-export const arbitraryFailingPropertyFunction = <T extends Array<Gen<any>>>(): fc.Arbitrary<PropertyFunction<T>> =>
+export const arbitraryFailingPropertyFunction = <T extends Gens>(): fc.Arbitrary<PropertyFunction<T>> =>
   fc.constant(() => false);
 
-export const arbitraryPropertyFunction = <T extends Array<Gen<any>>>(): fc.Arbitrary<PropertyFunction<T>> =>
+export const arbitraryPropertyFunction = <T extends Gens>(): fc.Arbitrary<PropertyFunction<T>> =>
   fc.oneof(arbitrarySucceedingPropertyFunction(), arbitraryFailingPropertyFunction());
 
 export const arbitraryIterations = (maxIterations: number = DEFAULT_MAX_ITERATIONS): fc.Arbitrary<number> =>

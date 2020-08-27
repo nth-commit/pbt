@@ -1,4 +1,4 @@
-import { property } from '../src';
+import { Gens, property } from '../src';
 import { stableAssert, stableProperty } from './helpers/stableApi';
 import {
   arbitraryExtendableTuple,
@@ -10,6 +10,7 @@ import {
   arbitrarilyShuffleArray,
 } from './helpers/arbitraries';
 import { GenStub } from './helpers/stubs';
+import fc from 'fast-check';
 
 test('The test function receives a value from the generator', () => {
   const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
@@ -31,7 +32,7 @@ test('The test function receives a value from the generator', () => {
 
 test('Given a succeeding property function, the test function is only called once for each iteration', () => {
   const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGens({ minLength: iterations, minGens: 0 }))
+    .extend(({ iterations }) => arbitraryGens({ minLength: iterations }))
     .extend(() => arbitrarySucceedingPropertyFunction())
     .toArbitrary();
 
@@ -49,10 +50,11 @@ test('Given a succeeding property function, the test function is only called onc
 
 test('Given an exhausting generator, the property does not hold', () => {
   const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
-    .extend(({ iterations }) =>
-      arbitraryGens({ minLength: iterations })
-        .map((gs) => [...gs, GenStub.exhausted()])
-        .chain(arbitrarilyShuffleArray),
+    .extend(
+      ({ iterations }) =>
+        arbitraryGens({ minLength: iterations })
+          .map((gs) => [...gs, GenStub.exhausted()])
+          .chain(arbitrarilyShuffleArray) as fc.Arbitrary<Gens>,
     )
     .extend(() => arbitrarySucceedingPropertyFunction())
     .toArbitrary();
