@@ -1,7 +1,7 @@
 export type PropertyValidationFailure = {
   kind: 'validationFailure';
   problem: {
-    kind: 'iterations';
+    kind: 'iterations' | 'size';
     message: string;
   };
 };

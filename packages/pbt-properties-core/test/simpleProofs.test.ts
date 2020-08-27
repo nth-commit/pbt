@@ -1,5 +1,5 @@
-import { property } from '../src';
-import { stableAssert, stableProperty } from './helpers/stableApi';
+import * as dev from '../src';
+import * as stable from './helpers/stableApi';
 import {
   extendableArbitrary,
   arbitraryPropertyConfig,
@@ -14,9 +14,9 @@ test('Given a succeeding property function, the property holds', () => {
     .extend(() => arbitrarySucceedingPropertyFunction())
     .toArbitrary();
 
-  stableAssert(
-    stableProperty(arb, ([config, gs, f]) => {
-      const p = property(...gs, f);
+  stable.assert(
+    stable.property(arb, ([config, gs, f]) => {
+      const p = dev.property(...gs, f);
 
       const result = p(config);
 
@@ -31,10 +31,10 @@ test('Given a false predicate, the property does not hold', () => {
     .extend(({ iterations }) => arbitraryGens({ minLength: iterations }))
     .toArbitrary();
 
-  stableAssert(
-    stableProperty(arb, ([config, gs]) => {
+  stable.assert(
+    stable.property(arb, ([config, gs]) => {
       const f = (_: unknown) => false;
-      const p = property(...gs, f);
+      const p = dev.property(...gs, f);
 
       const result = p(config);
 
