@@ -1,7 +1,7 @@
 import { Gens, property } from '../src';
 import { stableAssert, stableProperty } from './helpers/stableApi';
 import {
-  arbitraryExtendableTuple,
+  extendableArbitrary,
   arbitraryPropertyConfig,
   arbitraryGenValue,
   arbitraryGens,
@@ -13,7 +13,8 @@ import { GenStub } from './helpers/stubs';
 import fc from 'fast-check';
 
 test('The test function receives a value from the generator', () => {
-  const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
+  const arb = extendableArbitrary()
+    .extend(() => arbitraryPropertyConfig())
     .extend(() => arbitraryGenValue())
     .extend(() => arbitraryPropertyFunction())
     .toArbitrary();
@@ -31,7 +32,8 @@ test('The test function receives a value from the generator', () => {
 });
 
 test('Given a succeeding property function, the test function is only called once for each iteration', () => {
-  const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
+  const arb = extendableArbitrary()
+    .extend(() => arbitraryPropertyConfig())
     .extend(({ iterations }) => arbitraryGens({ minLength: iterations }))
     .extend(() => arbitrarySucceedingPropertyFunction())
     .toArbitrary();
@@ -49,7 +51,8 @@ test('Given a succeeding property function, the test function is only called onc
 });
 
 test('Given an exhausting generator, the property does not hold', () => {
-  const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
+  const arb = extendableArbitrary()
+    .extend(() => arbitraryPropertyConfig())
     .extend(
       ({ iterations }) =>
         arbitraryGens({ minLength: iterations })

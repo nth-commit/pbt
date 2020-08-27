@@ -1,14 +1,15 @@
 import { property } from '../src';
 import { stableAssert, stableProperty } from './helpers/stableApi';
 import {
-  arbitraryExtendableTuple,
+  extendableArbitrary,
   arbitraryPropertyConfig,
   arbitraryGen,
   arbitraryPropertyFunction,
 } from './helpers/arbitraries';
 
 test('The generator receives the seed', () => {
-  const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
+  const arb = extendableArbitrary()
+    .extend(() => arbitraryPropertyConfig())
     .extend(() => arbitraryGen())
     .extend(() => arbitraryPropertyFunction())
     .toArbitrary();

@@ -6,15 +6,13 @@ import { GenStub } from './stubs';
 
 export type Extender<T extends any[], U> = (...args: T) => fc.Arbitrary<U>;
 
-export type ExtendableTupleArbitrary<T extends any[]> = {
-  extend: <U>(f: Extender<T, U>) => ExtendableTupleArbitrary<[...T, U]>;
+export type ExtendableArbitrary<T extends any[]> = {
+  extend: <U>(f: Extender<T, U>) => ExtendableArbitrary<[...T, U]>;
   toArbitrary: () => fc.Arbitrary<[...T]>;
 };
 
-export const arbitraryExtendableTuple = <T>(arb: fc.Arbitrary<T>): ExtendableTupleArbitrary<[T]> => {
-  const createExtendableTuple = <TPrev extends any[]>(
-    arbitrary: fc.Arbitrary<TPrev>,
-  ): ExtendableTupleArbitrary<TPrev> => ({
+export const extendableArbitrary = (): ExtendableArbitrary<[]> => {
+  const createExtendableTuple = <TPrev extends any[]>(arbitrary: fc.Arbitrary<TPrev>): ExtendableArbitrary<TPrev> => ({
     toArbitrary: () => arbitrary,
     extend: <TNext>(f: Extender<TPrev, TNext>) => {
       const nextArb: fc.Arbitrary<[...TPrev, TNext]> = arbitrary.chain((args) => f(...args).map((x) => [...args, x]));
@@ -22,13 +20,7 @@ export const arbitraryExtendableTuple = <T>(arb: fc.Arbitrary<T>): ExtendableTup
     },
   });
 
-  return createExtendableTuple<[T]>(arb.map((x) => [x]));
-};
-
-export type PropertyFixture = {
-  values: unknown[];
-  iterations: number;
-  seed: Seed;
+  return createExtendableTuple<[]>(fc.constant([]));
 };
 
 export const arbitraryGenValue = (): fc.Arbitrary<unknown> => fc.anything();
