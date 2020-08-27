@@ -1,14 +1,15 @@
 import { property } from '../src';
 import { stableAssert, stableProperty } from './helpers/stableApi';
 import {
-  arbitraryExtendableTuple,
+  extendableArbitrary,
   arbitraryPropertyConfig,
   arbitraryGens,
   arbitrarySucceedingPropertyFunction,
 } from './helpers/arbitraries';
 
 test('Given a succeeding property function, the property holds', () => {
-  const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
+  const arb = extendableArbitrary()
+    .extend(() => arbitraryPropertyConfig())
     .extend(({ iterations }) => arbitraryGens({ minLength: iterations }))
     .extend(() => arbitrarySucceedingPropertyFunction())
     .toArbitrary();
@@ -25,7 +26,8 @@ test('Given a succeeding property function, the property holds', () => {
 });
 
 test('Given a false predicate, the property does not hold', () => {
-  const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
+  const arb = extendableArbitrary()
+    .extend(() => arbitraryPropertyConfig())
     .extend(({ iterations }) => arbitraryGens({ minLength: iterations }))
     .toArbitrary();
 

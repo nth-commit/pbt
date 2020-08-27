@@ -2,16 +2,17 @@ import * as fc from 'fast-check';
 import { property } from '../src';
 import { stableAssert, stableProperty } from './helpers/stableApi';
 import {
-  arbitraryDecimal,
-  arbitraryExtendableTuple,
-  arbitraryGens,
+  extendableArbitrary,
   arbitraryPropertyConfig,
+  arbitraryGens,
   arbitraryPropertyFunction,
+  arbitraryDecimal,
 } from './helpers/arbitraries';
 import { DEFAULT_MAX_ITERATIONS } from './helpers/constants';
 
 test('Given iterations = 0, the property returns a validation failure', () => {
-  const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
+  const arb = extendableArbitrary()
+    .extend(() => arbitraryPropertyConfig())
     .extend(({ iterations }) => arbitraryGens({ minLength: iterations }))
     .extend(() => arbitraryPropertyFunction())
     .toArbitrary();
@@ -34,7 +35,8 @@ test('Given iterations = 0, the property returns a validation failure', () => {
 });
 
 test('Given iterations < 0, the property returns a validation failure', () => {
-  const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
+  const arb = extendableArbitrary()
+    .extend(() => arbitraryPropertyConfig())
     .extend(({ iterations }) => arbitraryGens({ minLength: iterations }))
     .extend(() => arbitraryPropertyFunction())
     .extend(() => fc.integer(-1))
@@ -58,7 +60,8 @@ test('Given iterations < 0, the property returns a validation failure', () => {
 });
 
 test('Given iterations is a decimal, the property returns a validation failure', () => {
-  const arb = arbitraryExtendableTuple(arbitraryPropertyConfig())
+  const arb = extendableArbitrary()
+    .extend(() => arbitraryPropertyConfig())
     .extend(({ iterations }) => arbitraryGens({ minLength: iterations }))
     .extend(() => arbitraryPropertyFunction())
     .extend(() => arbitraryDecimal(1, DEFAULT_MAX_ITERATIONS))
