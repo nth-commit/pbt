@@ -1,6 +1,6 @@
 import * as fc from 'fast-check';
-import { Gen, Seed } from 'pbt-generator-core';
-import { Gens, PropertyFunction, PropertyConfig } from '../../src';
+import { Gen, Seed, Size } from 'pbt-generator-core';
+import * as dev from '../../src';
 import { DEFAULT_MAX_ITERATIONS } from './constants';
 import { GenStub } from './stubs';
 
@@ -53,9 +53,9 @@ const resolveGensConstraints = (constraints: Partial<GensConstraints>): GensCons
   ...resolveGenConstraints(constraints),
 });
 
-export const arbitraryGens = (constraints: Partial<GensConstraints>): fc.Arbitrary<Gens> => {
+export const arbitraryGens = (constraints: Partial<GensConstraints> = {}): fc.Arbitrary<dev.Gens> => {
   const resolvedConstraints = resolveGensConstraints(constraints);
-  return fc.array(resolvedConstraints.genArbitrary, resolvedConstraints.minGens, 20) as fc.Arbitrary<Gens>;
+  return fc.array(resolvedConstraints.genArbitrary, resolvedConstraints.minGens, 20) as fc.Arbitrary<dev.Gens>;
 };
 
 export const arbitraryNonEmptyGen = (): fc.Arbitrary<Gen<unknown>> => arbitraryGen({ minLength: 1 });
@@ -63,13 +63,13 @@ export const arbitraryNonEmptyGen = (): fc.Arbitrary<Gen<unknown>> => arbitraryG
 export const arbitraryExhaustingGen = (): fc.Arbitrary<Gen<unknown>> =>
   arbitraryGenValues().map((values) => GenStub.exhaustAfter(values));
 
-export const arbitrarySucceedingPropertyFunction = <T extends Gens>(): fc.Arbitrary<PropertyFunction<T>> =>
+export const arbitrarySucceedingPropertyFunction = <T extends dev.Gens>(): fc.Arbitrary<dev.PropertyFunction<T>> =>
   fc.constant(() => true);
 
-export const arbitraryFailingPropertyFunction = <T extends Gens>(): fc.Arbitrary<PropertyFunction<T>> =>
+export const arbitraryFailingPropertyFunction = <T extends dev.Gens>(): fc.Arbitrary<dev.PropertyFunction<T>> =>
   fc.constant(() => false);
 
-export const arbitraryPropertyFunction = <T extends Gens>(): fc.Arbitrary<PropertyFunction<T>> =>
+export const arbitraryPropertyFunction = <T extends dev.Gens>(): fc.Arbitrary<dev.PropertyFunction<T>> =>
   fc.oneof(arbitrarySucceedingPropertyFunction(), arbitraryFailingPropertyFunction());
 
 export const arbitraryIterations = (maxIterations: number = DEFAULT_MAX_ITERATIONS): fc.Arbitrary<number> =>
@@ -85,16 +85,18 @@ export const arbitrarySeed = (): fc.Arbitrary<Seed> =>
     return seed;
   });
 
+export const arbitrarySize = (): fc.Arbitrary<Size> => fc.integer(0, 100);
+
 export const arbitraryPropertyConfig = (
   maxIterations: number = DEFAULT_MAX_ITERATIONS,
-): fc.Arbitrary<PropertyConfig> => {
+): fc.Arbitrary<dev.PropertyConfig> => {
   return fc
-    .tuple(arbitraryIterations(maxIterations), arbitrarySeed())
-    .map(([iterations, seed]) => ({ iterations, seed }));
+    .tuple(arbitraryIterations(maxIterations), arbitrarySeed(), arbitrarySize())
+    .map(([iterations, seed, size]) => ({ iterations, seed, size }));
 };
 
-export const arbitraryDecimal = (min?: number, max?: number): fc.Arbitrary<number> =>
-  fc.float(min || Number.MIN_SAFE_INTEGER, max || Number.MAX_SAFE_INTEGER).filter((x) => x.toString().includes('.'));
+export const arbitraryDecimal = (min: number, max: number): fc.Arbitrary<number> =>
+  fc.float(min, max).filter((x) => x.toString().includes('.'));
 
 export const arbitrarilyShuffleArray = <T>(arr: T[]): fc.Arbitrary<T[]> => {
   return fc.array(fc.nat(), arr.length, arr.length).map((orders) =>

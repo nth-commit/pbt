@@ -1,5 +1,5 @@
-import { Gens, property } from '../src';
-import { stableAssert, stableProperty } from './helpers/stableApi';
+import * as dev from '../src';
+import * as stable from './helpers/stableApi';
 import {
   extendableArbitrary,
   arbitraryPropertyConfig,
@@ -19,10 +19,10 @@ test('The test function receives a value from the generator', () => {
     .extend(() => arbitraryPropertyFunction())
     .toArbitrary();
 
-  stableAssert(
-    stableProperty(arb, ([config, x, f]) => {
+  stable.assert(
+    stable.property(arb, ([config, x, f]) => {
       const spyF = jest.fn<boolean, unknown[]>(f);
-      const p = property(GenStub.singleton(x), spyF);
+      const p = dev.property(GenStub.singleton(x), spyF);
 
       p({ ...config, iterations: 1 });
 
@@ -38,10 +38,10 @@ test('Given a succeeding property function, the test function is only called onc
     .extend(() => arbitrarySucceedingPropertyFunction())
     .toArbitrary();
 
-  stableAssert(
-    stableProperty(arb, ([config, gs, f]) => {
-      const spyF = jest.fn<boolean, unknown[]>(f);
-      const p = property(...gs, spyF);
+  stable.assert(
+    stable.property(arb, ([config, gs, f]) => {
+      const spyF = jest.fn(f);
+      const p = dev.property(...gs, spyF);
 
       p(config);
 
@@ -57,14 +57,14 @@ test('Given an exhausting generator, the property does not hold', () => {
       ({ iterations }) =>
         arbitraryGens({ minLength: iterations })
           .map((gs) => [...gs, GenStub.exhausted()])
-          .chain(arbitrarilyShuffleArray) as fc.Arbitrary<Gens>,
+          .chain(arbitrarilyShuffleArray) as fc.Arbitrary<dev.Gens>,
     )
     .extend(() => arbitrarySucceedingPropertyFunction())
     .toArbitrary();
 
-  stableAssert(
-    stableProperty(arb, ([config, gs, f]) => {
-      const p = property(...gs, f);
+  stable.assert(
+    stable.property(arb, ([config, gs, f]) => {
+      const p = dev.property(...gs, f);
 
       const result = p(config);
 

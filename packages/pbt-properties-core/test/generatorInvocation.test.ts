@@ -1,11 +1,27 @@
-import { property } from '../src';
-import { stableAssert, stableProperty } from './helpers/stableApi';
+import * as devGenerators from 'pbt-generator-core';
+import * as dev from '../src';
+import * as stable from './helpers/stableApi';
 import {
   extendableArbitrary,
   arbitraryPropertyConfig,
   arbitraryGen,
+  arbitraryGens,
   arbitraryPropertyFunction,
+  arbitrarySucceedingPropertyFunction,
 } from './helpers/arbitraries';
+
+type GenSpy<T> = devGenerators.Gen<T> & {
+  getSizes(): number[];
+};
+
+const spyGen = <T>(g: devGenerators.Gen<T>): GenSpy<T> => {
+  const gFn = jest.fn(g);
+  const gSpy = (gFn as unknown) as GenSpy<T>;
+
+  gSpy.getSizes = () => gFn.mock.calls.map((args) => args[1]);
+
+  return gSpy;
+};
 
 test('The generator receives the seed', () => {
   const arb = extendableArbitrary()
@@ -14,15 +30,15 @@ test('The generator receives the seed', () => {
     .extend(() => arbitraryPropertyFunction())
     .toArbitrary();
 
-  stableAssert(
-    stableProperty(arb, ([config, g, f]) => {
-      const spyGen = jest.fn(g);
-      const p = property(spyGen, f);
+  stable.assert(
+    stable.property(arb, ([config, g, f]) => {
+      const gSpy = jest.fn(g);
+      const p = dev.property(gSpy, f);
 
       p(config);
 
-      expect(spyGen).toBeCalledTimes(1);
-      expect(spyGen).toBeCalledWith(config.seed, 0);
+      expect(gSpy).toBeCalledTimes(1);
+      expect(gSpy).toBeCalledWith(config.seed, expect.anything());
     }),
   );
 });
