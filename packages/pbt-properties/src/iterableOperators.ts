@@ -1,12 +1,5 @@
 import { OperatorFunction } from 'ix/interfaces';
 import { IterableX } from 'ix/iterable';
-import { map } from 'ix/iterable/operators';
-
-export type Indexed<T> = { value: T; index: number };
-
-export const indexed = <TSource>(): OperatorFunction<TSource, { value: TSource; index: number }> => {
-  return map((value, index) => ({ value, index }));
-};
 
 export class TakeWhileInclusiveIterable<TSource> extends IterableX<TSource> {
   private _source: Iterable<TSource>;

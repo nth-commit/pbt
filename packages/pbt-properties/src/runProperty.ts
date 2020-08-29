@@ -1,7 +1,7 @@
 import { Gen, Gens, GenResult, GenInstance, Seed, Size } from 'pbt-core';
 import { pipe, last, zip, concat, from, first } from 'ix/iterable';
 import { map, take } from 'ix/iterable/operators';
-import { indexed, takeWhileInclusive } from './iterableOperators';
+import { takeWhileInclusive } from './iterableOperators';
 import { PropertyConfig } from './PropertyConfig';
 
 type GenValue<T> = T extends Gen<infer U> ? U : never;
@@ -99,6 +99,23 @@ const runIteration = <TGens extends Gens>(
   return status;
 };
 
+const runIterations = function* <TGens extends Gens>(
+  gs: TGens,
+  f: PropertyFunction<TGens>,
+  initialSeed: Seed,
+  intialSize: Size,
+): Iterable<PropertyIterationResult> {
+  for (let iterationNumber = 1; iterationNumber <= Number.MAX_SAFE_INTEGER; iterationNumber++) {
+    const iterationSizeOffset = iterationNumber - 1;
+    const untruncatedSize = intialSize + iterationSizeOffset;
+    const currentSize = ((untruncatedSize - 1) % 100) + 1;
+    yield {
+      iterationNumber,
+      iterationStatus: runIteration(gs, f, initialSeed, currentSize),
+    };
+  }
+};
+
 const runProperty = <TGens extends Gens>(
   gs: TGens,
   f: PropertyFunction<TGens>,
@@ -108,22 +125,9 @@ const runProperty = <TGens extends Gens>(
 
   const lastIteration = last(
     pipe(
-      from(
-        (function* () {
-          while (true) {
-            yield runIteration(gs, f, seed, size);
-          }
-        })(),
-      ),
+      from(runIterations(gs, f, seed, size)),
       take(iterations),
-      indexed(),
-      takeWhileInclusive((x) => x.value === 'success'),
-      map(
-        ({ index, value }): PropertyIterationResult => ({
-          iterationNumber: index + 1,
-          iterationStatus: value,
-        }),
-      ),
+      takeWhileInclusive((x) => x.iterationStatus === 'success'),
     ),
   );
 
