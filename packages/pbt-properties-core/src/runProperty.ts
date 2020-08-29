@@ -1,8 +1,8 @@
 import { Gen, GenResult, GenInstance, Seed, Size } from 'pbt-generator-core';
-import { pipe, last, zip, concat, from } from 'ix/iterable';
+import { pipe, last, zip, concat, from, first } from 'ix/iterable';
 import { map, take } from 'ix/iterable/operators';
-import { indexed, mapIndexed, takeWhileInclusive } from './iterableOperators';
-import { PropertyConfig, validateConfig } from './PropertyConfig';
+import { indexed, takeWhileInclusive } from './iterableOperators';
+import { PropertyConfig } from './PropertyConfig';
 
 export type Gens = [Gen<any>, ...Gen<any>[]];
 
@@ -65,30 +65,60 @@ const invokeGens = <TGens extends Gens>(gs: TGens, seed: Seed, size: Size): GenI
 
 const isGenResultAnInstance = <T>(r: GenResult<T>): r is GenInstance<T> => r.kind === 'instance';
 
+const invokePropertyFunction = <TGens extends Gens>(
+  f: PropertyFunction<TGens>,
+  args: Array<GenResult<any>>,
+): PropertyIterationStatus => {
+  if (args.every(isGenResultAnInstance)) {
+    const unsafeF = f as any;
+    const unsafeValues = args.map((x) => x.value);
+    return (unsafeF(...unsafeValues) as boolean) ? 'success' : 'predicateFailure';
+  }
+  return 'exhaustionFailure';
+};
+
+const runIteration = <TGens extends Gens>(
+  gs: TGens,
+  f: PropertyFunction<TGens>,
+  seed: Seed,
+  size: Size,
+): PropertyIterationStatus => {
+  const { iterables } = invokeGens(gs, seed, size);
+
+  const status = first(
+    pipe(
+      zip(...iterables),
+      map((genResults: Array<GenResult<any>>) => invokePropertyFunction(f, genResults)),
+      take(1),
+    ),
+  );
+
+  /* istanbul ignore next */
+  if (!status) {
+    throw new Error('Fatal: Failed to run iteration');
+  }
+
+  return status;
+};
+
 const runProperty = <TGens extends Gens>(
   gs: TGens,
   f: PropertyFunction<TGens>,
   config: PropertyConfig,
 ): PropertyRunResult => {
-  const { iterations, seed } = config;
-
-  const { iterables } = invokeGens(gs, seed, 0);
+  const { iterations, seed, size } = config;
 
   const lastIteration = last(
     pipe(
-      zip(...iterables),
-      indexed(),
-      take(iterations),
-      mapIndexed(
-        (genResults: Array<GenResult<any>>): PropertyIterationStatus => {
-          if (genResults.every(isGenResultAnInstance)) {
-            const unsafeF = f as any;
-            const unsafeValues = genResults.map((x) => x.value);
-            return (unsafeF(...unsafeValues) as boolean) ? 'success' : 'predicateFailure';
+      from(
+        (function* () {
+          while (true) {
+            yield runIteration(gs, f, seed, size);
           }
-          return 'exhaustionFailure';
-        },
+        })(),
       ),
+      take(iterations),
+      indexed(),
       takeWhileInclusive((x) => x.value === 'success'),
       map(
         ({ index, value }): PropertyIterationResult => ({

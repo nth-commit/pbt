@@ -8,15 +8,6 @@ export const indexed = <TSource>(): OperatorFunction<TSource, { value: TSource; 
   return map((value, index) => ({ value, index }));
 };
 
-export const mapIndexed = <TSourceValue, USourceValue>(
-  f: (x: TSourceValue) => USourceValue,
-): OperatorFunction<Indexed<TSourceValue>, Indexed<USourceValue>> => {
-  return map(({ index, value }) => ({
-    index,
-    value: f(value),
-  }));
-};
-
 export class TakeWhileInclusiveIterable<TSource> extends IterableX<TSource> {
   private _source: Iterable<TSource>;
   private _predicate: (value: TSource, index: number) => boolean;
