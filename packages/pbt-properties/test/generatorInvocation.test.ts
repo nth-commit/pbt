@@ -1,4 +1,4 @@
-import * as devGenerators from 'pbt-generator-core';
+import * as devCore from 'pbt-core';
 import * as dev from '../src';
 import * as stable from './helpers/stableApi';
 import {
@@ -10,13 +10,13 @@ import {
   arbitrarySucceedingPropertyFunction,
 } from './helpers/arbitraries';
 
-type GenSpy<T> = devGenerators.Gen<T> & {
-  getInvocations(): Array<[devGenerators.Seed, devGenerators.Size]>;
-  getSeeds(): devGenerators.Seed[];
-  getSizes(): devGenerators.Size[];
+type GenSpy<T> = devCore.Gen<T> & {
+  getInvocations(): Array<[devCore.Seed, devCore.Size]>;
+  getSeeds(): devCore.Seed[];
+  getSizes(): devCore.Size[];
 };
 
-const spyOnGen = <T>(g: devGenerators.Gen<T>): GenSpy<T> => {
+const spyOnGen = <T>(g: devCore.Gen<T>): GenSpy<T> => {
   const gFn = jest.fn(g);
   const gSpy = (gFn as unknown) as GenSpy<T>;
 
@@ -27,7 +27,7 @@ const spyOnGen = <T>(g: devGenerators.Gen<T>): GenSpy<T> => {
   return gSpy;
 };
 
-const spyOnGens = (gs: dev.Gens): [GenSpy<any>, ...GenSpy<any>[]] =>
+const spyOnGens = (gs: devCore.Gens): [GenSpy<any>, ...GenSpy<any>[]] =>
   gs.map(spyOnGen) as [GenSpy<any>, ...GenSpy<any>[]];
 
 test('The generator receives the seed and the size', () => {
@@ -39,7 +39,7 @@ test('The generator receives the seed and the size', () => {
 
   stable.assert(
     stable.property(arb, ([config, g, f]) => {
-      const gSpy = jest.fn(g);
+      const gSpy = jest.fn(g) as devCore.Gen<unknown>;
       const p = dev.property(gSpy, f);
 
       p({ ...config, iterations: 1 });
