@@ -1,4 +1,3 @@
-import * as devCore from 'pbt-core';
 import * as dev from '../src';
 import * as stable from './helpers/stableApi';
 import {
@@ -9,26 +8,7 @@ import {
   arbitraryPropertyFunction,
   arbitrarySucceedingPropertyFunction,
 } from './helpers/arbitraries';
-
-type GenSpy<T> = devCore.Gen<T> & {
-  getInvocations(): Array<[devCore.Seed, devCore.Size]>;
-  getSeeds(): devCore.Seed[];
-  getSizes(): devCore.Size[];
-};
-
-const spyOnGen = <T>(g: devCore.Gen<T>): GenSpy<T> => {
-  const gFn = jest.fn(g);
-  const gSpy = (gFn as unknown) as GenSpy<T>;
-
-  gSpy.getInvocations = () => gFn.mock.calls;
-  gSpy.getSeeds = () => gSpy.getInvocations().map((args) => args[0]);
-  gSpy.getSizes = () => gSpy.getInvocations().map((args) => args[1]);
-
-  return gSpy;
-};
-
-const spyOnGens = (gs: devCore.Gens): [GenSpy<any>, ...GenSpy<any>[]] =>
-  gs.map(spyOnGen) as [GenSpy<any>, ...GenSpy<any>[]];
+import { spyOn, spyOnAll } from './helpers/spies';
 
 test('The generator receives the seed and the size', () => {
   const arb = extendableArbitrary()
@@ -39,13 +19,13 @@ test('The generator receives the seed and the size', () => {
 
   stable.assert(
     stable.property(arb, ([config, g, f]) => {
-      const gSpy = jest.fn(g) as devCore.Gen<unknown>;
-      const p = dev.property(gSpy, f);
+      const spy = spyOn(g);
+      const p = dev.property(spy, f);
 
       p({ ...config, iterations: 1 });
 
-      expect(gSpy).toBeCalledTimes(1);
-      expect(gSpy).toBeCalledWith(config.seed, config.size);
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toBeCalledWith(config.seed, config.size);
     }),
   );
 });
@@ -59,14 +39,14 @@ test('The generator is invoked for each iteration for a succeeding property', ()
 
   stable.assert(
     stable.property(arb, ([config, gs, f]) => {
-      const gSpies = spyOnGens(gs);
-      const p = dev.property(...gSpies, f);
+      const spies = spyOnAll(gs);
+      const p = dev.property(...spies, f);
 
       p(config);
 
-      const invocationsByGenerator = gSpies.map((gSpy) => gSpy.getInvocations());
-      invocationsByGenerator.forEach((invocations) => {
-        expect(invocations).toHaveLength(config.iterations);
+      const callsByGenerator = spies.map((spy) => spy.mock.calls);
+      callsByGenerator.forEach((calls) => {
+        expect(calls).toHaveLength(config.iterations);
       });
     }),
   );
@@ -81,12 +61,12 @@ test('The generator always receives a size, 0 <= s <= 100', () => {
 
   stable.assert(
     stable.property(arb, ([config, gs, f]) => {
-      const gSpies = spyOnGens(gs);
-      const p = dev.property(...gSpies, f);
+      const spies = spyOnAll(gs);
+      const p = dev.property(...spies, f);
 
       p(config);
 
-      const allSizes = ([] as number[]).concat(...gSpies.map((gSpy) => gSpy.getSizes()));
+      const allSizes = ([] as number[]).concat(...spies.map((spy) => spy.mock.calls.map((c) => c[1])));
       expect(allSizes).not.toHaveLength(0);
       allSizes.forEach((s) => {
         expect(s).toBeGreaterThanOrEqual(0);

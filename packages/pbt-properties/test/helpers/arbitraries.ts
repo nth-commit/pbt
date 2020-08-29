@@ -25,7 +25,7 @@ export const extendableArbitrary = (): ExtendableArbitrary<[]> => {
 
 export const arbitraryGenValue = (): fc.Arbitrary<unknown> => fc.anything();
 
-export const arbitraryGenValues = (minLength = 0): fc.Arbitrary<unknown[]> =>
+export const arbitraryGenValues = (minLength: number): fc.Arbitrary<unknown[]> =>
   fc.array(arbitraryGenValue(), minLength, 200);
 
 export type GenConstraints = {
@@ -60,9 +60,6 @@ export const arbitraryGens = (constraints: Partial<GensConstraints> = {}): fc.Ar
 
 export const arbitraryNonEmptyGen = (): fc.Arbitrary<devCore.Gen<unknown>> => arbitraryGen({ minLength: 1 });
 
-export const arbitraryExhaustingGen = (): fc.Arbitrary<devCore.Gen<unknown>> =>
-  arbitraryGenValues().map((values) => GenStub.exhaustAfter(values));
-
 export const arbitrarySucceedingPropertyFunction = <T extends devCore.Gens>(): fc.Arbitrary<dev.PropertyFunction<T>> =>
   fc.constant(() => true);
 
@@ -72,8 +69,7 @@ export const arbitraryFailingPropertyFunction = <T extends devCore.Gens>(): fc.A
 export const arbitraryPropertyFunction = <T extends devCore.Gens>(): fc.Arbitrary<dev.PropertyFunction<T>> =>
   fc.oneof(arbitrarySucceedingPropertyFunction(), arbitraryFailingPropertyFunction());
 
-export const arbitraryIterations = (maxIterations: number = DEFAULT_MAX_ITERATIONS): fc.Arbitrary<number> =>
-  fc.integer(1, maxIterations);
+export const arbitraryIterations = (maxIterations: number): fc.Arbitrary<number> => fc.integer(1, maxIterations);
 
 export const arbitrarySeed = (): fc.Arbitrary<devCore.Seed> =>
   fc.nat().map((nextInt) => {
