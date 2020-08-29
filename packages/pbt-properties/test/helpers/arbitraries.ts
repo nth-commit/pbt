@@ -81,7 +81,8 @@ export const arbitrarySeed = (): fc.Arbitrary<devCore.Seed> =>
     return seed;
   });
 
-export const arbitrarySize = (): fc.Arbitrary<devCore.Size> => fc.integer(0, 100);
+export const arbitrarySize = (): fc.Arbitrary<devCore.Size> =>
+  fc.oneof(fc.integer(0, 100), fc.constant(0), fc.constant(100));
 
 export const arbitraryPropertyConfig = (
   maxIterations: number = DEFAULT_MAX_ITERATIONS,
