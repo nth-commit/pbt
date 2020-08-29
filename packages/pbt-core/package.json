@@ -1,5 +1,5 @@
 {
-  "name": "pbt-generator-core",
+  "name": "pbt-core",
   "version": "0.0.0",
   "main": "index.js",
   "license": "MIT",

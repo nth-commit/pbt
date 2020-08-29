@@ -1,3 +1,4 @@
+import * as devCore from 'pbt-core';
 import * as dev from '../src';
 import * as stable from './helpers/stableApi';
 import {
@@ -57,7 +58,7 @@ test('Given an exhausting generator, the property does not hold', () => {
       ({ iterations }) =>
         arbitraryGens({ minLength: iterations })
           .map((gs) => [...gs, GenStub.exhausted()])
-          .chain(arbitrarilyShuffleArray) as fc.Arbitrary<dev.Gens>,
+          .chain(arbitrarilyShuffleArray) as fc.Arbitrary<devCore.Gens>,
     )
     .extend(() => arbitrarySucceedingPropertyFunction())
     .toArbitrary();

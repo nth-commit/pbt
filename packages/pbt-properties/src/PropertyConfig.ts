@@ -1,4 +1,4 @@
-import { Seed, Size } from 'pbt-generator-core';
+import { Seed, Size } from 'pbt-core';
 import { PropertyValidationFailure } from './PropertyResult';
 
 export type PropertyConfig = {

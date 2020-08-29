@@ -1,5 +1,5 @@
 {
-  "name": "pbt-properties-core",
+  "name": "pbt-properties",
   "version": "0.0.0",
   "main": "index.js",
   "license": "MIT",
@@ -9,7 +9,7 @@
   "types": "./lib/index.d.ts",
   "dependencies": {
     "ix": "^3.0.2",
-    "pbt-generator-core": "0.0.0"
+    "pbt-core": "0.0.0"
   },
   "devDependencies": {
     "@types/jest": "^26.0.10",

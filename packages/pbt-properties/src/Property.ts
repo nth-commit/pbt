@@ -1,7 +1,7 @@
-import { Gen } from 'pbt-generator-core';
+import { Gen, Gens } from 'pbt-core';
 import { success, exhaustionFailure, predicateFailure, PropertyResult } from './PropertyResult';
 import { PropertyConfig, validateConfig } from './PropertyConfig';
-import runProperty, { Gens, PropertyFunction } from './runProperty';
+import runProperty, { PropertyFunction } from './runProperty';
 
 type GenValue<T> = T extends Gen<infer U> ? U : never;
 

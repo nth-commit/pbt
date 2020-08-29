@@ -1,10 +1,8 @@
-import { Gen, GenResult, GenInstance, Seed, Size } from 'pbt-generator-core';
+import { Gen, Gens, GenResult, GenInstance, Seed, Size } from 'pbt-core';
 import { pipe, last, zip, concat, from, first } from 'ix/iterable';
 import { map, take } from 'ix/iterable/operators';
 import { indexed, takeWhileInclusive } from './iterableOperators';
 import { PropertyConfig } from './PropertyConfig';
-
-export type Gens = [Gen<any>, ...Gen<any>[]];
 
 type GenValue<T> = T extends Gen<infer U> ? U : never;
 
