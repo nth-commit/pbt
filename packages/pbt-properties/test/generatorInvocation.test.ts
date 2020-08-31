@@ -10,7 +10,7 @@ import {
 } from './helpers/arbitraries';
 import { spyOn, spyOnAll, calls, GenSpy } from './helpers/spies';
 
-test('A generator receives the initial seed and size', () => {
+test('A generator receives the initial size', () => {
   const arb = extendableArbitrary()
     .extend(() => arbitraryPropertyConfig())
     .extend(() => arbitraryGen())
@@ -25,7 +25,7 @@ test('A generator receives the initial seed and size', () => {
       p({ ...config, iterations: 1 });
 
       expect(spy).toBeCalledTimes(1);
-      expect(spy).toBeCalledWith(config.seed, config.size);
+      expect(spy).toBeCalledWith(expect.anything(), config.size);
     }),
   );
 });

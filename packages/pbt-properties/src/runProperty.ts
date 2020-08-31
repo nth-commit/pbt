@@ -31,9 +31,9 @@ type GenInvocationsResult<TGens extends Gens> = {
 };
 
 /* istanbul ignore next */
-function* throwingGenerator() {
+const throwingGenerator = function* () {
   throw new Error('Unexpected: Tried to enumerate a completed iterable');
-}
+};
 
 const throwIfIterableCompletes = <T>(iterable: Iterable<T>): Iterable<T> => concat(iterable, from(throwingGenerator()));
 

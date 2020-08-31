@@ -1,12 +1,13 @@
 {
   "name": "pbt-properties",
   "version": "0.0.0",
-  "main": "index.js",
   "license": "MIT",
+  "main": "./lib/cjs/index.js",
+  "module": "./lib/esm/index.js",
+  "types": "./lib/esm/index.d.ts",
   "files": [
     "lib/"
   ],
-  "types": "./lib/index.d.ts",
   "dependencies": {
     "ix": "^3.0.2",
     "pbt-core": "0.0.0"
