@@ -13,6 +13,10 @@ export type GenExhaustion = {
 
 export type GenResult<T> = GenInstance<T> | GenExhaustion;
 
+export namespace GenResult {
+  export const isInstance = <T>(r: GenResult<T>): r is GenInstance<T> => r.kind === 'instance';
+}
+
 export interface Gen<T> {
   (seed: Seed, size: Size): Iterable<GenResult<T>>;
 }
