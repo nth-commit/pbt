@@ -61,13 +61,11 @@ const invokeGens = <TGens extends Gens>(gs: TGens, seed: Seed, size: Size): GenI
   }, initial);
 };
 
-const isGenResultAnInstance = <T>(r: GenResult<T>): r is GenInstance<T> => r.kind === 'instance';
-
-const invokePropertyFunction = <TGens extends Gens>(
+const tryInvokePropertyFunction = <TGens extends Gens>(
   f: PropertyFunction<TGens>,
   args: Array<GenResult<any>>,
 ): PropertyIterationStatus => {
-  if (args.every(isGenResultAnInstance)) {
+  if (args.every(GenResult.isInstance)) {
     const unsafeF = f as any;
     const unsafeValues = args.map((x) => x.value);
     return (unsafeF(...unsafeValues) as boolean) ? 'success' : 'predicateFailure';
@@ -86,7 +84,7 @@ const runIteration = <TGens extends Gens>(
   const status = first(
     pipe(
       zip(...iterables),
-      map((genResults: Array<GenResult<any>>) => invokePropertyFunction(f, genResults)),
+      map((genResults: Array<GenResult<any>>) => tryInvokePropertyFunction(f, genResults)),
       take(1),
     ),
   );
