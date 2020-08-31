@@ -1,11 +1,3 @@
 {
-  "include": ["src/**/*"],
-  "compilerOptions": {
-    "module": "commonjs",
-    "target": "es2019",
-    "esModuleInterop": true,
-    "declaration": true,
-    "outDir": "lib",
-    "strict": true
-  }
+  "extends": "./tsconfig.esm.json",
 }

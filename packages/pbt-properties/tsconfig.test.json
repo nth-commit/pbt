@@ -1,9 +1,0 @@
-{
-  "include": ["src/**/*", "test/**/*"],
-  "compilerOptions": {
-    "module": "commonjs",
-    "esModuleInterop": true,
-    "noEmit": true,
-    "strict": true
-  }
-}

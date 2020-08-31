@@ -71,15 +71,7 @@ export const arbitraryPropertyFunction = <T extends devCore.Gens>(): fc.Arbitrar
 
 export const arbitraryIterations = (maxIterations: number): fc.Arbitrary<number> => fc.integer(1, maxIterations);
 
-export const arbitrarySeed = (): fc.Arbitrary<devCore.Seed> =>
-  fc.nat().map((nextInt) => {
-    let seed: devCore.Seed = {
-      nextInt: () => nextInt,
-      split: () => [seed, seed],
-    };
-
-    return seed;
-  });
+export const arbitrarySeed = (): fc.Arbitrary<devCore.Seed> => fc.nat().map(devCore.Seed.create);
 
 export const arbitrarySize = (): fc.Arbitrary<devCore.Size> =>
   fc.oneof(fc.integer(0, 100), fc.constant(0), fc.constant(100));
