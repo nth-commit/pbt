@@ -6,19 +6,40 @@ export type Gen<T> = IGen<T> & {
   map: <U>(f: (x: T) => U) => Gen<U>;
 };
 
-export const create = <T>(g: (seed: Seed, size: Size) => Iterable<T>): Gen<T> => {
-  const baseGen: IGen<T> = (seed, size) =>
-    map<T, GenResult<T>>((x) => ({
-      kind: 'instance',
-      value: x,
-      shrink: /* istanbul ignore next */ () => empty(),
-    }))(g(seed, size));
+const extendWithFunctions = <T>(base: IGen<T>): Gen<T> => {
+  const extended = base as Gen<T>;
 
-  const gen: Gen<T> = baseGen as Gen<T>;
-  gen.map = null as any;
+  extended.map = <U>(f: (x: T) => U): Gen<U> =>
+    extendWithFunctions((seed, size) =>
+      pipe(
+        base(seed, size),
+        map<GenResult<T>, GenResult<U>>((r) =>
+          /* istanbul ignore next */
+          GenResult.isInstance(r)
+            ? {
+                kind: 'instance',
+                value: f(r.value),
+                shrink: empty,
+              }
+            : r,
+        ),
+      ),
+    );
 
-  return gen;
+  return extended;
 };
+
+export const create = <T>(g: (seed: Seed, size: Size) => Iterable<T>): Gen<T> =>
+  extendWithFunctions((seed, size) =>
+    pipe(
+      g(seed, size),
+      map<T, GenResult<T>>((x) => ({
+        kind: 'instance',
+        value: x,
+        shrink: empty,
+      })),
+    ),
+  );
 
 export const integer = (): Gen<number> =>
   create((seed) =>

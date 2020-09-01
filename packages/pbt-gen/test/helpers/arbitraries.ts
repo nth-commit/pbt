@@ -13,3 +13,9 @@ export type GenParams = {
 
 export const arbitraryGenParams = (): fc.Arbitrary<GenParams> =>
   fc.tuple(arbitrarySeed(), arbitrarySize()).map(([seed, size]) => ({ seed, size }));
+
+export const arbitraryIterations = (): fc.Arbitrary<number> => fc.integer(1, 100);
+
+export const arbitraryFunction = <TReturn, TArguments extends any[]>(
+  arbitrary: fc.Arbitrary<TReturn>,
+): fc.Arbitrary<(...args: TArguments) => TReturn> => arbitrary.map((r) => () => r);
