@@ -1,10 +1,11 @@
+import * as fc from 'fast-check';
+import * as prand from 'pure-rand';
 import { toArray, pipe } from 'ix/iterable';
 import { take, filter, map } from 'ix/iterable/operators';
 import * as stable from './helpers/stableApi';
 import * as devCore from 'pbt-core';
 import * as dev from '../src';
 import { arbitraryFunction, arbitraryGenParams, arbitraryIterations } from './helpers/arbitraries';
-import fc from 'fast-check';
 
 const generatorByName = {
   integer: dev.integer(),
@@ -44,7 +45,11 @@ test('It maps like an array', () => {
       arbitraryGeneratorKey(),
       arbitraryGenParams(),
       arbitraryIterations(),
-      arbitraryFunction(fc.anything()),
+      arbitraryFunction((seed) =>
+        fc
+          .anything()
+          .generate(new fc.Random(prand.mersenne(seed.nextInt(Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER)))),
+      ),
       (name, { seed, size }, iterations, f) => {
         const gInitial = generatorByName[name];
         const gMapped = gInitial.map(f);
