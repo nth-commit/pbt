@@ -9,7 +9,7 @@
     "lib/"
   ],
   "dependencies": {
-    "ix": "^3.0.2",
+    "ix": "^4.0.0",
     "pbt-core": "0.0.0"
   },
   "devDependencies": {
