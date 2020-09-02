@@ -4,12 +4,16 @@ import * as devCore from 'pbt-core';
 import * as dev from '../src';
 import * as stable from './helpers/stableApi';
 import { arbitraryGenParams, arbitraryIterations } from './helpers/arbitraries';
+import { calculateProbabilityOfUniformDistribution } from './helpers/statistics';
 
 describe('integer', () => {
   test('It always generates an instance', () => {
     stable.assert(
       stable.property(arbitraryGenParams(), arbitraryIterations(), ({ seed, size }, iterations) => {
-        const xs = toArray(pipe(dev.integer()(seed, size), take(iterations)));
+        const min = 0;
+        const max = 10;
+
+        const xs = toArray(pipe(dev.integer([min, max])(seed, size), take(iterations)));
 
         expect(xs).not.toHaveLength(0);
         xs.forEach((x) => {
@@ -19,12 +23,15 @@ describe('integer', () => {
     );
   });
 
-  test('An instance is always an integer', () => {
+  test('Instances are integers', () => {
     stable.assert(
       stable.property(arbitraryGenParams(), arbitraryIterations(), ({ seed, size }, iterations) => {
+        const min = 0;
+        const max = 10;
+
         const xs = toArray(
           pipe(
-            dev.integer()(seed, size),
+            dev.integer([min, max])(seed, size),
             filter(devCore.GenResult.isInstance),
             map((r) => r.value),
             take(iterations),
@@ -35,6 +42,55 @@ describe('integer', () => {
         xs.forEach((x) => {
           expect(x).toEqual(Math.round(x));
         });
+      }),
+    );
+  });
+
+  test('Instances are within the range', () => {
+    stable.assert(
+      stable.property(arbitraryGenParams(), arbitraryIterations(), ({ seed, size }, iterations) => {
+        const min = 0;
+        const max = 10;
+
+        const xs = toArray(
+          pipe(
+            dev.integer([min, max])(seed, size),
+            filter(devCore.GenResult.isInstance),
+            map((r) => r.value),
+            take(iterations),
+          ),
+        );
+
+        expect(xs).not.toHaveLength(0);
+        xs.forEach((x) => {
+          expect(x).toBeGreaterThanOrEqual(min);
+          expect(x).toBeLessThanOrEqual(max);
+        });
+      }),
+    );
+  });
+
+  test('Instances are uniformly distributed', () => {
+    const arbIterations = arbitraryIterations()
+      .noShrink()
+      .filter((x) => x > 50);
+
+    stable.assert(
+      stable.property(arbitraryGenParams(), arbIterations, ({ seed, size }, iterations) => {
+        const min = 0;
+        const max = 10;
+
+        const xs = toArray(
+          pipe(
+            dev.integer([min, max])(seed, size),
+            filter(devCore.GenResult.isInstance),
+            map((r) => r.value),
+            take(iterations),
+          ),
+        );
+
+        const { pValue } = calculateProbabilityOfUniformDistribution(min, max, xs);
+        expect(pValue).toBeGreaterThanOrEqual(0.001);
       }),
     );
   });
