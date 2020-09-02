@@ -7,7 +7,7 @@ import { arbitraryFunction, arbitraryGenParams, arbitraryIterations } from './he
 import fc from 'fast-check';
 
 const generatorByName = {
-  integer: dev.integer(),
+  integer: dev.integer([-1000, 1000]),
 };
 
 const arbitraryGeneratorKey = (): fc.Arbitrary<keyof typeof generatorByName> =>

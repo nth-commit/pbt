@@ -41,10 +41,10 @@ export const create = <T>(g: (seed: Seed, size: Size) => Iterable<T>): Gen<T> =>
     ),
   );
 
-export const integer = (): Gen<number> =>
+export const integer = (range: [number, number]): Gen<number> =>
   create((seed) =>
     pipe(
       Seed.stream(seed),
-      map((s) => s.nextInt(0, Number.MAX_SAFE_INTEGER)),
+      map((s) => s.nextInt(range[0], range[1])),
     ),
   );
