@@ -1,4 +1,5 @@
 import * as fc from 'fast-check';
+import * as dev from '../../src';
 import * as devCore from 'pbt-core';
 
 export const arbitrarySeed = (): fc.Arbitrary<devCore.Seed> => fc.nat().map(devCore.Seed.create).noShrink();
