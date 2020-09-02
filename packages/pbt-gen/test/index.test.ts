@@ -3,70 +3,86 @@ import { take, filter, map } from 'ix/iterable/operators';
 import * as devCore from 'pbt-core';
 import * as dev from '../src';
 import * as stable from './helpers/stableApi';
-import { arbitraryGenParams, arbitraryIterations } from './helpers/arbitraries';
+import { arbitraryGenParams, arbitraryIterations, arbitraryInteger } from './helpers/arbitraries';
 import { calculateProbabilityOfUniformDistribution } from './helpers/statistics';
 
 describe('integer', () => {
   test('It always generates an instance', () => {
     stable.assert(
-      stable.property(arbitraryGenParams(), arbitraryIterations(), ({ seed, size }, iterations) => {
-        const min = 0;
-        const max = 10;
+      stable.property(
+        arbitraryGenParams(),
+        arbitraryIterations(),
+        arbitraryInteger(),
+        arbitraryInteger(),
+        ({ seed, size }, iterations, min, max) => {
+          const g = dev.integer.constant(min, max);
 
-        const xs = toArray(pipe(dev.integer([min, max])(seed, size), take(iterations)));
+          const xs = toArray(pipe(g(seed, size), take(iterations)));
 
-        expect(xs).not.toHaveLength(0);
-        xs.forEach((x) => {
-          expect(x.kind).toEqual('instance');
-        });
-      }),
+          expect(xs).not.toHaveLength(0);
+          xs.forEach((x) => {
+            expect(x.kind).toEqual('instance');
+          });
+        },
+      ),
     );
   });
 
   test('Instances are integers', () => {
     stable.assert(
-      stable.property(arbitraryGenParams(), arbitraryIterations(), ({ seed, size }, iterations) => {
-        const min = 0;
-        const max = 10;
+      stable.property(
+        arbitraryGenParams(),
+        arbitraryIterations(),
+        arbitraryInteger(),
+        arbitraryInteger(),
+        ({ seed, size }, iterations, min, max) => {
+          const g = dev.integer.constant(min, max);
 
-        const xs = toArray(
-          pipe(
-            dev.integer([min, max])(seed, size),
-            filter(devCore.GenResult.isInstance),
-            map((r) => r.value),
-            take(iterations),
-          ),
-        );
+          const xs = toArray(
+            pipe(
+              g(seed, size),
+              filter(devCore.GenResult.isInstance),
+              map((r) => r.value),
+              take(iterations),
+            ),
+          );
 
-        expect(xs).not.toHaveLength(0);
-        xs.forEach((x) => {
-          expect(x).toEqual(Math.round(x));
-        });
-      }),
+          expect(xs).not.toHaveLength(0);
+          xs.forEach((x) => {
+            expect(x).toEqual(Math.round(x));
+          });
+        },
+      ),
     );
   });
 
   test('Instances are within the range', () => {
     stable.assert(
-      stable.property(arbitraryGenParams(), arbitraryIterations(), ({ seed, size }, iterations) => {
-        const min = 0;
-        const max = 10;
+      stable.property(
+        arbitraryGenParams(),
+        arbitraryIterations(),
+        arbitraryInteger(),
+        arbitraryInteger(),
+        ({ seed, size }, iterations, min, max) => {
+          const g = dev.integer.constant(min, max);
 
-        const xs = toArray(
-          pipe(
-            dev.integer([min, max])(seed, size),
-            filter(devCore.GenResult.isInstance),
-            map((r) => r.value),
-            take(iterations),
-          ),
-        );
+          const xs = toArray(
+            pipe(
+              g(seed, size),
+              filter(devCore.GenResult.isInstance),
+              map((r) => r.value),
+              take(iterations),
+            ),
+          );
 
-        expect(xs).not.toHaveLength(0);
-        xs.forEach((x) => {
-          expect(x).toBeGreaterThanOrEqual(min);
-          expect(x).toBeLessThanOrEqual(max);
-        });
-      }),
+          expect(xs).not.toHaveLength(0);
+          xs.forEach((x) => {
+            const [actualMin, actualMax] = [min, max].sort((a, b) => a - b);
+            expect(x).toBeGreaterThanOrEqual(actualMin);
+            expect(x).toBeLessThanOrEqual(actualMax);
+          });
+        },
+      ),
     );
   });
 
@@ -79,10 +95,11 @@ describe('integer', () => {
       stable.property(arbitraryGenParams(), arbIterations, ({ seed, size }, iterations) => {
         const min = 0;
         const max = 10;
+        const g = dev.integer.constant(min, max);
 
         const xs = toArray(
           pipe(
-            dev.integer([min, max])(seed, size),
+            g(seed, size),
             filter(devCore.GenResult.isInstance),
             map((r) => r.value),
             take(iterations),
