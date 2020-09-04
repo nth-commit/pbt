@@ -150,7 +150,7 @@ test('Instances shrink with "towardsNumber"', () => {
 });
 
 describe('Constant', () => {
-  test('Instances are uniformly distributed', () => {
+  test('Instances are uniformly distributed across the range', () => {
     const arbIterations = arbitraryIterations()
       .noShrink()
       .filter((x) => x > 50);
@@ -177,4 +177,88 @@ describe('Constant', () => {
   });
 });
 
-describe('Linear', () => {});
+describe('Linear', () => {
+  test('If size = 0, instances are equal to min', () => {
+    stable.assert(
+      stable.property(
+        arbitraryGenParams(),
+        arbitraryIterations(),
+        arbitraryInteger(),
+        arbitraryInteger(),
+        ({ seed }, iterations, min, max) => {
+          const size = 0;
+          const g = dev.integer.linear(min, max);
+
+          const xs = toArray(
+            pipe(
+              g(seed, size),
+              castToInstance(),
+              map((r) => r.value),
+              take(iterations),
+            ),
+          );
+
+          expect(xs).not.toHaveLength(0);
+          xs.forEach((x) => {
+            const [actualMin] = [min, max].sort((a, b) => a - b);
+            expect(x).toEqual(actualMin);
+          });
+        },
+      ),
+    );
+  });
+
+  test.each([
+    { min: 0, max: 10, size: 50, scaledMax: 5 },
+    { min: -10, max: 0, size: 50, scaledMax: -5 },
+    { min: -5, max: 5, size: 50, scaledMax: 0 },
+    { min: -5, max: 6, size: 50, scaledMax: 1 },
+    { min: -6, max: 5, size: 50, scaledMax: 0 }, // Rounding error
+  ])('Instances are scaled by the size parameter', ({ min, max, scaledMax, size }) => {
+    stable.assert(
+      stable.property(arbitraryGenParams(), arbitraryIterations(), ({ seed }, iterations) => {
+        const g = dev.integer.linear(min, max);
+
+        const xs = toArray(
+          pipe(
+            g(seed, size),
+            castToInstance(),
+            map((r) => r.value),
+            take(iterations),
+          ),
+        );
+
+        expect(xs).not.toHaveLength(0);
+        xs.forEach((x) => {
+          expect(x).toBeLessThanOrEqual(scaledMax);
+        });
+      }),
+    );
+  });
+
+  test('If size = 100, instances are uniformly distributed across the range', () => {
+    const arbIterations = arbitraryIterations()
+      .noShrink()
+      .filter((x) => x > 50);
+
+    stable.assert(
+      stable.property(arbitraryGenParams(), arbIterations, ({ seed }, iterations) => {
+        const min = 0;
+        const max = 10;
+        const g = dev.integer.linear(min, max);
+
+        const xs = toArray(
+          pipe(
+            g(seed, 100),
+            castToInstance(),
+            map((r) => r.value),
+            take(iterations),
+          ),
+        );
+
+        const { pValue } = calculateProbabilityOfUniformDistribution(min, max, xs);
+        expect(pValue).toBeGreaterThanOrEqual(0.0005);
+      }),
+    );
+  });
+});
