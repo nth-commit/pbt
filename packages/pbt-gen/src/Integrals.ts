@@ -1,7 +1,8 @@
-import { pipe, of } from 'ix/iterable';
+import { pipe } from 'ix/iterable';
 import { map } from 'ix/iterable/operators';
-import { GenResult, Seed, Size } from 'pbt-core';
-import { create, exhausted, Gen } from './Gen';
+import { Seed, Size } from 'pbt-core';
+import { create, Gen } from './Gen';
+import { Shrink } from './Shrink';
 
 type Range = {
   getSizedBounds: (size: Size) => [min: number, max: number, maxDp: number];
@@ -20,21 +21,16 @@ namespace Range {
 
     return {
       getSizedBounds: () => [min, max, dp],
-      origin: x,
+      origin: min,
     };
   };
 
-  export const linear = (x: number, y: number, dp: number, origin?: number): Range | string => {
+  export const linear = (x: number, y: number, dp: number): Range => {
     const [min, max] = sort(x, y);
-    origin = origin || min;
-
-    if (origin < min || origin > max) {
-      return 'Origin was out-of-bounds';
-    }
 
     return {
       getSizedBounds: () => [min, max, dp],
-      origin,
+      origin: min,
     };
   };
 }
@@ -52,13 +48,10 @@ const nextNumber = (size: Size, range: Range) => (seed: Seed): number => {
 };
 
 const integral = (range: Range): Gen<number> =>
-  create((seed, size) => pipe(Seed.stream(seed), map(nextNumber(size, range))));
+  create((seed, size) => pipe(Seed.stream(seed), map(nextNumber(size, range))), Shrink.towardsNumber(range.origin, 0));
 
 export const integer = {
   constant: (min: number, max: number): Gen<number> => integral(Range.constant(min, max, 0)),
 
-  linear: (min: number, max: number, origin?: number): Gen<number> => {
-    const maybeRange = Range.linear(min, max, 0, origin);
-    return typeof maybeRange === 'string' ? exhausted() : integral(maybeRange);
-  },
+  linear: (min: number, max: number): Gen<number> => integral(Range.linear(min, max, 0)),
 };

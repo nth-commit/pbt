@@ -1,8 +1,7 @@
 import fc from 'fast-check';
-import { toArray, pipe, first } from 'ix/iterable';
+import { toArray, pipe, first, last, count } from 'ix/iterable';
 import { take, map } from 'ix/iterable/operators';
 import * as dev from '../src';
-import * as devCore from 'pbt-core';
 import * as stable from './helpers/stableApi';
 import { arbitraryGenParams, arbitraryIterations, arbitraryInteger } from './helpers/arbitraries';
 import { calculateProbabilityOfUniformDistribution } from './helpers/statistics';
@@ -47,7 +46,15 @@ test('It is resilient to min/max parameter order', () => {
         const g1 = gFactory(min, max);
         const g2 = gFactory(max, min);
 
-        const iterate = (g: dev.Gen<number>) => toArray(pipe(g(seed, size), take(iterations)));
+        const iterate = (g: dev.Gen<number>) =>
+          toArray(
+            pipe(
+              g(seed, size),
+              castToInstance(),
+              map((r) => r.value),
+              take(iterations),
+            ),
+          );
 
         expect(iterate(g1)).toEqual(iterate(g2));
       },
@@ -115,6 +122,41 @@ test('Instances are within the range', () => {
   );
 });
 
+test('Instances shrink with "towardsNumber"', () => {
+  stable.assert(
+    stable.property(
+      arbitraryGenParams(),
+      arbitraryIterations(),
+      arbitraryInteger(),
+      arbitraryInteger(),
+      arbitraryIntegerGenFactory(),
+      ({ seed, size }, iterations, min, max, gFactory) => {
+        const g = gFactory(min, max);
+
+        const instances = toArray(pipe(g(seed, size), castToInstance(), take(iterations)));
+
+        expect(instances).not.toHaveLength(0);
+        instances.forEach((instance) => {
+          const [actualMin] = [min, max].sort((a, b) => a - b);
+          const shrinks = instance.shrink();
+
+          if (instance.value !== actualMin) {
+            expect(count(shrinks)).toBeGreaterThanOrEqual(1);
+          }
+
+          if (count(shrinks) >= 1) {
+            expect(first(shrinks)!.value).toEqual(actualMin);
+          }
+
+          if (count(shrinks) >= 2) {
+            expect(last(shrinks)!.value).toEqual(instance.value - 1);
+          }
+        });
+      },
+    ),
+  );
+});
+
 describe('Constant', () => {
   test('Instances are uniformly distributed', () => {
     const arbIterations = arbitraryIterations()
@@ -141,53 +183,6 @@ describe('Constant', () => {
       }),
     );
   });
-
-  test('Instances do not shrink', () => {
-    const arbIterations = arbitraryIterations()
-      .noShrink()
-      .filter((x) => x > 50);
-
-    stable.assert(
-      stable.property(arbitraryGenParams(), arbIterations, ({ seed, size }, iterations) => {
-        const min = 0;
-        const max = 10;
-        const g = dev.integer.constant(min, max);
-
-        const instances = toArray(pipe(g(seed, size), castToInstance(), take(iterations)));
-
-        expect(instances).not.toHaveLength(0);
-        instances.forEach((instance) => {
-          expect(toArray(instance.shrink())).toHaveLength(0);
-        });
-      }),
-    );
-  });
 });
 
-describe('Linear', () => {
-  test('With an origin outside the bounds, it exhausts', () => {
-    const arbitraryOutOfBoundsOrigin = (): fc.Arbitrary<[min: number, max: number, origin: number]> =>
-      fc
-        .tuple(
-          arbitraryInteger(),
-          arbitraryInteger(),
-          arbitraryInteger().filter((x) => x !== 0),
-        )
-        .map(([x, y, diff]) => {
-          const min = x < y ? x : y;
-          const max = x > y ? x : y;
-          const origin = diff > 0 ? max + diff : min + diff;
-          return [min, max, origin];
-        });
-
-    stable.assert(
-      stable.property(arbitraryGenParams(), arbitraryOutOfBoundsOrigin(), ({ seed, size }, [min, max, origin]) => {
-        const g = dev.integer.linear(min, max, origin);
-
-        const result = first(pipe(g(seed, size), take(1))) as devCore.GenResult<number>;
-
-        expect(result).toEqual({ kind: 'exhaustion' });
-      }),
-    );
-  });
-});
+describe('Linear', () => {});
