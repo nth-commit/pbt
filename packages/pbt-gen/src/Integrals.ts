@@ -16,6 +16,8 @@ namespace Range {
     return [min, max];
   };
 
+  const clamp = (min: number, max: number, n: number): number => Math.min(max, Math.max(min, n));
+
   export const constant = (x: number, y: number, dp: number): Range => {
     const [min, max] = sort(x, y);
 
@@ -29,7 +31,13 @@ namespace Range {
     const [min, max] = sort(x, y);
 
     return {
-      getSizedBounds: () => [min, max, dp],
+      getSizedBounds: (size) => {
+        const sizeRatio = size / 100;
+        const diff = max - min;
+        const scaledMax = Math.round(diff * sizeRatio) + min;
+        const clamped = clamp(min, max, scaledMax);
+        return [min, clamped, dp];
+      },
       origin: min,
     };
   };
@@ -37,6 +45,9 @@ namespace Range {
 
 const nextNumber = (size: Size, range: Range) => (seed: Seed): number => {
   const [min, max, maxDp] = range.getSizedBounds(size);
+
+  /* istanbul ignore next */
+  if (min > max) throw new Error('This causes the random to hang...');
 
   /* istanbul ignore next */
   if (maxDp === 0) {
