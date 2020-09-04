@@ -1,10 +1,10 @@
+import fc from 'fast-check';
 import { toArray, pipe } from 'ix/iterable';
 import { take, filter, map } from 'ix/iterable/operators';
 import * as stable from './helpers/stableApi';
 import * as devCore from 'pbt-core';
 import * as dev from '../src';
 import { arbitraryFunction, arbitraryGenParams, arbitraryIterations } from './helpers/arbitraries';
-import fc from 'fast-check';
 
 const generatorByName = {
   'integer.constant': dev.integer.constant(-1000, 1000),
