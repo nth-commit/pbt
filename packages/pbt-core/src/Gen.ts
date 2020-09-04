@@ -1,11 +1,14 @@
 import { Seed } from './Seed';
 import { Size } from './Size';
 
+export type GenInstanceData<T> = {
+  readonly value: T;
+  shrink(): Iterable<GenInstanceData<T>>;
+};
+
 export type GenInstance<T> = {
   kind: 'instance';
-  readonly value: T;
-  shrink(): Iterable<GenInstance<T>>;
-};
+} & GenInstanceData<T>;
 
 export type GenExhaustion = {
   kind: 'exhaustion';
