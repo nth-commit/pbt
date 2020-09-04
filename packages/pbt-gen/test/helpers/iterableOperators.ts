@@ -9,3 +9,13 @@ export const cast = <T>(): OperatorFunction<unknown, T> => (source: Iterable<unk
 export const castToInstance = <T>(): OperatorFunction<devCore.GenResult<T>, devCore.GenInstance<T>> => (
   source: Iterable<devCore.GenResult<T>>,
 ): IterableX<devCore.GenInstance<T>> => cast<devCore.GenInstance<T>>()(source);
+
+type GenResultExcludingShrink<T> = Exclude<devCore.GenResult<T>, 'shrink'>;
+
+export const excludeShrink = <T>(): OperatorFunction<devCore.GenResult<T>, GenResultExcludingShrink<T>> => (
+  source: Iterable<devCore.GenResult<T>>,
+): IterableX<GenResultExcludingShrink<T>> =>
+  map((x) => {
+    delete (x as any).shrink;
+    return x as GenResultExcludingShrink<T>;
+  })(source);
