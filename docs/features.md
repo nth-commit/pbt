@@ -7,3 +7,4 @@
     - When the generator gets into a state where it probably can't ever fulfil a value, it should exit (and not hang infinitely). 
 - Error categorisation, automatic or manual
     - When a property fails it should do it's best to detemine if a smaller counterexample is a true counterexample (or if it's failing for some other bug in the production or test code).
+- Gen.element<T>(collection: Array<T> | Set<T> | Map<unknown, T> | Record<unknown | T>): Gen<T>

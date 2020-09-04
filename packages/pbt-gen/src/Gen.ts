@@ -1,4 +1,4 @@
-import { pipe, empty } from 'ix/iterable';
+import { pipe, empty, of } from 'ix/iterable';
 import { map } from 'ix/iterable/operators';
 import { Gen as IGen, GenResult, Seed, Size } from 'pbt-core';
 
@@ -40,3 +40,5 @@ export const create = <T>(g: (seed: Seed, size: Size) => Iterable<T>): Gen<T> =>
       })),
     ),
   );
+
+export const exhausted = <T>(): Gen<T> => extendWithFunctions(() => of({ kind: 'exhaustion' }));
