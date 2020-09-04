@@ -5,7 +5,7 @@ import * as dev from '../src';
 import * as stable from './helpers/stableApi';
 import { arbitraryGenParams, arbitraryIterations, arbitraryInteger } from './helpers/arbitraries';
 import { calculateProbabilityOfUniformDistribution } from './helpers/statistics';
-import { castToInstance } from './helpers/iterableOperators';
+import { castToInstance, excludeShrink } from './helpers/iterableOperators';
 
 type GeneralizedIntegerGenFactory = (min: number, max: number) => dev.Gen<number>;
 
@@ -46,15 +46,7 @@ test('It is resilient to min/max parameter order', () => {
         const g1 = gFactory(min, max);
         const g2 = gFactory(max, min);
 
-        const iterate = (g: dev.Gen<number>) =>
-          toArray(
-            pipe(
-              g(seed, size),
-              castToInstance(),
-              map((r) => r.value),
-              take(iterations),
-            ),
-          );
+        const iterate = (g: dev.Gen<number>) => toArray(pipe(g(seed, size), excludeShrink(), take(iterations)));
 
         expect(iterate(g1)).toEqual(iterate(g2));
       },
@@ -179,7 +171,7 @@ describe('Constant', () => {
         );
 
         const { pValue } = calculateProbabilityOfUniformDistribution(min, max, xs);
-        expect(pValue).toBeGreaterThanOrEqual(0.001);
+        expect(pValue).toBeGreaterThanOrEqual(0.0005);
       }),
     );
   });
