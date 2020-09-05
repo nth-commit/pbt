@@ -1,4 +1,4 @@
-import { pipe, empty, of } from 'ix/iterable';
+import { pipe, empty } from 'ix/iterable';
 import { map } from 'ix/iterable/operators';
 import { Gen as IGen, GenInstanceData, GenResult, Seed, Size } from 'pbt-core';
 import { Shrink } from './Shrink';
