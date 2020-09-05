@@ -1,50 +1,40 @@
-import { pipe, empty } from 'ix/iterable';
+import { pipe } from 'ix/iterable';
 import { map } from 'ix/iterable/operators';
-import { Gen as IGen, GenInstanceData, GenResult, Seed, Size } from 'pbt-core';
+import { Gen as IGen, GenInstanceData } from 'pbt-core';
+import { GenLike, mapGenLike } from './GenLike';
 import { Shrink } from './Shrink';
+import { Tree } from './Tree';
+import { createTreeGen, TreeGen } from './TreeGen';
 
 export type Gen<T> = IGen<T> & {
   map: <U>(f: (x: T) => U) => Gen<U>;
   filter: (f: (x: T) => boolean) => Gen<T>;
 };
 
-const extendWithFunctions = <T>(base: IGen<T>): Gen<T> => {
-  const extended = base as Gen<T>;
+const mapTreeToInstanceData = <T>([outcome, shrinks]: Tree<T>): GenInstanceData<T> => ({
+  value: outcome,
+  shrink: () => pipe(shrinks, map(mapTreeToInstanceData)),
+});
 
-  const mapGenResults = <U = T>(f: (x: GenResult<T>) => GenResult<U>): Gen<U> =>
-    extendWithFunctions((seed, size) => pipe(base(seed, size), map<GenResult<T>, GenResult<U>>(f)));
+const mapTreeGenToBaseGen = <T>(gTree: TreeGen<T>): IGen<T> =>
+  mapGenLike(gTree, (r) =>
+    r.kind === 'instance'
+      ? {
+          kind: 'instance',
+          ...mapTreeToInstanceData(r.value),
+        }
+      : r,
+  );
 
-  extended.map = <U>(f: (x: T) => U): Gen<U> =>
-    mapGenResults<U>((r) =>
-      /* istanbul ignore next */
-      GenResult.isInstance(r)
-        ? {
-            kind: 'instance',
-            value: f(r.value),
-            shrink: empty,
-          }
-        : r,
-    );
+const mapTreeGenToGen = <T>(gTree: TreeGen<T>): Gen<T> => {
+  const map = <U>(f: (x: T) => U): Gen<U> => mapTreeGenToGen<U>(gTree.map(f));
 
-  extended.filter = (f: (x: T) => boolean) =>
-    mapGenResults((r) => (r.kind === 'instance' && f(r.value) ? r : { kind: 'discard' }));
+  const filter = (f: (x: T) => boolean): Gen<T> => mapTreeGenToGen(gTree.filter(f));
 
-  return extended;
+  return Object.assign(mapTreeGenToBaseGen(gTree), { map, filter });
 };
 
-export const create = <T>(g: (seed: Seed, size: Size) => Iterable<T>, shrink: Shrink<T>): Gen<T> => {
-  const makeInstanceData = (x: T): GenInstanceData<T> => ({
-    value: x,
-    shrink: () => pipe(shrink(x), map(makeInstanceData)),
-  });
-
-  return extendWithFunctions((seed, size) =>
-    pipe(
-      g(seed, size),
-      map<T, GenResult<T>>((x) => ({
-        kind: 'instance',
-        ...makeInstanceData(x),
-      })),
-    ),
-  );
+export const create = <T>(g: GenLike<T>, shrink: Shrink<T>): Gen<T> => {
+  const gTree = createTreeGen(g, shrink);
+  return mapTreeGenToGen(gTree);
 };
