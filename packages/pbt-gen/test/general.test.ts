@@ -27,9 +27,8 @@ test('It shrinks to a different value', () => {
       arbitraryIterations(),
       arbitraryGenerator(),
       ({ seed, size }, iterations, g) => {
-        const instances = toArray(pipe(g(seed, size), filter(devCore.GenResult.isInstance), take(iterations)));
+        const instances = toArray(pipe(g(seed, size), take(iterations), filter(devCore.GenResult.isInstance)));
 
-        expect(instances).not.toHaveLength(0);
         instances.forEach((instance) => {
           Array.from(instance.shrink()).forEach((shrink) => {
             expect(shrink.value).not.toEqual(instance.value);

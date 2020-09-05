@@ -28,24 +28,50 @@ const getHexRepresentation = (x: unknown): string => {
   return hash.digest('hex');
 };
 
-export const arbitraryFunction = <T>(arbitraryReturn: fc.Arbitrary<T>): fc.Arbitrary<(...args: any[]) => T> =>
-  fc
+export const arbitraryFunction = <T>(
+  arbitraryReturn: fc.Arbitrary<T>,
+  arity?: number,
+): fc.Arbitrary<(...args: any[]) => T> => {
+  const arityFormatted = arity === undefined ? 'n' : arity;
+
+  return fc
     .nat()
     .noBias()
-    .map((n) => (...args: any[]): T => {
-      const m = Number(getHexRepresentation(args).replace(/[a-f]/gi, '').slice(0, 10));
-      const seed = n + m;
-      return arbitraryReturn.generate(new fc.Random(mersenne(seed))).value;
+    .map((n) => {
+      const f = (...args: any[]): T => {
+        const hashArgs = arity === undefined ? args : args.slice(0, arity);
+        const m = Number(getHexRepresentation(hashArgs).replace(/[a-f]/gi, '').slice(0, 10));
+        const seed = n + m;
+        return arbitraryReturn.generate(new fc.Random(mersenne(seed))).value;
+      };
+
+      f.toString = () => `function:${arityFormatted}`;
+
+      return f;
     });
+};
+
+export const arbitraryPredicate = (arity?: number): fc.Arbitrary<(...args: any[]) => boolean> =>
+  arbitraryFunction(fc.boolean(), arity);
 
 const generators = {
   'integer.constant': dev.integer.constant(0, 10),
   'integer.linear': dev.integer.linear(0, 10),
 };
 
-export const arbitraryGenerator = (): fc.Arbitrary<dev.Gen<unknown>> =>
-  fc.constantFrom(...(Object.keys(generators) as Array<keyof typeof generators>)).map((key) => {
-    const g = generators[key];
+export const arbitraryGenerator = (): fc.Arbitrary<dev.Gen<unknown>> => {
+  const augmentGenToString = <T>(g: dev.Gen<T>, key: string): dev.Gen<T> => {
     g.toString = () => `generator:${key}`;
     return g;
+  };
+
+  return fc.constantFrom(...(Object.keys(generators) as Array<keyof typeof generators>)).chain((key) => {
+    const g = generators[key];
+    return fc
+      .frequency(
+        { weight: 4, arbitrary: fc.constant(g) },
+        { weight: 1, arbitrary: arbitraryPredicate(1).map((pred) => g.filter(pred)) },
+      )
+      .map((g) => augmentGenToString(g, key));
   });
+};
