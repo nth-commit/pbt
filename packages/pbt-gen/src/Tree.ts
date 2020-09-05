@@ -1,5 +1,5 @@
 import { pipe } from 'ix/iterable';
-import { map as mapIterable } from 'ix/iterable/operators';
+import { filter as filterIterable, map as mapIterable } from 'ix/iterable/operators';
 
 export type Tree<T> = [T, Iterable<Tree<T>>];
 
@@ -32,6 +32,16 @@ export namespace Tree {
     return pipe(
       g(x),
       mapIterable((y) => unfold(f, g, y)),
+    );
+  }
+
+  export function filterForest<T, U extends T>(forest: Iterable<Tree<T>>, pred: (x: T) => x is U): Iterable<Tree<U>>;
+  export function filterForest<T>(forest: Iterable<Tree<T>>, pred: (x: T) => boolean): Iterable<Tree<T>>;
+  export function filterForest<T>(forest: Iterable<Tree<T>>, pred: (x: T) => boolean): Iterable<Tree<T>> {
+    return pipe(
+      forest,
+      filterIterable(([x]) => pred(x)),
+      mapIterable(([x, xs]) => [x, filterForest(xs, pred)]),
     );
   }
 }

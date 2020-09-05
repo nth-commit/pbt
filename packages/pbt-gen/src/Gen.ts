@@ -1,7 +1,8 @@
 import { pipe } from 'ix/iterable';
 import { map } from 'ix/iterable/operators';
 import { Gen as IGen, GenInstanceData } from 'pbt-core';
-import { GenLike, mapGenLike } from './GenLike';
+import { GenLike } from './GenLike';
+import { addInfiniteStreamProtection } from './iterableOperators';
 import { Shrink } from './Shrink';
 import { Tree } from './Tree';
 import { createTreeGen, TreeGen } from './TreeGen';
@@ -16,14 +17,18 @@ const mapTreeToInstanceData = <T>([outcome, shrinks]: Tree<T>): GenInstanceData<
   shrink: () => pipe(shrinks, map(mapTreeToInstanceData)),
 });
 
-const mapTreeGenToBaseGen = <T>(gTree: TreeGen<T>): IGen<T> =>
-  mapGenLike(gTree, (r) =>
-    r.kind === 'instance'
-      ? {
-          kind: 'instance',
-          ...mapTreeToInstanceData(r.value),
-        }
-      : r,
+const mapTreeGenToBaseGen = <T>(gTree: TreeGen<T>): IGen<T> => (seed, size) =>
+  pipe(
+    gTree(seed, size),
+    addInfiniteStreamProtection(),
+    map((r) =>
+      r.kind === 'instance'
+        ? {
+            kind: 'instance',
+            ...mapTreeToInstanceData(r.value),
+          }
+        : r,
+    ),
   );
 
 const mapTreeGenToGen = <T>(gTree: TreeGen<T>): Gen<T> => {

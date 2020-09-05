@@ -1,10 +1,12 @@
 import fc from 'fast-check';
 import { toArray, pipe } from 'ix/iterable';
-import { take, filter, map } from 'ix/iterable/operators';
+import { take, map, filter } from 'ix/iterable/operators';
 import * as stable from './helpers/stableApi';
 import * as devCore from 'pbt-core';
 import * as dev from '../src';
 import { arbitraryFunction, arbitraryGenParams, arbitraryIterations, arbitraryGenerator } from './helpers/arbitraries';
+import { traverseShrinks } from './helpers/traverseShrinks';
+import { castToInstance } from './helpers/iterableOperators';
 
 test('It behaves like Array.prototype.map', () => {
   stable.assert(
@@ -12,7 +14,7 @@ test('It behaves like Array.prototype.map', () => {
       arbitraryGenParams(),
       arbitraryIterations(),
       arbitraryGenerator(),
-      arbitraryFunction(fc.anything()),
+      arbitraryFunction(fc.anything(), 1),
       ({ seed, size }, iterations, gInitial, f) => {
         const gMapped = gInitial.map(f);
 
@@ -20,26 +22,17 @@ test('It behaves like Array.prototype.map', () => {
           toArray(
             pipe(
               g(seed, size),
+              take(iterations),
               filter(devCore.GenResult.isInstance),
               map((r) => r.value),
-              take(iterations),
             ),
           );
 
-        expect(iterate(gMapped)).toEqual(iterate(gInitial).map((x) => f(x)));
+        expect(iterate(gMapped)).toEqual(iterate(gInitial).map(f));
       },
     ),
   );
 });
-
-const traverseInstance = <T>(instance: devCore.GenInstanceData<T>, recursionLimit: number): T[] => {
-  if (recursionLimit <= 0) return [];
-
-  return Array.prototype.concat(
-    [instance.value],
-    ...Array.from(instance.shrink()).map((shrink) => traverseInstance(shrink, recursionLimit - 1)),
-  ) as T[];
-};
 
 test('It maps the shrinks', () => {
   stable.assert(
@@ -51,11 +44,10 @@ test('It maps the shrinks', () => {
       ({ seed, size }, iterations, gInitial, mappedValue) => {
         const gMapped = gInitial.map(() => mappedValue);
 
-        const instances = toArray(pipe(gMapped(seed, size), filter(devCore.GenResult.isInstance), take(iterations)));
+        const instances = toArray(pipe(gMapped(seed, size), take(iterations), filter(devCore.GenResult.isInstance)));
 
-        expect(instances).not.toHaveLength(0);
         instances.forEach((instance) => {
-          const values = traverseInstance(instance, 10);
+          const values = traverseShrinks(instance, 10);
           expect(values).not.toHaveLength(0);
           values.forEach((value) => {
             expect(value).toBe(mappedValue);

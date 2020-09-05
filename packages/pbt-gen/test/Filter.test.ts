@@ -1,13 +1,14 @@
 import fc from 'fast-check';
 import { toArray, pipe } from 'ix/iterable';
-import { take } from 'ix/iterable/operators';
+import { filter, map, take } from 'ix/iterable/operators';
 import * as devCore from 'pbt-core';
 import * as stable from './helpers/stableApi';
 import * as dev from '../src';
-import { arbitraryGenParams, arbitraryIterations, arbitraryGenerator, arbitraryFunction } from './helpers/arbitraries';
+import { arbitraryGenParams, arbitraryIterations, arbitraryGenerator, arbitraryPredicate } from './helpers/arbitraries';
 import { excludeShrink } from './helpers/iterableOperators';
+import { traverseShrinks } from './helpers/traverseShrinks';
 
-test('It is always a no-op with a true predicate', () => {
+test('It is a no-op with a true predicate', () => {
   stable.assert(
     stable.property(
       arbitraryGenParams(),
@@ -50,22 +51,46 @@ test('It behaves like Array.prototype.filter', () => {
       arbitraryGenParams(),
       arbitraryIterations(),
       arbitraryGenerator(),
-      arbitraryFunction(fc.boolean()),
+      arbitraryPredicate(1),
       ({ seed, size }, iterations, gInitial, pred) => {
         const gFiltered = gInitial.filter(pred);
 
-        const iterate = <T>(g: dev.Gen<T>) => toArray(pipe(g(seed, size), take(iterations)));
+        const iterate = <T>(g: dev.Gen<T>) =>
+          toArray(
+            pipe(
+              g(seed, size),
+              take(iterations),
+              filter(devCore.GenResult.isInstance),
+              map((r) => r.value),
+            ),
+          );
 
-        const resultsFilteredByGen = iterate(gFiltered)
-          .filter(devCore.GenResult.isInstance)
-          .map((r) => r.value);
+        expect(iterate(gFiltered)).toEqual(iterate(gInitial).filter(pred));
+      },
+    ),
+  );
+});
 
-        const resultsFilteredByArray = iterate(gInitial)
-          .filter(devCore.GenResult.isInstance)
-          .map((r: devCore.GenInstance<unknown>) => r.value)
-          .filter((x) => pred(x));
+test('It filters the shrinks', () => {
+  stable.assert(
+    stable.property(
+      arbitraryGenParams(),
+      arbitraryIterations(),
+      arbitraryGenerator(),
+      arbitraryPredicate(1),
+      ({ seed, size }, iterations, gInitial, pred) => {
+        const gFiltered = gInitial.filter(pred);
 
-        expect(resultsFilteredByGen).toEqual(resultsFilteredByArray);
+        const results = toArray(pipe(gFiltered(seed, size), take(iterations)));
+
+        expect(results).toHaveLength(iterations);
+        results.filter(devCore.GenResult.isInstance).forEach((instance) => {
+          const values = traverseShrinks(instance, 10);
+          expect(values).not.toHaveLength(0);
+          values.forEach((value) => {
+            expect(pred(value)).toEqual(true);
+          });
+        });
       },
     ),
   );
