@@ -5,27 +5,29 @@ import { Shrink } from './Shrink';
 
 export type Gen<T> = IGen<T> & {
   map: <U>(f: (x: T) => U) => Gen<U>;
+  filter: (f: (x: T) => boolean) => Gen<T>;
 };
 
 const extendWithFunctions = <T>(base: IGen<T>): Gen<T> => {
   const extended = base as Gen<T>;
 
+  const mapGenResults = <U = T>(f: (x: GenResult<T>) => GenResult<U>): Gen<U> =>
+    extendWithFunctions((seed, size) => pipe(base(seed, size), map<GenResult<T>, GenResult<U>>(f)));
+
   extended.map = <U>(f: (x: T) => U): Gen<U> =>
-    extendWithFunctions((seed, size) =>
-      pipe(
-        base(seed, size),
-        map<GenResult<T>, GenResult<U>>((r) =>
-          /* istanbul ignore next */
-          GenResult.isInstance(r)
-            ? {
-                kind: 'instance',
-                value: f(r.value),
-                shrink: empty,
-              }
-            : r,
-        ),
-      ),
+    mapGenResults<U>((r) =>
+      /* istanbul ignore next */
+      GenResult.isInstance(r)
+        ? {
+            kind: 'instance',
+            value: f(r.value),
+            shrink: empty,
+          }
+        : r,
     );
+
+  extended.filter = (f: (x: T) => boolean) =>
+    mapGenResults((r) => (r.kind === 'instance' && f(r.value) ? r : { kind: 'discard' }));
 
   return extended;
 };
