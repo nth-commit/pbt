@@ -10,11 +10,15 @@ export type GenInstance<T> = {
   kind: 'instance';
 } & GenInstanceData<T>;
 
+export type GenDiscard = {
+  kind: 'discard';
+};
+
 export type GenExhaustion = {
   kind: 'exhaustion';
 };
 
-export type GenResult<T> = GenInstance<T> | GenExhaustion;
+export type GenResult<T> = GenInstance<T> | GenDiscard | GenExhaustion;
 
 export namespace GenResult {
   export const isInstance = <T>(r: GenResult<T>): r is GenInstance<T> => r.kind === 'instance';
