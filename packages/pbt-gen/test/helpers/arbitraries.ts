@@ -1,6 +1,8 @@
-import * as fc from 'fast-check';
-import * as dev from '../../src';
+import { createHash } from 'crypto';
+import fc from 'fast-check';
+import { mersenne } from 'pure-rand';
 import * as devCore from 'pbt-core';
+import * as dev from '../../src';
 
 export const arbitrarySeed = (): fc.Arbitrary<devCore.Seed> => fc.nat().map(devCore.Seed.create).noShrink();
 
@@ -19,9 +21,22 @@ export const arbitraryInteger = (): fc.Arbitrary<number> => fc.integer(-1000, 10
 
 export const arbitraryIterations = (): fc.Arbitrary<number> => fc.integer(1, 100);
 
-export const arbitraryFunction = <TReturn, TArguments extends any[]>(
-  arbitrary: fc.Arbitrary<TReturn>,
-): fc.Arbitrary<(...args: TArguments) => TReturn> => arbitrary.map((r) => () => r);
+const getHexRepresentation = (x: unknown): string => {
+  const json = JSON.stringify(x);
+  const hash = createHash('sha256');
+  hash.update(json, 'utf8');
+  return hash.digest('hex');
+};
+
+export const arbitraryFunction = <T>(arbitraryReturn: fc.Arbitrary<T>): fc.Arbitrary<(...args: any[]) => T> =>
+  fc
+    .nat()
+    .noBias()
+    .map((n) => (...args: any[]): T => {
+      const m = Number(getHexRepresentation(args).replace(/[a-f]/gi, '').slice(0, 10));
+      const seed = n + m;
+      return arbitraryReturn.generate(new fc.Random(mersenne(seed))).value;
+    });
 
 const generators = {
   'integer.constant': dev.integer.constant(0, 10),

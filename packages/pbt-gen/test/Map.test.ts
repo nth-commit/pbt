@@ -6,7 +6,7 @@ import * as devCore from 'pbt-core';
 import * as dev from '../src';
 import { arbitraryFunction, arbitraryGenParams, arbitraryIterations, arbitraryGenerator } from './helpers/arbitraries';
 
-test('It maps like an array', () => {
+test('It behaves like Array.prototype.map', () => {
   stable.assert(
     stable.property(
       arbitraryGenParams(),
@@ -26,7 +26,7 @@ test('It maps like an array', () => {
             ),
           );
 
-        expect(iterate(gMapped)).toEqual(iterate(gInitial).map(f));
+        expect(iterate(gMapped)).toEqual(iterate(gInitial).map((x) => f(x)));
       },
     ),
   );
