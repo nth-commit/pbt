@@ -22,3 +22,15 @@ export const arbitraryIterations = (): fc.Arbitrary<number> => fc.integer(1, 100
 export const arbitraryFunction = <TReturn, TArguments extends any[]>(
   arbitrary: fc.Arbitrary<TReturn>,
 ): fc.Arbitrary<(...args: TArguments) => TReturn> => arbitrary.map((r) => () => r);
+
+const generators = {
+  'integer.constant': dev.integer.constant(0, 10),
+  'integer.linear': dev.integer.linear(0, 10),
+};
+
+export const arbitraryGenerator = (): fc.Arbitrary<dev.Gen<unknown>> =>
+  fc.constantFrom(...(Object.keys(generators) as Array<keyof typeof generators>)).map((key) => {
+    const g = generators[key];
+    g.toString = () => `generator:${key}`;
+    return g;
+  });
