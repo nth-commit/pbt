@@ -25,7 +25,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.esm.json && tsc --project tsconfig.cjs.json",
     "build:watch": "tsc --project tsconfig.json --watch --preserveWatchOutput",
-    "test": "jest --coverage --no-cache",
+    "test": "cross-env fastCheckRuns=50 jest --coverage --no-cache",
     "test:watch": "cross-env fastCheckRuns=10 jest --watchAll --no-cache",
     "sandbox": "ts-node --project scripts/tsconfig.json scripts/sandbox"
   }

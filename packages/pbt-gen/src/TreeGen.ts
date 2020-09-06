@@ -1,4 +1,4 @@
-import { of as ofIterable } from 'ix/iterable';
+import { of as ofIterable, empty as emptyIterable } from 'ix/iterable';
 import { Gen as IGen, GenInstanceData, GenResult } from 'pbt-core';
 import { GenLike, mapGenLike } from './GenLike';
 import { ITreeGen, TreeGenResult } from './ITreeGen';
@@ -9,6 +9,7 @@ export type TreeGen<T> = ITreeGen<T> & {
   map: <U>(f: (x: T) => U) => TreeGen<U>;
   filter: (f: (x: T) => boolean) => TreeGen<T>;
   flatMap: <U>(k: (x: T) => TreeGen<U>) => TreeGen<U>;
+  noShrink: () => TreeGen<T>;
 };
 
 const mapTreeGenResult = <T, U>(f: (x: T) => U) => (r: TreeGenResult<T>): TreeGenResult<U> => {
@@ -32,6 +33,16 @@ const filterTreeGenResult = <T>(f: (x: T) => boolean) => (r: TreeGenResult<T>): 
   };
 };
 
+const discardShrinks = <T>(r: TreeGenResult<T>): TreeGenResult<T> => {
+  if (r.kind !== 'instance') return r;
+
+  const [outcome] = r.value;
+  return {
+    kind: 'instance',
+    value: Tree.create(outcome, emptyIterable()),
+  };
+};
+
 const extendTreeGen = <T>(treeGenBase: ITreeGen<T>): TreeGen<T> => {
   const map = <U>(f: (x: T) => U): TreeGen<U> => extendTreeGen<U>(mapGenLike(treeGenBase, mapTreeGenResult(f)));
 
@@ -40,11 +51,14 @@ const extendTreeGen = <T>(treeGenBase: ITreeGen<T>): TreeGen<T> => {
 
   const flatMap = <U>(k: (x: T) => TreeGen<U>): TreeGen<U> => extendTreeGen<U>(ITreeGen.bind(treeGenBase, k));
 
-  return Object.assign(treeGenBase, { map, filter, flatMap });
+  const noShrink = (): TreeGen<T> => extendTreeGen<T>(mapGenLike(treeGenBase, discardShrinks));
+
+  return Object.assign(treeGenBase, { map, filter, flatMap, noShrink });
 };
 
 const id = <T>(x: T): T => x;
 
+/* istanbul ignore next */
 const toTreeGenResult = <T>(r: GenResult<T>): TreeGenResult<T> => {
   if (r.kind !== 'instance') return r;
 

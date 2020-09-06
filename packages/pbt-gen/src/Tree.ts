@@ -51,7 +51,7 @@ export namespace Tree {
     return forestFolder(
       pipe(
         forest,
-        mapIterable((x) => fold(x, treeFolder, forestFolder)),
+        mapIterable(/* istanbul ignore next */ (x) => fold(x, treeFolder, forestFolder)),
       ),
     );
   }
