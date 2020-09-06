@@ -59,6 +59,18 @@ const generators = {
   'integer.linear': dev.integer.linear(0, 10),
 };
 
+export const arbitraryFullGenerator = (): fc.Arbitrary<dev.Gen<unknown>> => {
+  const augmentGenToString = <T>(g: dev.Gen<T>, key: string): dev.Gen<T> => {
+    g.toString = () => `generator:${key}`;
+    return g;
+  };
+
+  return fc.constantFrom(...(Object.keys(generators) as Array<keyof typeof generators>)).map((key) => {
+    const g = generators[key];
+    return augmentGenToString(g, key);
+  });
+};
+
 export const arbitraryGenerator = (): fc.Arbitrary<dev.Gen<unknown>> => {
   const augmentGenToString = <T>(g: dev.Gen<T>, key: string): dev.Gen<T> => {
     g.toString = () => `generator:${key}`;

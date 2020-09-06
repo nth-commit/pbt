@@ -35,6 +35,27 @@ export namespace Tree {
     );
   }
 
+  export function fold<Node, FoldedTree, FoldedForest>(
+    [x, xs]: Tree<Node>,
+    treeFolder: (x: Node, foldedForest: FoldedForest) => FoldedTree,
+    forestFolder: (xs: Iterable<FoldedTree>) => FoldedForest,
+  ): FoldedTree {
+    return treeFolder(x, foldForest(xs, treeFolder, forestFolder));
+  }
+
+  export function foldForest<Node, FoldedTree, FoldedForest>(
+    forest: Iterable<Tree<Node>>,
+    treeFolder: (x: Node, foldedForest: FoldedForest) => FoldedTree,
+    forestFolder: (xs: Iterable<FoldedTree>) => FoldedForest,
+  ): FoldedForest {
+    return forestFolder(
+      pipe(
+        forest,
+        mapIterable((x) => fold(x, treeFolder, forestFolder)),
+      ),
+    );
+  }
+
   export function filterForest<T, U extends T>(forest: Iterable<Tree<T>>, pred: (x: T) => x is U): Iterable<Tree<U>>;
   export function filterForest<T>(forest: Iterable<Tree<T>>, pred: (x: T) => boolean): Iterable<Tree<T>>;
   export function filterForest<T>(forest: Iterable<Tree<T>>, pred: (x: T) => boolean): Iterable<Tree<T>> {

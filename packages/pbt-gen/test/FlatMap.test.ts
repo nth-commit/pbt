@@ -1,26 +1,23 @@
+import fc from 'fast-check';
 import { toArray, pipe } from 'ix/iterable';
 import { take } from 'ix/iterable/operators';
-import { exhausted } from '../src';
+import * as dev from '../src';
 import * as stable from './helpers/stableApi';
-import { arbitraryGenParams, arbitraryIterations, arbitraryGenerator, arbitraryFunction } from './helpers/arbitraries';
+import {
+  arbitraryGenParams,
+  arbitraryIterations,
+  arbitraryGenerator,
+  arbitraryFunction,
+  arbitraryFullGenerator,
+} from './helpers/arbitraries';
 
-test('It can flatMap without throwing ¯\\_(ツ)_/¯', () => {
-  stable.assert(
-    stable.property(
-      arbitraryGenParams(),
-      arbitraryIterations(),
-      arbitraryGenerator(),
-      ({ seed, size }, iterations, g) => {
-        toArray(pipe(g.flatMap(() => g)(seed, size), take(iterations)));
-      },
-    ),
-  );
-});
+const arbitraryGenFlatMapper = <T>(): fc.Arbitrary<(x: T) => dev.Gen<unknown>> =>
+  arbitraryFunction<dev.Gen<unknown>>(arbitraryGenerator(), 1);
 
 test('It exhausts if the left generator exhausts', () => {
   stable.assert(
-    stable.property(arbitraryGenParams(), arbitraryFunction(arbitraryGenerator(), 1), ({ seed, size }, k) => {
-      const gLeft = exhausted();
+    stable.property(arbitraryGenParams(), arbitraryGenFlatMapper(), ({ seed, size }, k) => {
+      const gLeft = dev.exhausted();
       const g = gLeft.flatMap(k);
 
       const results = toArray(pipe(g(seed, size)));
@@ -32,12 +29,54 @@ test('It exhausts if the left generator exhausts', () => {
 
 test('It exhausts if the right generator exhausts', () => {
   stable.assert(
-    stable.property(arbitraryGenParams(), arbitraryGenerator(), ({ seed, size }, gLeft) => {
-      const g = gLeft.flatMap(() => exhausted());
+    stable.property(arbitraryGenParams(), arbitraryFullGenerator(), ({ seed, size }, gLeft) => {
+      const g = gLeft.flatMap(() => dev.exhausted());
 
-      const results = toArray(pipe(g(seed, size), take(2)));
+      const results = toArray(pipe(g(seed, size), take(3)));
 
       expect(results).toEqual([{ kind: 'exhaustion' }]);
     }),
+  );
+});
+
+test('It discards when the left generator discards', () => {
+  stable.assert(
+    stable.property(
+      arbitraryGenParams(),
+      arbitraryIterations(),
+      arbitraryGenerator(),
+      arbitraryGenFlatMapper(),
+      ({ seed, size }, iterations, gLeft, k) => {
+        const g = gLeft.filter(() => false).flatMap(k);
+
+        const results = toArray(pipe(g(seed, size), take(iterations)));
+
+        expect(results).toHaveLength(iterations);
+        results.forEach((result) => {
+          expect(result).toEqual({ kind: 'discard' });
+        });
+      },
+    ),
+  );
+});
+
+test('It discards when the right generator discards', () => {
+  stable.assert(
+    stable.property(
+      arbitraryGenParams(),
+      arbitraryIterations(),
+      arbitraryGenerator(),
+      arbitraryGenerator(),
+      ({ seed, size }, iterations, gLeft, gRight) => {
+        const g = gLeft.flatMap(() => gRight.filter(() => false));
+
+        const results = toArray(pipe(g(seed, size), take(iterations)));
+
+        expect(results).toHaveLength(iterations);
+        results.forEach((result) => {
+          expect(result).toEqual({ kind: 'discard' });
+        });
+      },
+    ),
   );
 });
