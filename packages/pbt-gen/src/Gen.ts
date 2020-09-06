@@ -12,6 +12,7 @@ export type Gen<T> = IGen<T> & {
   map: <U>(f: (x: T) => U) => Gen<U>;
   filter: (f: (x: T) => boolean) => Gen<T>;
   flatMap: <U>(k: (x: T) => Gen<U>) => Gen<U>;
+  noShrink: () => Gen<T>;
 };
 
 const mapTreeToInstanceData = <T>([outcome, shrinks]: Tree<T>): GenInstanceData<T> => ({
@@ -38,13 +39,20 @@ const mapTreeGenToBaseGen = <T>(gTree: TreeGen<T>): IGen<T> => (seed, size) =>
 const mapGenKToTreeGenK = <T, U>(k: (x: T) => Gen<U>) => (x: T): TreeGen<U> => TreeGen.fromGen<U>(k(x));
 
 const mapTreeGenToGen = <T>(gTree: TreeGen<T>): Gen<T> => {
-  const map = <U>(f: (x: T) => U): Gen<U> => mapTreeGenToGen<U>(gTree.map(f));
+  const genMap = <U>(f: (x: T) => U): Gen<U> => mapTreeGenToGen<U>(gTree.map(f));
 
-  const filter = (f: (x: T) => boolean): Gen<T> => mapTreeGenToGen(gTree.filter(f));
+  const genFilter = (f: (x: T) => boolean): Gen<T> => mapTreeGenToGen(gTree.filter(f));
 
-  const flatMap = <U>(k: (x: T) => Gen<U>): Gen<U> => mapTreeGenToGen(gTree.flatMap(mapGenKToTreeGenK(k)));
+  const genFlatMap = <U>(k: (x: T) => Gen<U>): Gen<U> => mapTreeGenToGen(gTree.flatMap(mapGenKToTreeGenK(k)));
 
-  return Object.assign(mapTreeGenToBaseGen(gTree), { map, filter, flatMap });
+  const genNoShrink = (): Gen<T> => mapTreeGenToGen(gTree.noShrink());
+
+  return Object.assign(mapTreeGenToBaseGen(gTree), {
+    map: genMap,
+    filter: genFilter,
+    flatMap: genFlatMap,
+    noShrink: genNoShrink,
+  });
 };
 
 export const create = <T>(g: GenLike<T>, shrink: Shrink<T>): Gen<T> => {
