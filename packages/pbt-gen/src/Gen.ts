@@ -2,10 +2,11 @@ import { pipe } from 'ix/iterable';
 import { map } from 'ix/iterable/operators';
 import { Gen as IGen, GenInstanceData, GenResult } from 'pbt-core';
 import { GenLike } from './GenLike';
-import { addInfiniteStreamProtection } from './iterableOperators';
+import { addInfiniteStreamProtection, takeWhileInclusive } from './iterableOperators';
+import { TreeGenResult } from './ITreeGen';
 import { Shrink } from './Shrink';
 import { Tree } from './Tree';
-import { fromGenLike, fromGen, TreeGen, TreeGenResult } from './TreeGen';
+import { TreeGen } from './TreeGen';
 
 export type Gen<T> = IGen<T> & {
   map: <U>(f: (x: T) => U) => Gen<U>;
@@ -27,9 +28,14 @@ const mapTreeGenResultToGenResult = <T>(r: TreeGenResult<T>): GenResult<T> =>
     : r;
 
 const mapTreeGenToBaseGen = <T>(gTree: TreeGen<T>): IGen<T> => (seed, size) =>
-  pipe(gTree(seed, size), addInfiniteStreamProtection(), map(mapTreeGenResultToGenResult));
+  pipe(
+    gTree(seed, size),
+    takeWhileInclusive((r) => r.kind !== 'exhaustion'),
+    addInfiniteStreamProtection(),
+    map(mapTreeGenResultToGenResult),
+  );
 
-const mapGenKToTreeGenK = <T, U>(k: (x: T) => Gen<U>) => (x: T): TreeGen<U> => fromGen<U>(k(x));
+const mapGenKToTreeGenK = <T, U>(k: (x: T) => Gen<U>) => (x: T): TreeGen<U> => TreeGen.fromGen<U>(k(x));
 
 const mapTreeGenToGen = <T>(gTree: TreeGen<T>): Gen<T> => {
   const map = <U>(f: (x: T) => U): Gen<U> => mapTreeGenToGen<U>(gTree.map(f));
@@ -42,6 +48,11 @@ const mapTreeGenToGen = <T>(gTree: TreeGen<T>): Gen<T> => {
 };
 
 export const create = <T>(g: GenLike<T>, shrink: Shrink<T>): Gen<T> => {
-  const gTree = fromGenLike(g, shrink);
+  const gTree = TreeGen.fromGenLike(g, shrink);
+  return mapTreeGenToGen(gTree);
+};
+
+export const exhausted = <T>(): Gen<T> => {
+  const gTree = TreeGen.of<T>({ kind: 'exhaustion' });
   return mapTreeGenToGen(gTree);
 };

@@ -6,7 +6,6 @@ import * as devCore from 'pbt-core';
 import * as dev from '../src';
 import { arbitraryFunction, arbitraryGenParams, arbitraryIterations, arbitraryGenerator } from './helpers/arbitraries';
 import { traverseShrinks } from './helpers/traverseShrinks';
-import { castToInstance } from './helpers/iterableOperators';
 
 test('It behaves like Array.prototype.map', () => {
   stable.assert(
