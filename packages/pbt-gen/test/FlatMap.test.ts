@@ -1,6 +1,7 @@
 import fc from 'fast-check';
 import { toArray, pipe } from 'ix/iterable';
-import { take } from 'ix/iterable/operators';
+import { map, take } from 'ix/iterable/operators';
+import * as devCore from 'pbt-core';
 import * as dev from '../src';
 import * as stable from './helpers/stableApi';
 import {
@@ -10,6 +11,8 @@ import {
   arbitraryFunction,
   arbitraryFullGenerator,
 } from './helpers/arbitraries';
+import { castToInstance } from './helpers/iterableOperators';
+import { evaluateInstance } from './helpers/evaluateInstance';
 
 const arbitraryGenFlatMapper = <T>(): fc.Arbitrary<(x: T) => dev.Gen<unknown>> =>
   arbitraryFunction<dev.Gen<unknown>>(arbitraryGenerator(), 1);
@@ -79,4 +82,28 @@ test('It discards when the right generator discards', () => {
       },
     ),
   );
+});
+
+test('Snapshot', () => {
+  // It's hard to describe the intricacies of how flatMap combines streams. Let's just generate examples for now rather
+  // than sinking a huge amount of time into it.
+
+  const seed = devCore.Seed.create(0);
+  const iterationsBySize = new Map<number, number>([
+    [0, 1],
+    [20, 2],
+    [50, 5],
+    [100, 1],
+  ]);
+  const g = dev.integer.linear(0, 5).flatMap((x) => dev.integer.linear(0, 5).map((y) => `[${x},${y}]`));
+
+  for (const [size, iterations] of iterationsBySize.entries()) {
+    const results = toArray(pipe(g(seed, size), castToInstance(), map(evaluateInstance), take(iterations)));
+
+    results.forEach((evaluatedInstance, i) =>
+      expect(JSON.stringify(evaluatedInstance, null, 2).replace(/"/g, '')).toMatchSnapshot(
+        `size=${size} iteration=${i + 1}`,
+      ),
+    );
+  }
 });

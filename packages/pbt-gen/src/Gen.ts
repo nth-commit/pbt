@@ -3,10 +3,10 @@ import { map } from 'ix/iterable/operators';
 import { Gen as IGen, GenInstanceData, GenResult } from 'pbt-core';
 import { GenLike } from './GenLike';
 import { addInfiniteStreamProtection, takeWhileInclusive } from './iterableOperators';
-import { TreeGenResult } from './ITreeGen';
 import { Shrink } from './Shrink';
 import { Tree } from './Tree';
 import { TreeGen } from './TreeGen';
+import { TreeGenResult } from './TreeGenResult';
 
 export type Gen<T> = IGen<T> & {
   map: <U>(f: (x: T) => U) => Gen<U>;
@@ -61,6 +61,6 @@ export const create = <T>(g: GenLike<T>, shrink: Shrink<T>): Gen<T> => {
 };
 
 export const exhausted = <T>(): Gen<T> => {
-  const gTree = TreeGen.of<T>({ kind: 'exhaustion' });
+  const gTree = TreeGen.exhausted<T>();
   return mapTreeGenToGen(gTree);
 };

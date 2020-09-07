@@ -44,14 +44,14 @@ export namespace Tree {
   }
 
   export function foldForest<Node, FoldedTree, FoldedForest>(
-    forest: Iterable<Tree<Node>>,
+    xs: Iterable<Tree<Node>>,
     treeFolder: (x: Node, foldedForest: FoldedForest) => FoldedTree,
     forestFolder: (xs: Iterable<FoldedTree>) => FoldedForest,
   ): FoldedForest {
     return forestFolder(
       pipe(
-        forest,
-        mapIterable(/* istanbul ignore next */ (x) => fold(x, treeFolder, forestFolder)),
+        xs,
+        mapIterable((x) => fold(x, treeFolder, forestFolder)),
       ),
     );
   }
