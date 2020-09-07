@@ -3,9 +3,9 @@ import { success, exhaustionFailure, predicateFailure, PropertyResult } from './
 import { PropertyConfig, validateConfig } from './PropertyConfig';
 import runProperty, { PropertyFunction } from './runProperty';
 
-type GenValue<T> = T extends Gen<infer U> ? U : never;
+export type GenValue<T> = T extends Gen<infer U> ? U : never;
 
-type GenValues<TGens extends Gens> = { [P in keyof TGens]: GenValue<TGens[P]> };
+export type GenValues<TGens extends Gens> = { [P in keyof TGens]: GenValue<TGens[P]> };
 
 export interface Property<T> {
   (config: PropertyConfig): PropertyResult;

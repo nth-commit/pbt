@@ -19,10 +19,11 @@
     "jest": "^26.4.1",
     "rimraf": "^3.0.2",
     "ts-jest": "^26.2.0",
+    "ts-node": "^9.0.0",
     "typescript": "^4.0.2"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.esm.json && tsc --project tsconfig.cjs.json",
+    "build": "tsc --project tsconfig.esm.json && tsc --project tsconfig.cjs.json && ts-node --project scripts/tsconfig.json scripts/fixTypeScriptDefinitions",
     "build:watch": "tsc --project tsconfig.json --watch --preserveWatchOutput",
     "build:clean": "rimraf lib",
     "test": "jest --coverage --no-cache",
