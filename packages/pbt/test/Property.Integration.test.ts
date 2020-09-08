@@ -36,7 +36,7 @@ test('Given a false property, it returns failure', () => {
 
       const result = dev.run(p, { seed });
 
-      expect(result).toEqual({ kind: 'failure', problem: { kind: 'predicate' } });
+      expect(result).toMatchObject({ kind: 'failure', problem: { kind: 'predicate' } });
     }),
   );
 });

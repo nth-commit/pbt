@@ -1,6 +1,6 @@
-import { Gen, Gens, GenResult, GenInstance, Seed, Size } from 'pbt-core';
+import { Gen, Gens, GenResult, GenInstance, Seed, Size, GenInstanceData } from 'pbt-core';
 import { pipe, last, zip, concat, from, first } from 'ix/iterable';
-import { map, take } from 'ix/iterable/operators';
+import { filter, map, take } from 'ix/iterable/operators';
 import { takeWhileInclusive } from './iterableOperators';
 import { PropertyConfig } from './PropertyConfig';
 
@@ -16,13 +16,14 @@ export type PropertyFunction<TGens extends Gens> = (...args: GenValues<TGens>) =
 
 export type PropertyIterationStatus = 'success' | 'predicateFailure' | 'exhaustionFailure';
 
-export type PropertyIterationResult = {
+export type PropertyIterationResult<TGens extends Gens> = {
   iterationStatus: 'success' | 'predicateFailure' | 'exhaustionFailure';
   iterationNumber: number;
+  minimalCounterexample: GenValues<TGens>;
 };
 
-export type PropertyRunResult = {
-  lastIteration: PropertyIterationResult;
+export type PropertyRunResult<TGens extends Gens> = {
+  lastIteration: PropertyIterationResult<TGens>;
 };
 
 type GenInvocationsResult<TGens extends Gens> = {
@@ -61,16 +62,28 @@ const invokeGens = <TGens extends Gens>(gs: TGens, seed: Seed, size: Size): GenI
   }, initial);
 };
 
-const tryInvokePropertyFunction = <TGens extends Gens>(
+const NOT_A_COUNTEREXAMPLE = Symbol();
+
+const tryFindMinimalCounterexample = <TGens extends Gens>(
   f: PropertyFunction<TGens>,
-  args: Array<GenResult<any>>,
-): PropertyIterationStatus => {
-  if (args.every(GenResult.isInstance)) {
-    const unsafeF = f as any;
-    const unsafeValues = args.map((x) => x.value);
-    return (unsafeF(...unsafeValues) as boolean) ? 'success' : 'predicateFailure';
+  g: GenInstanceData<any[]>,
+): any[] | typeof NOT_A_COUNTEREXAMPLE => {
+  const unsafeF = f as any;
+
+  const result = unsafeF(...g.value) as boolean;
+  if (result) {
+    return NOT_A_COUNTEREXAMPLE;
   }
-  return 'exhaustionFailure';
+
+  const minimalCountexampleValues = first(
+    pipe(
+      g.shrink(),
+      map((gChild) => tryFindMinimalCounterexample(f, gChild)),
+      filter((x) => x !== NOT_A_COUNTEREXAMPLE),
+    ),
+  );
+
+  return minimalCountexampleValues || g.value;
 };
 
 const runIteration = <TGens extends Gens>(
@@ -78,23 +91,32 @@ const runIteration = <TGens extends Gens>(
   f: PropertyFunction<TGens>,
   seed: Seed,
   size: Size,
-): PropertyIterationStatus => {
+): [PropertyIterationStatus, any[]] => {
   const { iterables } = invokeGens(gs, seed, size);
 
-  const status = first(
+  const statusAndCounterexample: [PropertyIterationStatus, any[]] | undefined = first(
     pipe(
       zip(...iterables),
-      map((genResults: Array<GenResult<any>>) => tryInvokePropertyFunction(f, genResults)),
+      map((genResults: Array<GenResult<any>>): [PropertyIterationStatus, any[]] => {
+        if (genResults.every(GenResult.isInstance)) {
+          const minimalCounterexample = tryFindMinimalCounterexample(f, GenInstance.zip(...genResults));
+          return minimalCounterexample === NOT_A_COUNTEREXAMPLE
+            ? ['success', []]
+            : ['predicateFailure', minimalCounterexample];
+        }
+
+        return ['exhaustionFailure', []];
+      }),
       take(1),
     ),
   );
 
   /* istanbul ignore next */
-  if (!status) {
+  if (!statusAndCounterexample) {
     throw new Error('Fatal: Failed to run iteration');
   }
 
-  return status;
+  return statusAndCounterexample;
 };
 
 const runIterations = function* <TGens extends Gens>(
@@ -102,14 +124,18 @@ const runIterations = function* <TGens extends Gens>(
   f: PropertyFunction<TGens>,
   initialSeed: Seed,
   intialSize: Size,
-): Iterable<PropertyIterationResult> {
+): Iterable<PropertyIterationResult<TGens>> {
   for (let iterationNumber = 1; iterationNumber <= Number.MAX_SAFE_INTEGER; iterationNumber++) {
     const iterationSizeOffset = iterationNumber - 1;
     const untruncatedSize = intialSize + iterationSizeOffset;
     const currentSize = ((untruncatedSize - 1) % 100) + 1;
+
+    const [iterationStatus, minimalCounterexample] = runIteration(gs, f, initialSeed, currentSize);
+
     yield {
       iterationNumber,
-      iterationStatus: runIteration(gs, f, initialSeed, currentSize),
+      iterationStatus,
+      minimalCounterexample: minimalCounterexample as any,
     };
   }
 };
@@ -118,7 +144,7 @@ const runProperty = <TGens extends Gens>(
   gs: TGens,
   f: PropertyFunction<TGens>,
   config: PropertyConfig,
-): PropertyRunResult => {
+): PropertyRunResult<TGens> => {
   const { iterations, seed, size } = config;
 
   const lastIteration = last(
