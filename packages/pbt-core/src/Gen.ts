@@ -1,14 +1,6 @@
 import { Seed } from './Seed';
 import { Size } from './Size';
-
-export type GenInstanceData<T> = {
-  readonly value: T;
-  shrink(): Iterable<GenInstanceData<T>>;
-};
-
-export type GenInstance<T> = {
-  kind: 'instance';
-} & GenInstanceData<T>;
+import { GenInstance } from './GenInstance';
 
 export type GenDiscard = {
   kind: 'discard';

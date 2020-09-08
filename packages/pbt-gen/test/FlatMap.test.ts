@@ -12,7 +12,7 @@ import {
   arbitraryFullGenerator,
 } from './helpers/arbitraries';
 import { castToInstance } from './helpers/iterableOperators';
-import { evaluateInstance } from './helpers/evaluateInstance';
+import { GenInstance } from 'pbt-core';
 
 const arbitraryGenFlatMapper = <T>(): fc.Arbitrary<(x: T) => dev.Gen<unknown>> =>
   arbitraryFunction<dev.Gen<unknown>>(arbitraryGenerator(), 1);
@@ -98,7 +98,7 @@ test('Snapshot', () => {
   const g = dev.integer.linear(0, 5).flatMap((x) => dev.integer.linear(0, 5).map((y) => `[${x},${y}]`));
 
   for (const [size, iterations] of iterationsBySize.entries()) {
-    const results = toArray(pipe(g(seed, size), castToInstance(), map(evaluateInstance), take(iterations)));
+    const results = toArray(pipe(g(seed, size), castToInstance(), map(GenInstance.evaluateInstance), take(iterations)));
 
     results.forEach((evaluatedInstance, i) =>
       expect(JSON.stringify(evaluatedInstance, null, 2).replace(/"/g, '')).toMatchSnapshot(
