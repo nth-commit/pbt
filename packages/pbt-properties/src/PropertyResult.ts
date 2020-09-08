@@ -1,3 +1,6 @@
+import { Gens } from 'pbt-core';
+import { GenValues } from './GenValues';
+
 export type PropertyValidationFailure = {
   kind: 'validationFailure';
   problem: {
@@ -6,11 +9,12 @@ export type PropertyValidationFailure = {
   };
 };
 
-export type PropertyFailure = {
+export type PropertyFailure<TGens extends Gens> = {
   kind: 'failure';
   problem:
     | {
         kind: 'predicate';
+        minimalCounterexample: GenValues<TGens>;
       }
     | {
         kind: 'exhaustion';
@@ -23,9 +27,12 @@ export type PropertySuccess = {
   kind: 'success';
 };
 
-export type PropertyResult = PropertyValidationFailure | PropertySuccess | PropertyFailure;
+export type PropertyResult<TGens extends Gens> = PropertyValidationFailure | PropertySuccess | PropertyFailure<TGens>;
 
-export const exhaustionFailure = (iterationsRequested: number, iterationsCompleted: number): PropertyFailure => ({
+export const exhaustionFailure = <TGens extends Gens>(
+  iterationsRequested: number,
+  iterationsCompleted: number,
+): PropertyFailure<TGens> => ({
   kind: 'failure',
   problem: {
     kind: 'exhaustion',
@@ -34,10 +41,13 @@ export const exhaustionFailure = (iterationsRequested: number, iterationsComplet
   },
 });
 
-export const predicateFailure = (): PropertyFailure => ({
+export const predicateFailure = <TGens extends Gens>(
+  minimalCounterexample: GenValues<TGens>,
+): PropertyFailure<TGens> => ({
   kind: 'failure',
   problem: {
     kind: 'predicate',
+    minimalCounterexample,
   },
 });
 
