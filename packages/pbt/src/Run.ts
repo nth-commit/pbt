@@ -1,5 +1,5 @@
-import { Seed } from 'pbt-core';
-import { Property, PropertyConfig, PropertyResult } from 'pbt-properties';
+import { Gens, Seed } from 'pbt-core';
+import { GenValues, Property, PropertyConfig, PropertyResult } from 'pbt-properties';
 
 const makeDefaultConfig = (): PropertyConfig => ({
   iterations: 100,
@@ -7,7 +7,10 @@ const makeDefaultConfig = (): PropertyConfig => ({
   size: 0,
 });
 
-export const run = (p: Property<unknown>, config: Partial<PropertyConfig> = {}): PropertyResult => {
+export const run = <TGens extends Gens>(
+  p: Property<TGens>,
+  config: Partial<PropertyConfig> = {},
+): PropertyResult<TGens> => {
   const resolvedConfig = {
     ...makeDefaultConfig(),
     ...config,

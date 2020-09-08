@@ -1,20 +1,13 @@
-import { Gen, Gens } from 'pbt-core';
+import { Gens } from 'pbt-core';
 import { success, exhaustionFailure, predicateFailure, PropertyResult } from './PropertyResult';
 import { PropertyConfig, validateConfig } from './PropertyConfig';
 import runProperty, { PropertyFunction } from './runProperty';
 
-export type GenValue<T> = T extends Gen<infer U> ? U : never;
-
-export type GenValues<TGens extends Gens> = { [P in keyof TGens]: GenValue<TGens[P]> };
-
-export interface Property<T> {
-  (config: PropertyConfig): PropertyResult;
-  _?: T;
+export interface Property<TGens extends Gens> {
+  (config: PropertyConfig): PropertyResult<TGens>;
 }
 
-export const property = <TGens extends Gens>(
-  ...args: [...TGens, PropertyFunction<TGens>]
-): Property<GenValues<TGens>> => {
+export const property = <TGens extends Gens>(...args: [...TGens, PropertyFunction<TGens>]): Property<TGens> => {
   /* istanbul ignore next */
   if (args.length <= 1) {
     throw new Error('Property requires at least one Gen');
@@ -36,7 +29,7 @@ export const property = <TGens extends Gens>(
       case 'exhaustionFailure':
         return exhaustionFailure(iterations, lastIteration.iterationNumber - 1);
       case 'predicateFailure':
-        return predicateFailure();
+        return predicateFailure([] as any);
     }
   };
 };
