@@ -2,16 +2,19 @@ import * as stable from './helpers/stableApi';
 import * as devGen from 'pbt-gen';
 import * as dev from '../src';
 import { arbitrarySeed, arbitrarySize } from './helpers/arbitraries';
+import fc, { array } from 'fast-check';
+import { arbitraryPredicate } from 'pbt-gen/test/helpers/arbitraries';
 
 const failwith = (str: string): void => {
   throw new Error(str);
 };
 
-test('It finds the minimal counterexample for a contrived numeric property of 1-arity', () => {
+test('Given a property that fails when a >= x, it returns [x] as the smallest counterexample', () => {
   stable.assert(
     stable.property(arbitrarySeed(), arbitrarySize(), (seed, size) => {
+      const x = 10;
       const g = devGen.integer.linear(0, 100);
-      const f = (a: number): boolean => a < 10;
+      const f = (a: number): boolean => a < x;
       const p = dev.property(g, f);
 
       const result = p({ seed, size, iterations: 100 });
@@ -19,8 +22,32 @@ test('It finds the minimal counterexample for a contrived numeric property of 1-
       if (result.kind !== 'failure') return failwith('Expected property.kind to equal "failure"');
       if (result.problem.kind !== 'predicate') return failwith('Expected problem.kind to equal "predicate"');
 
-      const minimalCounterexample: [number] = result.problem.minimalCounterexample;
-      expect(minimalCounterexample).toEqual([10]);
+      expect(result.problem.minimalCounterexample).toEqual([x]);
+    }),
+  );
+});
+
+const arrayRange = (startIndex: number, endIndex: number): number[] =>
+  [...Array(endIndex).keys()].map((x) => x + startIndex);
+
+test('Given a property that is only related to a, all other gens shrink to their smallest possible values', () => {
+  stable.assert(
+    stable.property(arbitrarySeed(), arbitrarySize(), fc.integer(1, 10), (seed, size, otherGenCount) => {
+      const x = 10;
+      const g = devGen.integer.linear(0, 100);
+      const gs = [g, ...arrayRange(0, otherGenCount).map(() => g)];
+      const f = (a: number, ..._: number[]): boolean => a < x;
+      const p = (dev.property as any)(...gs, f);
+
+      const result = p({ seed, size, iterations: 100 });
+
+      if (result.kind !== 'failure') return failwith('Expected property.kind to equal "failure"');
+      if (result.problem.kind !== 'predicate') return failwith('Expected problem.kind to equal "predicate"');
+
+      expect(result.problem.minimalCounterexample).toEqual([
+        expect.anything(),
+        ...arrayRange(0, otherGenCount).map(() => 0),
+      ]);
     }),
   );
 });

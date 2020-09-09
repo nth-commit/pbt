@@ -98,7 +98,7 @@ test('Snapshot', () => {
   const g = dev.integer.linear(0, 5).flatMap((x) => dev.integer.linear(0, 5).map((y) => `[${x},${y}]`));
 
   for (const [size, iterations] of iterationsBySize.entries()) {
-    const results = toArray(pipe(g(seed, size), castToInstance(), map(GenInstance.evaluateInstance), take(iterations)));
+    const results = toArray(pipe(g(seed, size), castToInstance(), map(GenInstance.evaluate), take(iterations)));
 
     results.forEach((evaluatedInstance, i) =>
       expect(JSON.stringify(evaluatedInstance, null, 2).replace(/"/g, '')).toMatchSnapshot(
