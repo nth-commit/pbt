@@ -9,11 +9,6 @@ export interface Property<TGens extends Gens> {
 }
 
 export const property = <TGens extends Gens>(...args: [...TGens, PropertyFunction<TGens>]): Property<TGens> => {
-  /* istanbul ignore next */
-  if (args.length <= 1) {
-    throw new Error('Property requires at least one Gen');
-  }
-
   const gs = args.slice(0, args.length - 1) as TGens;
   const f = args[args.length - 1] as PropertyFunction<TGens>;
 

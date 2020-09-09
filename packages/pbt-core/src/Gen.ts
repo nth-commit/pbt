@@ -20,4 +20,4 @@ export interface Gen<T> {
   (seed: Seed, size: Size): Iterable<GenResult<T>>;
 }
 
-export type Gens = [Gen<any>, ...Gen<any>[]];
+export type Gens = Gen<any>[];

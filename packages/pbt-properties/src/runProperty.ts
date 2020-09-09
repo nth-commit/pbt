@@ -1,7 +1,7 @@
 import { Gen, Gens, GenResult, GenInstance, Seed, Size, GenInstanceData } from 'pbt-core';
 import { pipe, last, zip, concat, from, first } from 'ix/iterable';
 import { filter, map, take } from 'ix/iterable/operators';
-import { takeWhileInclusive } from './iterableOperators';
+import { takeWhileInclusive, zipSafe } from './iterableOperators';
 import { PropertyConfig } from './PropertyConfig';
 
 type GenValue<T> = T extends Gen<infer U> ? U : never;
@@ -96,7 +96,7 @@ const runIteration = <TGens extends Gens>(
 
   const statusAndCounterexample: [PropertyIterationStatus, any[]] | undefined = first(
     pipe(
-      zip(...iterables),
+      zipSafe(...iterables),
       map((genResults: Array<GenResult<any>>): [PropertyIterationStatus, any[]] => {
         if (genResults.every(GenResult.isInstance)) {
           const combinedInstances = GenInstance.join(...genResults);

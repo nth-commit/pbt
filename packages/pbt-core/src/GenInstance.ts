@@ -76,8 +76,8 @@ export namespace GenInstance {
     ...instanceDatas: TGenInstanceDatas
   ): GenInstanceData<GenInstanceValues<TGenInstanceDatas>> => ({
     value: instanceDatas.map((d) => d.value) as GenInstanceValues<TGenInstanceDatas>,
-    shrink: () => {
-      return pipe(
+    shrink: () =>
+      pipe(
         from(instanceDatas),
         map((instanceData, i) => {
           const leftInstanceDatas = instanceDatas.slice(0, i);
@@ -88,7 +88,6 @@ export namespace GenInstance {
           );
         }),
         flatMap((x) => x),
-      ) as Iterable<GenInstanceData<GenInstanceValues<TGenInstanceDatas>>>;
-    },
+      ) as Iterable<GenInstanceData<GenInstanceValues<TGenInstanceDatas>>>,
   });
 }
