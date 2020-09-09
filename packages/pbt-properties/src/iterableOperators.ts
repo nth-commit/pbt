@@ -1,5 +1,5 @@
 import { OperatorFunction } from 'ix/interfaces';
-import { IterableX } from 'ix/iterable';
+import { IterableX, zip, repeatValue } from 'ix/iterable';
 
 export class TakeWhileInclusiveIterable<TSource> extends IterableX<TSource> {
   private _source: Iterable<TSource>;
@@ -25,3 +25,5 @@ export class TakeWhileInclusiveIterable<TSource> extends IterableX<TSource> {
 export const takeWhileInclusive = <T>(predicate: (value: T, index: number) => boolean): OperatorFunction<T, T> => (
   source: Iterable<T>,
 ): IterableX<T> => new TakeWhileInclusiveIterable<T>(source, predicate);
+
+export const zipSafe = <T>(...sources: Iterable<T>[]) => (sources.length === 0 ? repeatValue([]) : zip(...sources));
