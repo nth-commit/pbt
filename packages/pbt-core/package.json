@@ -20,8 +20,9 @@
     "typescript": "^4.0.2"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.esm.json && tsc --project tsconfig.cjs.json && ts-node --project scripts/tsconfig.json scripts/fixTypeScriptDefinitions",
+    "build": "tsc --project tsconfig.esm.json && tsc --project tsconfig.cjs.json",
     "build:watch": "tsc --project tsconfig.json --watch --preserveWatchOutput",
-    "build:clean": "rimraf lib"
+    "build:clean": "rimraf lib",
+    "sandbox": "ts-node --project scripts/tsconfig.json scripts/sandbox"
   }
 }

@@ -99,7 +99,8 @@ const runIteration = <TGens extends Gens>(
       zip(...iterables),
       map((genResults: Array<GenResult<any>>): [PropertyIterationStatus, any[]] => {
         if (genResults.every(GenResult.isInstance)) {
-          const minimalCounterexample = tryFindMinimalCounterexample(f, GenInstance.zip(...genResults));
+          const combinedInstances = GenInstance.join(...genResults);
+          const minimalCounterexample = tryFindMinimalCounterexample(f, combinedInstances);
           return minimalCounterexample === NOT_A_COUNTEREXAMPLE
             ? ['success', []]
             : ['predicateFailure', minimalCounterexample];

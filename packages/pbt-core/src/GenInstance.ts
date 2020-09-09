@@ -1,5 +1,5 @@
-import { pipe, concat, toArray, empty } from 'ix/iterable';
-import { map as mapIterable } from 'ix/iterable/operators';
+import { pipe, toArray, from } from 'ix/iterable';
+import { flatMap, map } from 'ix/iterable/operators';
 
 export type GenInstanceData<T> = {
   readonly value: T;
@@ -12,10 +12,12 @@ export type GenInstance<T> = {
 
 export type GenInstances = GenInstance<any>[];
 
-type GenInstanceValue<T> = T extends GenInstance<infer U> ? U : never;
+type GenInstanceDatas = GenInstanceData<any>[];
 
-type GenInstanceValues<TGenInstances extends GenInstances> = {
-  [P in keyof TGenInstances]: GenInstanceValue<TGenInstances[P]>;
+type GenInstanceValue<T> = T extends GenInstanceData<infer U> ? U : never;
+
+type GenInstanceValues<TGenInstanceDatas extends GenInstanceDatas> = {
+  [P in keyof TGenInstanceDatas]: GenInstanceValue<TGenInstanceDatas[P]>;
 };
 
 export type GenInstanceMapper<TGenInstances extends GenInstances> = (
@@ -25,75 +27,13 @@ export type GenInstanceMapper<TGenInstances extends GenInstances> = (
 export type EvaluatedInstance<T> = T | [T, Array<EvaluatedInstance<T>>];
 
 export namespace GenInstance {
-  export const bindData = <T, U>(x: GenInstanceData<T>, k: (x: T) => GenInstanceData<U>): GenInstanceData<U> => {
-    const y = k(x.value);
-    return {
-      value: y.value,
-      shrink: () =>
-        concat(
-          y.shrink(),
-          pipe(
-            x.shrink(),
-            mapIterable((x0) => bindData(x0, k)),
-          ),
-        ),
-    };
-  };
-
-  export const mapData = <T, U>(x: GenInstanceData<T>, f: (x: T) => U): GenInstanceData<U> => ({
-    value: f(x.value),
-    shrink: () =>
-      pipe(
-        x.shrink(),
-        mapIterable((x0) => mapData(x0, f)),
-      ),
-  });
-
-  export const bind = <T, U>(x: GenInstance<T>, k: (x: T) => GenInstance<U>): GenInstance<U> => ({
-    kind: 'instance',
-    ...bindData(x, k),
-  });
-
-  export const map = <T, U>(x: GenInstance<T>, f: (x: T) => U): GenInstance<U> => ({
-    kind: 'instance',
-    ...mapData(x, f),
-  });
-
-  export const mapMany = <TGenInstances extends GenInstances, TResult>(
-    ...args: [...TGenInstances, GenInstanceMapper<TGenInstances>]
-  ): GenInstance<TResult> => {
-    const instances = args.slice(0, args.length - 1) as TGenInstances;
-    const f = args[args.length - 1] as GenInstanceMapper<TGenInstances>;
-
-    const bindRec = (is: GenInstance<any>[], xs: any[]): GenInstance<TResult> => {
-      switch (is.length) {
-        case 0:
-          return {
-            kind: 'instance',
-            value: [] as any,
-            shrink: () => empty(),
-          };
-        case 1:
-          return map(is[0] as any, (x0) => (f as any)(...xs, x0));
-        default:
-          return bind(is[0], (x) => bindRec(is.slice(1), [...xs, x]));
-      }
-    };
-
-    return bindRec(instances, []);
-  };
-
-  export const zip = <TGenInstances extends GenInstances>(
-    ...args: TGenInstances
-  ): GenInstance<GenInstanceValues<TGenInstances>> => mapMany(...([...args, (...xs: any[]) => xs] as any));
-
   type EvaluatedInstanceComplex<T> = [T, Array<EvaluatedInstanceComplex<T>>];
 
   const evaluateInstanceComplex = <T>(instance: GenInstanceData<T>): EvaluatedInstanceComplex<T> => {
     const evaluatedShrinks = toArray(
       pipe(
         instance.shrink(),
-        mapIterable((i) => evaluateInstanceComplex(i)),
+        map((i) => evaluateInstanceComplex(i)),
       ),
     );
     return [instance.value, evaluatedShrinks];
@@ -106,6 +46,49 @@ export namespace GenInstance {
     return [x, xs.map(simplifyEvaluation)];
   };
 
-  export const evaluateInstance = <T>(instance: GenInstanceData<T>): EvaluatedInstance<T> =>
+  export const evaluate = <T>(instance: GenInstanceData<T>): EvaluatedInstance<T> =>
     simplifyEvaluation(evaluateInstanceComplex(instance));
+
+  function unfoldData<Seed, T>(f: (x: Seed) => T, g: (x: Seed) => Iterable<Seed>, x: Seed): GenInstanceData<T> {
+    return {
+      value: f(x),
+      shrink: () => unfoldDatas(f, g, x),
+    };
+  }
+
+  function unfoldDatas<Seed, T>(
+    f: (x: Seed) => T,
+    g: (x: Seed) => Iterable<Seed>,
+    x: Seed,
+  ): Iterable<GenInstanceData<T>> {
+    return pipe(
+      g(x),
+      map((y) => unfoldData(f, g, y)),
+    );
+  }
+
+  export const unfold = <Seed, T>(f: (x: Seed) => T, g: (x: Seed) => Iterable<Seed>, x: Seed): GenInstance<T> => ({
+    kind: 'instance',
+    ...unfoldData(f, g, x),
+  });
+
+  export const join = <TGenInstanceDatas extends GenInstanceDatas>(
+    ...instanceDatas: TGenInstanceDatas
+  ): GenInstanceData<GenInstanceValues<TGenInstanceDatas>> => ({
+    value: instanceDatas.map((d) => d.value) as GenInstanceValues<TGenInstanceDatas>,
+    shrink: () => {
+      return pipe(
+        from(instanceDatas),
+        map((instanceData, i) => {
+          const leftInstanceDatas = instanceDatas.slice(0, i);
+          const rightInstanceDatas = instanceDatas.slice(i + 1);
+          return pipe(
+            instanceData.shrink(),
+            map((instanceDataShrink) => join(...leftInstanceDatas, instanceDataShrink, ...rightInstanceDatas)),
+          );
+        }),
+        flatMap((x) => x),
+      ) as Iterable<GenInstanceData<GenInstanceValues<TGenInstanceDatas>>>;
+    },
+  });
 }
