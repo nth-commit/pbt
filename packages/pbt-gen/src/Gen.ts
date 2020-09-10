@@ -1,6 +1,6 @@
 import { pipe } from 'ix/iterable';
 import { map } from 'ix/iterable/operators';
-import { Gen as IGen, GenInstanceData, GenResult } from 'pbt-core';
+import { Gen as IGen, GenInstanceData, GenResult, Seed, Size } from 'pbt-core';
 import { GenLike } from './GenLike';
 import { addInfiniteStreamProtection, takeWhileInclusive } from './iterableOperators';
 import { Shrink } from './Shrink';
@@ -55,10 +55,20 @@ const mapTreeGenToGen = <T>(gTree: TreeGen<T>): Gen<T> => {
   });
 };
 
-export const create = <T>(g: GenLike<T>, shrink: Shrink<T>): Gen<T> => {
+export const stream = <T>(g: GenLike<T>, shrink: Shrink<T>): Gen<T> => {
   const gTree = TreeGen.fromGenLike(g, shrink);
   return mapTreeGenToGen(gTree);
 };
+
+export const create = <T>(f: (seed: Seed, size: Size) => T, shrink: Shrink<T>): Gen<T> =>
+  stream(
+    (seed, size) =>
+      pipe(
+        Seed.stream(seed),
+        map((seed0) => f(seed0, size)),
+      ),
+    shrink,
+  );
 
 export const exhausted = <T>(): Gen<T> => {
   const gTree = TreeGen.exhausted<T>();
