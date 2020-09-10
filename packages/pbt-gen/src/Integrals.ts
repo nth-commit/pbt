@@ -1,7 +1,5 @@
-import { pipe } from 'ix/iterable';
-import { map } from 'ix/iterable/operators';
 import { Seed, Size } from 'pbt-core';
-import { create, Gen } from './Gen';
+import { Gen, create } from './Gen';
 import { Shrink } from './Shrink';
 
 type Range = {
@@ -43,7 +41,7 @@ namespace Range {
   };
 }
 
-const nextNumber = (size: Size, range: Range) => (seed: Seed): number => {
+const nextNumber = (size: Size, range: Range, seed: Seed): number => {
   const [min, max, maxDp] = range.getSizedBounds(size);
 
   /* istanbul ignore next */
@@ -59,7 +57,7 @@ const nextNumber = (size: Size, range: Range) => (seed: Seed): number => {
 };
 
 const integral = (range: Range): Gen<number> =>
-  create((seed, size) => pipe(Seed.stream(seed), map(nextNumber(size, range))), Shrink.towardsNumber(range.origin, 0));
+  create((seed, size) => nextNumber(size, range, seed), Shrink.towardsNumber(range.origin, 0));
 
 export const integer = {
   constant: (min: number, max: number): Gen<number> => integral(Range.constant(min, max, 0)),
