@@ -1,4 +1,3 @@
-import * as devCore from 'pbt-core';
 import * as dev from '../src';
 import * as stable from './helpers/stableApi';
 import {
@@ -8,10 +7,8 @@ import {
   arbitraryGens,
   arbitraryPropertyFunction,
   arbitrarySucceedingPropertyFunction,
-  arbitrarilyShuffleArray,
 } from './helpers/arbitraries';
 import { GenStub } from './helpers/stubs';
-import fc from 'fast-check';
 
 test('The test function receives a value from the generator', () => {
   const arb = extendableArbitrary()
@@ -47,36 +44,6 @@ test('Given a succeeding property function, the test function is only called onc
       p(config);
 
       expect(spyF).toHaveBeenCalledTimes(config.iterations);
-    }),
-  );
-});
-
-test('Given an exhausting generator, the property does not hold', () => {
-  const arb = extendableArbitrary()
-    .extend(() => arbitraryPropertyConfig())
-    .extend(
-      ({ iterations }) =>
-        arbitraryGens({ minLength: iterations })
-          .map((gs) => [...gs, GenStub.exhausted()])
-          .chain(arbitrarilyShuffleArray) as fc.Arbitrary<devCore.Gens>,
-    )
-    .extend(() => arbitrarySucceedingPropertyFunction())
-    .toArbitrary();
-
-  stable.assert(
-    stable.property(arb, ([config, gs, f]) => {
-      const p = dev.property(...gs, f);
-
-      const result = p(config);
-
-      expect(result).toEqual({
-        kind: 'failure',
-        problem: {
-          kind: 'exhaustion',
-          iterationsRequested: config.iterations,
-          iterationsCompleted: 0,
-        },
-      });
     }),
   );
 });

@@ -1,5 +1,5 @@
 import { Gens, Seed } from 'pbt-core';
-import { GenValues, Property, PropertyConfig, PropertyResult } from 'pbt-properties';
+import { Property, PropertyConfig, PropertyResult } from 'pbt-properties';
 
 const makeDefaultConfig = (): PropertyConfig => ({
   iterations: 100,
