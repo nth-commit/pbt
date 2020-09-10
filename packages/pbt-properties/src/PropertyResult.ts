@@ -1,5 +1,5 @@
-import { Gens } from 'pbt-core';
-import { GenValues } from './GenValues';
+import { Gens, Seed, Size } from 'pbt-core';
+import { PropertyCounterexample } from './runProperty';
 
 export type PropertyValidationFailure = {
   kind: 'validationFailure';
@@ -14,7 +14,9 @@ export type PropertyFailure<TGens extends Gens> = {
   problem:
     | {
         kind: 'predicate';
-        minimalCounterexample: GenValues<TGens>;
+        seed: Seed;
+        size: Size;
+        counterexample: PropertyCounterexample<TGens>;
       }
     | {
         kind: 'exhaustion';
@@ -42,12 +44,16 @@ export const exhaustionFailure = <TGens extends Gens>(
 });
 
 export const predicateFailure = <TGens extends Gens>(
-  minimalCounterexample: GenValues<TGens>,
+  seed: Seed,
+  size: Size,
+  counterexample: PropertyCounterexample<TGens>,
 ): PropertyFailure<TGens> => ({
   kind: 'failure',
   problem: {
     kind: 'predicate',
-    minimalCounterexample,
+    seed,
+    size,
+    counterexample,
   },
 });
 

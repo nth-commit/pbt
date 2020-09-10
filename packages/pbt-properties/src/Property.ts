@@ -1,8 +1,7 @@
 import { Gens } from 'pbt-core';
 import { success, exhaustionFailure, predicateFailure, PropertyResult } from './PropertyResult';
 import { PropertyConfig, validateConfig } from './PropertyConfig';
-import runProperty, { PropertyFunction } from './runProperty';
-import { GenValues } from './GenValues';
+import runProperty, { PropertyCounterexample, PropertyFunction } from './runProperty';
 
 export interface Property<TGens extends Gens> {
   (config: PropertyConfig): PropertyResult<TGens>;
@@ -25,7 +24,11 @@ export const property = <TGens extends Gens>(...args: [...TGens, PropertyFunctio
       case 'exhaustionFailure':
         return exhaustionFailure(iterations, lastIteration.iterationNumber - 1);
       case 'predicateFailure':
-        return predicateFailure(lastIteration.minimalCounterexample as GenValues<TGens>);
+        return predicateFailure(
+          lastIteration.seed,
+          lastIteration.size,
+          lastIteration.counterexample as PropertyCounterexample<TGens>,
+        );
     }
   };
 };

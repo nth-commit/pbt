@@ -63,8 +63,15 @@ export const arbitraryNonEmptyGen = (): fc.Arbitrary<devCore.Gen<unknown>> => ar
 export const arbitrarySucceedingPropertyFunction = <T extends devCore.Gens>(): fc.Arbitrary<dev.PropertyFunction<T>> =>
   fc.constant(() => true);
 
-export const arbitraryFailingPropertyFunction = <T extends devCore.Gens>(): fc.Arbitrary<dev.PropertyFunction<T>> =>
-  fc.constant(() => false);
+export const arbitraryFailingPropertyFunction = <T extends devCore.Gens>(
+  failAfterIterations: number = 0,
+): fc.Arbitrary<dev.PropertyFunction<T>> => {
+  let iterationCount = -1;
+  return fc.constant(() => {
+    iterationCount++;
+    return iterationCount < failAfterIterations;
+  });
+};
 
 export const arbitraryPropertyFunction = <T extends devCore.Gens>(): fc.Arbitrary<dev.PropertyFunction<T>> =>
   fc.oneof(arbitrarySucceedingPropertyFunction(), arbitraryFailingPropertyFunction());

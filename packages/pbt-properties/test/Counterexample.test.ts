@@ -1,15 +1,15 @@
+import fc from 'fast-check';
 import * as stable from './helpers/stableApi';
 import * as devGen from 'pbt-gen';
 import * as dev from '../src';
 import { arbitrarySeed, arbitrarySize } from './helpers/arbitraries';
-import fc, { array } from 'fast-check';
-import { arbitraryPredicate } from 'pbt-gen/test/helpers/arbitraries';
+import { Property } from '../src';
 
 const failwith = (str: string): void => {
   throw new Error(str);
 };
 
-test('Given a property that fails when a >= x, it returns [x] as the smallest counterexample', () => {
+test('Given a property that fails when a >= x, it returns [x] as the counterexample', () => {
   stable.assert(
     stable.property(arbitrarySeed(), arbitrarySize(), (seed, size) => {
       const x = 10;
@@ -22,7 +22,10 @@ test('Given a property that fails when a >= x, it returns [x] as the smallest co
       if (result.kind !== 'failure') return failwith('Expected property.kind to equal "failure"');
       if (result.problem.kind !== 'predicate') return failwith('Expected problem.kind to equal "predicate"');
 
-      expect(result.problem.minimalCounterexample).toEqual([x]);
+      expect(result.problem.counterexample).toEqual({
+        values: [x],
+        shrinkPath: expect.anything(),
+      });
     }),
   );
 });
@@ -37,17 +40,17 @@ test('Given a property that is only related to a, all other gens shrink to their
       const g = devGen.integer.linear(0, 100);
       const gs = [g, ...arrayRange(0, otherGenCount).map(() => g)];
       const f = (a: number, ..._: number[]): boolean => a < x;
-      const p = (dev.property as any)(...gs, f);
+      const p = (dev.property as any)(...gs, f) as Property<[]>;
 
       const result = p({ seed, size, iterations: 100 });
 
       if (result.kind !== 'failure') return failwith('Expected property.kind to equal "failure"');
       if (result.problem.kind !== 'predicate') return failwith('Expected problem.kind to equal "predicate"');
 
-      expect(result.problem.minimalCounterexample).toEqual([
-        expect.anything(),
-        ...arrayRange(0, otherGenCount).map(() => 0),
-      ]);
+      expect(result.problem.counterexample).toEqual({
+        values: [expect.anything(), ...arrayRange(0, otherGenCount).map(() => 0)],
+        shrinkPath: expect.anything(),
+      });
     }),
   );
 });
