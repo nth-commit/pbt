@@ -42,7 +42,7 @@ test('Given a false predicate, the property does not hold', () => {
 
       const result = p(config);
 
-      expect(result).toMatchObject({ kind: 'failure', problem: { kind: 'predicate' } });
+      expect(result).toMatchObject({ kind: 'failure', reason: 'predicate' });
     }),
   );
 });
@@ -66,12 +66,9 @@ test('Given an exhausting generator, the property does not hold', () => {
       const result = p(config);
 
       expect(result).toEqual({
-        kind: 'failure',
-        problem: {
-          kind: 'exhaustion',
-          iterationsRequested: config.iterations,
-          iterationsCompleted: 0,
-        },
+        kind: 'exhaustion',
+        iterationsRequested: config.iterations,
+        iterationsCompleted: 0,
       });
     }),
   );

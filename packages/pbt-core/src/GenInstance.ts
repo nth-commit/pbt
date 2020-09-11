@@ -72,7 +72,7 @@ export namespace GenInstance {
     ...unfoldData(f, g, x),
   });
 
-  export const join = <TGenInstanceDatas extends GenInstanceDatas>(
+  const joinDatas = <TGenInstanceDatas extends GenInstanceDatas>(
     ...instanceDatas: TGenInstanceDatas
   ): GenInstanceData<GenInstanceValues<TGenInstanceDatas>> => ({
     value: instanceDatas.map((d) => d.value) as GenInstanceValues<TGenInstanceDatas>,
@@ -84,10 +84,17 @@ export namespace GenInstance {
           const rightInstanceDatas = instanceDatas.slice(i + 1);
           return pipe(
             instanceData.shrink(),
-            map((instanceDataShrink) => join(...leftInstanceDatas, instanceDataShrink, ...rightInstanceDatas)),
+            map((instanceDataShrink) => joinDatas(...leftInstanceDatas, instanceDataShrink, ...rightInstanceDatas)),
           );
         }),
         flatMap((x) => x),
       ) as Iterable<GenInstanceData<GenInstanceValues<TGenInstanceDatas>>>,
+  });
+
+  export const join = <TGenInstances extends GenInstances>(
+    ...instances: TGenInstances
+  ): GenInstance<GenInstanceValues<TGenInstances>> => ({
+    kind: 'instance',
+    ...joinDatas(...instances),
   });
 }

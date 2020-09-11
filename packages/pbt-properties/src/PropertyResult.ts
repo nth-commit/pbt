@@ -11,36 +11,32 @@ export type PropertyValidationFailure = {
 
 export type PropertyFailure<TGens extends Gens> = {
   kind: 'failure';
-  problem:
-    | {
-        kind: 'predicate';
-        seed: Seed;
-        size: Size;
-        counterexample: PropertyCounterexample<TGens>;
-      }
-    | {
-        kind: 'exhaustion';
-        iterationsRequested: number;
-        iterationsCompleted: number;
-      };
+  reason: 'predicate';
+  seed: Seed;
+  size: Size;
+  counterexample: PropertyCounterexample<TGens>;
+};
+
+export type ExhaustionFailure = {
+  kind: 'exhaustion';
+  iterationsRequested: number;
+  iterationsCompleted: number;
 };
 
 export type PropertySuccess = {
   kind: 'success';
 };
 
-export type PropertyResult<TGens extends Gens> = PropertyValidationFailure | PropertySuccess | PropertyFailure<TGens>;
+export type PropertyResult<TGens extends Gens> =
+  | PropertyValidationFailure
+  | PropertySuccess
+  | PropertyFailure<TGens>
+  | ExhaustionFailure;
 
-export const exhaustionFailure = <TGens extends Gens>(
-  iterationsRequested: number,
-  iterationsCompleted: number,
-): PropertyFailure<TGens> => ({
-  kind: 'failure',
-  problem: {
-    kind: 'exhaustion',
-    iterationsRequested,
-    iterationsCompleted,
-  },
+export const exhaustionFailure = (iterationsRequested: number, iterationsCompleted: number): ExhaustionFailure => ({
+  kind: 'exhaustion',
+  iterationsRequested,
+  iterationsCompleted,
 });
 
 export const predicateFailure = <TGens extends Gens>(
@@ -49,12 +45,10 @@ export const predicateFailure = <TGens extends Gens>(
   counterexample: PropertyCounterexample<TGens>,
 ): PropertyFailure<TGens> => ({
   kind: 'failure',
-  problem: {
-    kind: 'predicate',
-    seed,
-    size,
-    counterexample,
-  },
+  reason: 'predicate',
+  seed,
+  size,
+  counterexample,
 });
 
 export const success = (): PropertySuccess => ({
