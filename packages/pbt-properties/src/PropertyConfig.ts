@@ -5,6 +5,7 @@ export type PropertyConfig = {
   iterations: number;
   seed: Seed;
   size: Size;
+  shrinkPath?: number[];
 };
 
 const isInteger = (n: number): boolean => Math.round(n) === n;

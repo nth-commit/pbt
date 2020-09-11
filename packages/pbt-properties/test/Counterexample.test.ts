@@ -20,10 +20,10 @@ test('Given a property that fails when a >= x, it returns [x] as the counterexam
       const result = p({ seed, size, iterations: 100 });
 
       if (result.kind !== 'failure') return failwith('Expected property.kind to equal "failure"');
-      if (result.problem.kind !== 'predicate') return failwith('Expected problem.kind to equal "predicate"');
 
-      expect(result.problem.counterexample).toEqual({
+      expect(result.counterexample).toEqual({
         values: [x],
+        originalValues: expect.anything(),
         shrinkPath: expect.anything(),
       });
     }),
@@ -45,10 +45,10 @@ test('Given a property that is only related to a, all other gens shrink to their
       const result = p({ seed, size, iterations: 100 });
 
       if (result.kind !== 'failure') return failwith('Expected property.kind to equal "failure"');
-      if (result.problem.kind !== 'predicate') return failwith('Expected problem.kind to equal "predicate"');
 
-      expect(result.problem.counterexample).toEqual({
+      expect(result.counterexample).toEqual({
         values: [expect.anything(), ...arrayRange(0, otherGenCount).map(() => 0)],
+        originalValues: expect.anything(),
         shrinkPath: expect.anything(),
       });
     }),
