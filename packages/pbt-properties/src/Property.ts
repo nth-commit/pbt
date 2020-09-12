@@ -1,32 +1,31 @@
 import { Gens } from 'pbt-core';
-import { success, exhaustionFailure, predicateFailure, PropertyResult, ValidationProblem } from './PropertyResult';
+import { success, exhaustionFailure, predicateFailure, PropertyResult } from './PropertyResult';
 import { PropertyConfig, preValidateConfig } from './PropertyConfig';
-import runProperty, { PropertyCounterexample, PropertyFunction } from './runProperty';
+import runProperty, { PropertyFunction } from './runProperty';
+import { GenValues } from './GenValues';
 
-export interface Property<TGens extends Gens> {
-  (config: PropertyConfig): PropertyResult<TGens>;
+export interface Property<Values extends any[]> {
+  (config: PropertyConfig): PropertyResult<Values>;
 }
 
-export const property = <TGens extends Gens>(...args: [...TGens, PropertyFunction<TGens>]): Property<TGens> => {
+export const property = <TGens extends Gens>(
+  ...args: [...TGens, PropertyFunction<GenValues<TGens>>]
+): Property<GenValues<TGens>> => {
   const gs = args.slice(0, args.length - 1) as TGens;
-  const f = args[args.length - 1] as PropertyFunction<TGens>;
+  const f = args[args.length - 1] as PropertyFunction<GenValues<TGens>>;
 
   return (config) => {
     const validationError = preValidateConfig(config);
     if (validationError) return validationError;
 
-    const runResult = runProperty(gs, f, config);
+    const runResult = runProperty(gs as any, f, config);
     switch (runResult.kind) {
       case 'success':
         return success();
       case 'exhaustionFailure':
         return exhaustionFailure(config.iterations, runResult.iterationNumber - 1);
       case 'predicateFailure':
-        return predicateFailure(
-          runResult.seed,
-          runResult.size,
-          runResult.counterexample as PropertyCounterexample<TGens>,
-        );
+        return predicateFailure(runResult.seed, runResult.size, runResult.counterexample);
       case 'invalidShrinkPath':
         return {
           kind: 'validationFailure',

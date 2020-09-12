@@ -1,51 +1,54 @@
-import { Gens, Seed, Size } from 'pbt-core';
+import { Seed, Size } from 'pbt-core';
 import { PropertyCounterexample } from './runProperty';
 
-export type ValidationProblem = {
-  kind: 'iterations' | 'size' | 'shrinkPath';
-  message: string;
-};
+export namespace PropertyResult {
+  export type Success = {
+    kind: 'success';
+  };
 
-export type PropertyValidationFailure = {
-  kind: 'validationFailure';
-  problem: ValidationProblem;
-};
+  export type Failure<Values extends any[]> = {
+    kind: 'failure';
+    reason: 'predicate';
+    seed: Seed;
+    size: Size;
+    counterexample: PropertyCounterexample<Values>;
+  };
 
-export type PropertyFailure<TGens extends Gens> = {
-  kind: 'failure';
-  reason: 'predicate';
-  seed: Seed;
-  size: Size;
-  counterexample: PropertyCounterexample<TGens>;
-};
+  export type ValidationFailure = {
+    kind: 'validationFailure';
+    problem: {
+      kind: 'iterations' | 'size' | 'shrinkPath';
+      message: string;
+    };
+  };
 
-export type ExhaustionFailure = {
-  kind: 'exhaustion';
-  iterationsRequested: number;
-  iterationsCompleted: number;
-};
+  export type Exhausted = {
+    kind: 'exhaustion';
+    iterationsRequested: number;
+    iterationsCompleted: number;
+  };
+}
 
-export type PropertySuccess = {
-  kind: 'success';
-};
+export type PropertyResult<Values extends any[]> =
+  | PropertyResult.Success
+  | PropertyResult.ValidationFailure
+  | PropertyResult.Failure<Values>
+  | PropertyResult.Exhausted;
 
-export type PropertyResult<TGens extends Gens> =
-  | PropertyValidationFailure
-  | PropertySuccess
-  | PropertyFailure<TGens>
-  | ExhaustionFailure;
-
-export const exhaustionFailure = (iterationsRequested: number, iterationsCompleted: number): ExhaustionFailure => ({
+export const exhaustionFailure = (
+  iterationsRequested: number,
+  iterationsCompleted: number,
+): PropertyResult.Exhausted => ({
   kind: 'exhaustion',
   iterationsRequested,
   iterationsCompleted,
 });
 
-export const predicateFailure = <TGens extends Gens>(
+export const predicateFailure = <Values extends any[]>(
   seed: Seed,
   size: Size,
-  counterexample: PropertyCounterexample<TGens>,
-): PropertyFailure<TGens> => ({
+  counterexample: PropertyCounterexample<Values>,
+): PropertyResult.Failure<Values> => ({
   kind: 'failure',
   reason: 'predicate',
   seed,
@@ -53,6 +56,6 @@ export const predicateFailure = <TGens extends Gens>(
   counterexample,
 });
 
-export const success = (): PropertySuccess => ({
+export const success = (): PropertyResult.Success => ({
   kind: 'success',
 });

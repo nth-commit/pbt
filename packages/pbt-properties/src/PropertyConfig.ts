@@ -1,5 +1,5 @@
 import { Seed, Size } from 'pbt-core';
-import { PropertyValidationFailure } from './PropertyResult';
+import { PropertyResult } from './PropertyResult';
 
 export type PropertyConfig = {
   iterations: number;
@@ -10,7 +10,7 @@ export type PropertyConfig = {
 
 const isInteger = (n: number): boolean => Math.round(n) === n;
 
-const validateIterations = (iterations: number): PropertyValidationFailure | null => {
+const validateIterations = (iterations: number): PropertyResult.ValidationFailure | null => {
   if (isInteger(iterations) === false) {
     return {
       kind: 'validationFailure',
@@ -34,7 +34,7 @@ const validateIterations = (iterations: number): PropertyValidationFailure | nul
   return null;
 };
 
-const validateSize = (size: Size): PropertyValidationFailure | null => {
+const validateSize = (size: Size): PropertyResult.ValidationFailure | null => {
   if (isInteger(size) === false) {
     return {
       kind: 'validationFailure',
@@ -68,7 +68,7 @@ const validateSize = (size: Size): PropertyValidationFailure | null => {
   return null;
 };
 
-const validateShrinkPath = (shrinkPath: number[] | undefined): PropertyValidationFailure | null => {
+const validateShrinkPath = (shrinkPath: number[] | undefined): PropertyResult.ValidationFailure | null => {
   if (shrinkPath === undefined) return null;
 
   if (shrinkPath.some((x) => isInteger(x) === false)) {
@@ -94,5 +94,5 @@ const validateShrinkPath = (shrinkPath: number[] | undefined): PropertyValidatio
   return null;
 };
 
-export const preValidateConfig = (config: PropertyConfig): PropertyValidationFailure | null =>
+export const preValidateConfig = (config: PropertyConfig): PropertyResult.ValidationFailure | null =>
   validateIterations(config.iterations) || validateSize(config.size) || validateShrinkPath(config.shrinkPath);
