@@ -31,6 +31,8 @@ export type PredicateFailure<Values extends any[]> = {
   reason: 'predicate';
   seed: number;
   size: number;
+  iterationsRequested: number;
+  iterationsCompleted: number;
   counterexample: Counterexample<Values>;
 };
 
