@@ -25,9 +25,9 @@
   },
   "scripts": {
     "build": "tsc --project tsconfig.esm.json && tsc --project tsconfig.cjs.json && ts-node --project scripts/tsconfig.json scripts/fixTypeScriptDefinitions",
-    "build:test": "tsc --project test/tsconfig.json",
     "build:watch": "tsc --project tsconfig.json --watch --preserveWatchOutput",
     "build:clean": "rimraf lib",
+    "build:test": "tsc --project test/tsconfig.json",
     "test": "jest --coverage --no-cache",
     "test:watch": "cross-env fastCheckRuns=10 jest --watchAll --no-cache",
     "sandbox": "ts-node --project scripts/tsconfig.json scripts/sandbox"
