@@ -1,50 +1,15 @@
 import fc from 'fast-check';
 import * as dev from '../src';
 import * as stable from './helpers/stableApi';
+import { arbitraryFailurePropertyResult } from './helpers/arbitraries';
 import * as spies from './helpers/spies';
+import * as mocks from './helpers/mocks';
 import { failwith } from './helpers/failwith';
-import { arbitrarySeed, arbitrarySize } from './helpers/arbitraries';
-
-const arbitraryFailureReason = (): fc.Arbitrary<dev.PropertyResult.Failure<[]>['reason']> => {
-  type FailureReasons = { [P in dev.PropertyResult.Failure<[]>['reason']]: P };
-  const failureReasons: FailureReasons = { predicate: 'predicate' };
-  return fc.constantFrom(...Object.values(failureReasons));
-};
-
-const arbitraryCounterexample = (arity: number): fc.Arbitrary<dev.PropertyCounterexample<unknown[]>> =>
-  fc
-    .tuple(fc.array(fc.anything(), arity, arity), fc.array(fc.anything(), arity, arity), fc.array(fc.integer(0, 10)))
-    .map(([values, originalValues, shrinkPath]) => ({
-      values,
-      originalValues,
-      shrinkPath,
-    }));
-
-const arbitraryFailurePropertyResult = (): fc.Arbitrary<dev.PropertyResult.Failure<unknown[]>> =>
-  fc
-    .tuple(
-      arbitraryFailureReason(),
-      arbitrarySeed(),
-      arbitrarySize(),
-      fc.integer(0, 10).chain((arity) => arbitraryCounterexample(arity)),
-    )
-    .map(([reason, seed, size, counterexample]) => ({
-      kind: 'failure',
-      reason,
-      seed,
-      size,
-      counterexample,
-    }));
-
-const mockProperty = {
-  success: (): dev.Property<unknown[]> => () => ({ kind: 'success' }),
-  failure: (result: dev.PropertyResult.Failure<unknown[]>): dev.Property<unknown[]> => () => result,
-};
 
 test('Input defaults are passed through', () => {
   stable.assert(
     stable.property(fc.anything(), () => {
-      const p = spies.spyOn(mockProperty.success());
+      const p = spies.spyOn(mocks.properties.success());
 
       dev.run(p);
 
@@ -64,7 +29,7 @@ test('Input defaults are passed through', () => {
 test('Input seed is marshalled correctly', () => {
   stable.assert(
     stable.property(fc.nat(), (seed) => {
-      const p = spies.spyOn(mockProperty.success());
+      const p = spies.spyOn(mocks.properties.success());
 
       dev.run(p, { seed });
 
@@ -78,7 +43,7 @@ test('Input seed is marshalled correctly', () => {
 test('Input size is passed through', () => {
   stable.assert(
     stable.property(fc.integer(), (size) => {
-      const p = spies.spyOn(mockProperty.success());
+      const p = spies.spyOn(mocks.properties.success());
 
       dev.run(p, { size });
 
@@ -92,7 +57,7 @@ test('Input size is passed through', () => {
 test('Input iterations is passed through', () => {
   stable.assert(
     stable.property(fc.integer(), (iterations) => {
-      const p = spies.spyOn(mockProperty.success());
+      const p = spies.spyOn(mocks.properties.success());
 
       dev.run(p, { iterations });
 
@@ -115,7 +80,7 @@ test('Input shrinkPath is marshalled correctly', () => {
 
   stable.assert(
     stable.property(fc.constantFrom(...shrinkPathExamples), ([shrinkPath, expectedShrinkPath]) => {
-      const p = spies.spyOn(mockProperty.success());
+      const p = spies.spyOn(mocks.properties.success());
 
       dev.run(p, { shrinkPath });
 
@@ -129,7 +94,7 @@ test('Input shrinkPath is marshalled correctly', () => {
 test('The output seed is marshalled correctly', () => {
   stable.assert(
     stable.property(arbitraryFailurePropertyResult(), (propertyResult) => {
-      const p = mockProperty.failure(propertyResult);
+      const p = mocks.properties.failure(propertyResult);
 
       const runResult = dev.run(p);
       if (runResult.kind !== 'failure') return failwith('expected failure');
@@ -142,7 +107,7 @@ test('The output seed is marshalled correctly', () => {
 test('The output size is passed through', () => {
   stable.assert(
     stable.property(arbitraryFailurePropertyResult(), (propertyResult) => {
-      const p = mockProperty.failure(propertyResult);
+      const p = mocks.properties.failure(propertyResult);
 
       const runResult = dev.run(p);
       if (runResult.kind !== 'failure') return failwith('expected failure');
@@ -166,7 +131,7 @@ test('The output shrinkPath is marshalled correctly', () => {
       arbitraryFailurePropertyResult(),
       fc.constantFrom(...shrinkPathExamples),
       (propertyResult, [shrinkPath, expectedShrinkPath]) => {
-        const p = mockProperty.failure({
+        const p = mocks.properties.failure({
           ...propertyResult,
           counterexample: {
             ...propertyResult.counterexample,

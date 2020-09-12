@@ -5,3 +5,38 @@ export const arbitrarySeed = (): fc.Arbitrary<dev.Seed> => fc.nat().map(dev.Seed
 
 export const arbitrarySize = (): fc.Arbitrary<dev.Size> =>
   fc.oneof(fc.integer(0, 100), fc.constant(0), fc.constant(100));
+
+const arbitraryFailureReason = (): fc.Arbitrary<dev.PropertyResult.Failure<[]>['reason']> => {
+  type FailureReasons = { [P in dev.PropertyResult.Failure<[]>['reason']]: P };
+  const failureReasons: FailureReasons = { predicate: 'predicate' };
+  return fc.constantFrom(...Object.values(failureReasons));
+};
+
+const arbitraryCounterexample = (arity: number): fc.Arbitrary<dev.PropertyCounterexample<unknown[]>> =>
+  fc
+    .tuple(fc.array(fc.anything(), arity, arity), fc.array(fc.anything(), arity, arity), fc.array(fc.integer(0, 10)))
+    .map(([values, originalValues, shrinkPath]) => ({
+      values,
+      originalValues,
+      shrinkPath,
+    }));
+
+export const arbitraryFailurePropertyResult = (): fc.Arbitrary<dev.PropertyResult.Failure<unknown[]>> =>
+  fc
+    .tuple(
+      arbitraryFailureReason(),
+      arbitrarySeed(),
+      arbitrarySize(),
+      fc.integer(1, 100),
+      fc.integer(1, 100),
+      fc.integer(0, 10).chain((arity) => arbitraryCounterexample(arity)),
+    )
+    .map(([reason, seed, size, iterationsRequested, iterationsCompleted, counterexample]) => ({
+      kind: 'failure',
+      reason,
+      seed,
+      size,
+      iterationsRequested,
+      iterationsCompleted,
+      counterexample,
+    }));

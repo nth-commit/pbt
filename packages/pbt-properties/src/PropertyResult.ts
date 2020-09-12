@@ -11,6 +11,8 @@ export namespace PropertyResult {
     reason: 'predicate';
     seed: Seed;
     size: Size;
+    iterationsRequested: number;
+    iterationsCompleted: number;
     counterexample: PropertyCounterexample<Values>;
   };
 
@@ -47,12 +49,16 @@ export const exhaustionFailure = (
 export const predicateFailure = <Values extends any[]>(
   seed: Seed,
   size: Size,
+  iterationsRequested: number,
+  iterationsCompleted: number,
   counterexample: PropertyCounterexample<Values>,
 ): PropertyResult.Failure<Values> => ({
   kind: 'failure',
   reason: 'predicate',
   seed,
   size,
+  iterationsRequested,
+  iterationsCompleted,
   counterexample,
 });
 

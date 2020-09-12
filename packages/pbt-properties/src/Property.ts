@@ -25,7 +25,13 @@ export const property = <TGens extends Gens>(
       case 'exhaustionFailure':
         return exhaustionFailure(config.iterations, runResult.iterationNumber - 1);
       case 'predicateFailure':
-        return predicateFailure(runResult.seed, runResult.size, runResult.counterexample);
+        return predicateFailure(
+          runResult.seed,
+          runResult.size,
+          config.iterations,
+          runResult.iterationNumber,
+          runResult.counterexample,
+        );
       case 'invalidShrinkPath':
         return {
           kind: 'validationFailure',
