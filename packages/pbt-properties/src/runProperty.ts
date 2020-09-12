@@ -4,17 +4,13 @@ import { map, skip, take } from 'ix/iterable/operators';
 import { filterIndexed, indexed, mapIndexed, takeWhileInclusive, zipSafe } from './iterableOperators';
 import { PropertyConfig } from './PropertyConfig';
 
-type GenValue<T> = T extends Gen<infer U> ? U : never;
+type GenResults<Values extends any[]> = { [P in keyof Values]: GenResult<Values[P]> };
 
-type GenValues<TGens extends Gens> = { [P in keyof TGens]: GenValue<TGens[P]> };
+export type PropertyFunction<Values extends any[]> = (...args: Values) => boolean;
 
-type GenOutput<T> = T extends Gen<infer U> ? GenResult<U> : never;
-
-export type PropertyFunction<TGens extends Gens> = (...args: GenValues<TGens>) => boolean;
-
-export type PropertyCounterexample<TGens extends Gens> = {
-  originalValues: GenValues<TGens>;
-  values: GenValues<TGens>;
+export type PropertyCounterexample<Values extends any[]> = {
+  originalValues: Values;
+  values: Values;
   shrinkPath: number[];
 };
 
@@ -22,12 +18,12 @@ type SuccessPropertyRunResult = {
   kind: 'success';
 };
 
-type PredicateFailurePropertyRunResult<TGens extends Gens> = {
+type PredicateFailurePropertyRunResult<Values extends any[]> = {
   kind: 'predicateFailure';
   seed: Seed;
   size: Size;
   iterationNumber: number;
-  counterexample: PropertyCounterexample<TGens> | null;
+  counterexample: PropertyCounterexample<Values>;
 };
 
 type ExhaustionFailurePropertyRunResult = {
@@ -41,9 +37,9 @@ type InvalidShrinkPathPropertyRunResult = {
   kind: 'invalidShrinkPath';
 };
 
-export type PropertyRunResult<TGens extends Gens> =
+export type PropertyRunResult<Values extends any[]> =
   | SuccessPropertyRunResult
-  | PredicateFailurePropertyRunResult<TGens>
+  | PredicateFailurePropertyRunResult<Values>
   | ExhaustionFailurePropertyRunResult
   | InvalidShrinkPathPropertyRunResult;
 
@@ -63,63 +59,53 @@ const seedGen = <T>(g: Gen<T>, seed: Seed, size: Size): { iterable: Iterable<Gen
   };
 };
 
-const seedGens = <TGens extends Gens>(gs: TGens, seed: Seed, size: Size): Iterable<GenResults<TGens>> => {
-  type GenInvocationsResult<TGens extends Gens> = {
+const seedGens = <Values extends any[]>(gs: Gens<Values>, seed: Seed, size: Size): Iterable<GenResults<Values>> => {
+  type GenInvocationsResult<Values extends any[]> = {
     nextSeed: Seed;
-    iterables: Iterable<GenResults<TGens>>;
+    iterables: Iterable<GenResults<Values>>;
   };
 
-  return gs.reduce<GenInvocationsResult<TGens>>(
+  return gs.reduce<GenInvocationsResult<Values>>(
     (result, g) => {
       const { iterable, nextSeed } = seedGen(g, result.nextSeed, size);
       return {
         nextSeed,
-        iterables: [...result.iterables, iterable] as Iterable<GenResults<TGens>>,
+        iterables: [...result.iterables, iterable] as Iterable<GenResults<Values>>,
       };
     },
     {
       nextSeed: seed,
       iterables: [] as unknown[],
-    } as GenInvocationsResult<TGens>,
+    } as GenInvocationsResult<Values>,
   ).iterables;
 };
 
-type GenResults<TGens extends Gens> = { [P in keyof TGens]: GenOutput<TGens[P]> };
-
-const combineGenResults = <TGens extends Gens>(rs: GenResults<TGens>): GenResult<GenValues<TGens>> =>
+const combineGenResults = <Values extends any[]>(rs: GenResults<Values>): GenResult<Values> =>
   rs.every(GenResult.isInstance)
-    ? (GenInstance.join(...rs) as GenResult<GenValues<TGens>>)
+    ? (GenInstance.join(...rs) as GenResult<Values>)
     : rs.some((r) => r.kind === 'exhaustion')
     ? /* istanbul ignore next */ { kind: 'exhaustion' }
     : /* istanbul ignore next */ { kind: 'discard' };
 
-const invokeGens = <TGens extends Gens>(gs: TGens, seed: Seed, size: Size): Iterable<GenResult<GenValues<TGens>>> =>
+const invokeGens = <Values extends any[]>(gs: Gens<Values>, seed: Seed, size: Size): Iterable<GenResult<Values>> =>
   pipe(
     zipSafe(...seedGens(gs, seed, size)),
-    map((genResults) => combineGenResults(genResults as GenResults<TGens>)),
+    map((genResults) => combineGenResults(genResults as GenResults<Values>)),
   );
-
-const invokePropertyFunction = <TGens extends Gens>(
-  f: PropertyFunction<TGens>,
-  instanceData: GenInstanceData<any[]>,
-): boolean => {
-  const unsafeF = f as (...args: any[]) => boolean;
-  return unsafeF(...instanceData.value);
-};
 
 namespace Exploration {
   const NOT_A_COUNTEREXAMPLE = Symbol();
 
-  const isCounterexample = <TGens extends Gens>(
-    maybeCounterexample: PropertyCounterexample<TGens> | typeof NOT_A_COUNTEREXAMPLE,
-  ): maybeCounterexample is PropertyCounterexample<TGens> => maybeCounterexample !== NOT_A_COUNTEREXAMPLE;
+  const isCounterexample = <Values extends any[]>(
+    maybeCounterexample: PropertyCounterexample<Values> | typeof NOT_A_COUNTEREXAMPLE,
+  ): maybeCounterexample is PropertyCounterexample<Values> => maybeCounterexample !== NOT_A_COUNTEREXAMPLE;
 
-  const tryFindCounterexample = <TGens extends Gens>(
-    f: PropertyFunction<TGens>,
-    instanceData: GenInstanceData<GenValues<TGens>>,
-    originalInstanceData: GenInstanceData<GenValues<TGens>>,
-  ): PropertyCounterexample<TGens> | typeof NOT_A_COUNTEREXAMPLE => {
-    if (invokePropertyFunction(f, instanceData)) {
+  const tryFindCounterexample = <Values extends any[]>(
+    f: PropertyFunction<Values>,
+    instanceData: GenInstanceData<Values>,
+    originalInstanceData: GenInstanceData<Values>,
+  ): PropertyCounterexample<Values> | typeof NOT_A_COUNTEREXAMPLE => {
+    if (f(...instanceData.value)) {
       return NOT_A_COUNTEREXAMPLE;
     }
 
@@ -145,22 +131,22 @@ namespace Exploration {
         };
   };
 
-  type PropertyIterationResult<TGens extends Gens> =
+  type PropertyIterationResult<Values extends any[]> =
     | Pick<SuccessPropertyRunResult, 'kind'>
-    | Pick<PredicateFailurePropertyRunResult<TGens>, 'kind' | 'counterexample'>
+    | Pick<PredicateFailurePropertyRunResult<Values>, 'kind' | 'counterexample'>
     | Pick<ExhaustionFailurePropertyRunResult, 'kind'>;
 
-  const runIteration = <TGens extends Gens>(
-    gs: TGens,
-    f: PropertyFunction<TGens>,
+  const runIteration = <Values extends any[]>(
+    gs: Gens<Values>,
+    f: PropertyFunction<Values>,
     seed: Seed,
     size: Size,
-  ): PropertyIterationResult<TGens> => {
+  ): PropertyIterationResult<Values> => {
     const statusAndCounterexample = first(
       pipe(
         invokeGens(gs, seed, size),
         map(
-          (r): PropertyIterationResult<TGens> => {
+          (r): PropertyIterationResult<Values> => {
             if (r.kind === 'instance') {
               const counterexample = tryFindCounterexample(f, r, r);
               return counterexample === NOT_A_COUNTEREXAMPLE
@@ -184,12 +170,12 @@ namespace Exploration {
     return statusAndCounterexample;
   };
 
-  const runIterations = function* <TGens extends Gens>(
-    gs: TGens,
-    f: PropertyFunction<TGens>,
+  const runIterations = function* <Values extends any[]>(
+    gs: Gens<Values>,
+    f: PropertyFunction<Values>,
     initialSeed: Seed,
     initialSize: Size,
-  ): Iterable<PropertyRunResult<TGens>> {
+  ): Iterable<PropertyRunResult<Values>> {
     let currentSeed = initialSeed;
 
     for (let iterationNumber = 1; iterationNumber <= Number.MAX_SAFE_INTEGER; iterationNumber++) {
@@ -224,13 +210,13 @@ namespace Exploration {
     }
   };
 
-  export const exploreProperty = <TGens extends Gens>(
-    gs: TGens,
-    f: PropertyFunction<TGens>,
+  export const exploreProperty = <Values extends any[]>(
+    gs: Gens<Values>,
+    f: PropertyFunction<Values>,
     initialSeed: Seed,
     initialSize: Size,
     iterations: number,
-  ): PropertyRunResult<TGens> => {
+  ): PropertyRunResult<Values> => {
     const lastIteration = last(
       pipe(
         from(runIterations(gs, f, initialSeed, initialSize)),
@@ -254,10 +240,10 @@ namespace Reproduction {
     throw new Error(str);
   };
 
-  const traverseShrinkPath = <TGens extends Gens>(
-    g: GenInstanceData<GenValues<TGens>>,
+  const traverseShrinkPath = <Values extends any[]>(
+    g: GenInstanceData<Values>,
     shrinkPath: number[],
-  ): GenInstanceData<GenValues<TGens>> | null => {
+  ): GenInstanceData<Values> | null => {
     const shrinkComponent: number | undefined = shrinkPath[0];
     if (shrinkComponent === undefined) {
       return g;
@@ -271,40 +257,40 @@ namespace Reproduction {
     return traverseShrinkPath(currentData, shrinkPath.slice(1));
   };
 
-  const genInitial = <TGens extends Gens>(
-    gs: TGens,
+  const genInitial = <Values extends any[]>(
+    gs: Gens<Values>,
     initialSeed: Seed,
     initialSize: Size,
-  ): GenInstanceData<GenValues<TGens>> =>
+  ): GenInstanceData<Values> =>
     first(
       pipe(
         invokeGens(gs, initialSeed, initialSize),
         map((x) =>
           GenResult.isInstance(x)
             ? x
-            : /* istanbul ignore next */ throwUnhandled<GenInstance<GenValues<TGens>>>('Expected kind = "instance"'),
+            : /* istanbul ignore next */ throwUnhandled<GenInstance<Values>>('Expected kind = "instance"'),
         ),
       ),
     )!;
 
-  export const reproduceProperty = <TGens extends Gens>(
-    gs: TGens,
-    f: PropertyFunction<TGens>,
+  export const reproduceProperty = <Values extends any[]>(
+    gs: Gens<Values>,
+    f: PropertyFunction<Values>,
     initialSeed: Seed,
     initialSize: Size,
     shrinkPath: number[],
-  ): PropertyRunResult<TGens> => {
+  ): PropertyRunResult<Values> => {
     // Split the seed, like it was in the original run
     const [leftSeed] = initialSeed.split();
     const rootInstance = genInitial(gs, leftSeed, initialSize)!;
-    const shrunkValues = traverseShrinkPath(rootInstance, shrinkPath);
+    const shrunkInstance = traverseShrinkPath(rootInstance, shrinkPath);
 
-    if (!shrunkValues) {
+    if (!shrunkInstance) {
       return { kind: 'invalidShrinkPath' };
     }
 
     /* istanbul ignore next */
-    return invokePropertyFunction(f, shrunkValues)
+    return f(...shrunkInstance.value)
       ? { kind: 'success' }
       : {
           kind: 'predicateFailure',
@@ -313,18 +299,18 @@ namespace Reproduction {
           size: initialSize,
           counterexample: {
             shrinkPath,
-            values: shrunkValues.value,
+            values: shrunkInstance.value,
             originalValues: rootInstance.value,
           },
         };
   };
 }
 
-const runProperty = <TGens extends Gens>(
-  gs: TGens,
-  f: PropertyFunction<TGens>,
+const runProperty = <Values extends any[]>(
+  gs: Gens<Values>,
+  f: PropertyFunction<Values>,
   config: PropertyConfig,
-): PropertyRunResult<TGens> => {
+): PropertyRunResult<Values> => {
   const { iterations, seed, size, shrinkPath } = config;
   return shrinkPath
     ? Reproduction.reproduceProperty(gs, f, seed, size, shrinkPath)

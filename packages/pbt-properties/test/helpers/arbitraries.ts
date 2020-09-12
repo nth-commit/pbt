@@ -32,12 +32,13 @@ export const arbitraryGen = () => fc.constant(devGen.integer.constant(0, 10));
 
 export const arbitraryGens = () => fc.array(arbitraryGen(), 0, 20);
 
-export const arbitrarySucceedingPropertyFunction = <T extends devCore.Gens>(): fc.Arbitrary<dev.PropertyFunction<T>> =>
-  fc.constant(() => true);
+export const arbitrarySucceedingPropertyFunction = <Values extends any[]>(): fc.Arbitrary<
+  dev.PropertyFunction<Values>
+> => fc.constant(() => true);
 
-export const arbitraryFailingPropertyFunction = <T extends devCore.Gens>(
+export const arbitraryFailingPropertyFunction = <Values extends any[]>(
   failAfterIterations: number = 0,
-): fc.Arbitrary<dev.PropertyFunction<T>> => {
+): fc.Arbitrary<dev.PropertyFunction<Values>> => {
   let iterationCount = -1;
   return fc.constant(() => {
     iterationCount++;
@@ -45,7 +46,7 @@ export const arbitraryFailingPropertyFunction = <T extends devCore.Gens>(
   });
 };
 
-export const arbitraryPropertyFunction = <T extends devCore.Gens>(): fc.Arbitrary<dev.PropertyFunction<T>> =>
+export const arbitraryPropertyFunction = <Values extends any[]>(): fc.Arbitrary<dev.PropertyFunction<Values>> =>
   fc.oneof(arbitrarySucceedingPropertyFunction(), arbitraryFailingPropertyFunction());
 
 export const arbitraryIterations = (maxIterations: number): fc.Arbitrary<number> => fc.integer(1, maxIterations);
