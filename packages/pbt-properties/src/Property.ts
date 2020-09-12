@@ -1,6 +1,6 @@
 import { Gens } from 'pbt-core';
-import { success, exhaustionFailure, predicateFailure, PropertyResult } from './PropertyResult';
-import { PropertyConfig, validateConfig } from './PropertyConfig';
+import { success, exhaustionFailure, predicateFailure, PropertyResult, ValidationProblem } from './PropertyResult';
+import { PropertyConfig, preValidateConfig } from './PropertyConfig';
 import runProperty, { PropertyCounterexample, PropertyFunction } from './runProperty';
 
 export interface Property<TGens extends Gens> {
@@ -12,23 +12,30 @@ export const property = <TGens extends Gens>(...args: [...TGens, PropertyFunctio
   const f = args[args.length - 1] as PropertyFunction<TGens>;
 
   return (config) => {
-    const validationError = validateConfig(config);
+    const validationError = preValidateConfig(config);
     if (validationError) return validationError;
 
-    const { iterations } = config;
-    const { lastIteration } = runProperty(gs, f, config);
-
-    switch (lastIteration.iterationStatus) {
+    const runResult = runProperty(gs, f, config);
+    switch (runResult.kind) {
       case 'success':
         return success();
       case 'exhaustionFailure':
-        return exhaustionFailure(iterations, lastIteration.iterationNumber - 1);
+        return exhaustionFailure(config.iterations, runResult.iterationNumber - 1);
       case 'predicateFailure':
         return predicateFailure(
-          lastIteration.seed,
-          lastIteration.size,
-          lastIteration.counterexample as PropertyCounterexample<TGens>,
+          runResult.seed,
+          runResult.size,
+          runResult.counterexample as PropertyCounterexample<TGens>,
         );
+      case 'invalidShrinkPath':
+        return {
+          kind: 'validationFailure',
+          problem: {
+            kind: 'shrinkPath',
+            message:
+              'Shrink path was invalidated, re-run failing property without specifying shrinkPath to receive a relevant counterexample',
+          },
+        };
     }
   };
 };
