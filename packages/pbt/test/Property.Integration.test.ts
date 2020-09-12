@@ -10,7 +10,7 @@ test('It runs with the default config', () => {
 
   const result = dev.run(p);
 
-  expect(result).toEqual({ kind: 'success' });
+  expect(result).toMatchObject({ kind: 'success' });
 });
 
 test('Given a true property, it returns success', () => {
@@ -22,7 +22,7 @@ test('Given a true property, it returns success', () => {
 
       const result = dev.run(p, { seed });
 
-      expect(result).toEqual({ kind: 'success' });
+      expect(result).toMatchObject({ kind: 'success' });
     }),
   );
 });
@@ -36,7 +36,7 @@ test('Given a false property, it returns failure', () => {
 
       const result = dev.run(p, { seed });
 
-      expect(result).toMatchObject({ kind: 'failure', problem: { kind: 'predicate' } });
+      expect(result).toMatchObject({ kind: 'failure', reason: 'predicate' });
     }),
   );
 });
@@ -50,9 +50,10 @@ test('Given any property, with an exhausted gen, it returns failure', () => {
 
       const result = dev.run(p, { seed });
 
-      expect(result).toEqual({
-        kind: 'failure',
-        problem: { kind: 'exhaustion', iterationsCompleted: 0, iterationsRequested: 100 },
+      expect(result).toMatchObject({
+        kind: 'exhaustion',
+        iterationsCompleted: 0,
+        iterationsRequested: 100,
       });
     }),
   );

@@ -1,24 +1,19 @@
 import * as dev from '../src';
 import * as stable from './helpers/stableApi';
 import {
-  extendableArbitrary,
   arbitraryPropertyConfig,
   arbitraryGenValue,
-  arbitraryGens,
   arbitraryPropertyFunction,
   arbitrarySucceedingPropertyFunction,
+  arbitraryGens,
 } from './helpers/arbitraries';
 import { GenStub } from './helpers/stubs';
 
 test('The test function receives a value from the generator', () => {
-  const arb = extendableArbitrary()
-    .extend(() => arbitraryPropertyConfig())
-    .extend(() => arbitraryGenValue())
-    .extend(() => arbitraryPropertyFunction())
-    .toArbitrary();
+  const arbitraries = [arbitraryPropertyConfig(), arbitraryGenValue(), arbitraryPropertyFunction()] as const;
 
   stable.assert(
-    stable.property(arb, ([config, x, f]) => {
+    stable.property(...arbitraries, (config, x, f) => {
       const spyF = jest.fn<boolean, unknown[]>(f);
       const p = dev.property(GenStub.singleton(x), spyF);
 
@@ -30,14 +25,10 @@ test('The test function receives a value from the generator', () => {
 });
 
 test('Given a succeeding property function, the test function is only called once for each iteration', () => {
-  const arb = extendableArbitrary()
-    .extend(() => arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGens({ minLength: iterations }))
-    .extend(() => arbitrarySucceedingPropertyFunction())
-    .toArbitrary();
+  const arbitraries = [arbitraryPropertyConfig(), arbitraryGens(), arbitrarySucceedingPropertyFunction()] as const;
 
   stable.assert(
-    stable.property(arb, ([config, gs, f]) => {
+    stable.property(...arbitraries, (config, gs, f) => {
       const spyF = jest.fn(f);
       const p = dev.property(...gs, spyF);
 
