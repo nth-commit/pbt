@@ -6,6 +6,7 @@ import {
   arbitraryPropertyFunction,
   arbitraryDecimal,
   arbitraryGens,
+  arbitrarilyShuffleIn,
 } from './helpers/arbitraries';
 import { DEFAULT_MAX_ITERATIONS } from './helpers/constants';
 
@@ -128,6 +129,90 @@ test('Given size > 100, the property returns a validation failure', () => {
         problem: {
           kind: 'size',
           message: 'Size must be less than or equal to 100',
+        },
+      });
+    }),
+  );
+});
+
+test('Given shrinkPath contains a decimal, the property returns a validation failure', () => {
+  const arbitraries = [
+    arbitraryPropertyConfig(),
+    arbitraryGens(),
+    arbitraryPropertyFunction(),
+    fc
+      .tuple(fc.array(fc.nat()), arbitraryDecimal(0, 1000))
+      .chain(([validPathComponents, invalidPathComponent]) =>
+        arbitrarilyShuffleIn(validPathComponents, invalidPathComponent),
+      ),
+  ] as const;
+
+  stable.assert(
+    stable.property(...arbitraries, (config, gs, f, shrinkPath) => {
+      const p = dev.property(...gs, f);
+
+      const result = p({ ...config, shrinkPath });
+
+      expect(result).toEqual({
+        kind: 'validationFailure',
+        problem: {
+          kind: 'shrinkPath',
+          message: 'Shrink path may only contain integers',
+        },
+      });
+    }),
+  );
+});
+
+test('Given shrinkPath contains a negative number, the property returns a validation failure', () => {
+  const arbitraries = [
+    arbitraryPropertyConfig(),
+    arbitraryGens(),
+    arbitraryPropertyFunction(),
+    fc
+      .tuple(fc.array(fc.nat()), fc.integer(-1))
+      .chain(([validPathComponents, invalidPathComponent]) =>
+        arbitrarilyShuffleIn(validPathComponents, invalidPathComponent),
+      ),
+  ] as const;
+
+  stable.assert(
+    stable.property(...arbitraries, (config, gs, f, shrinkPath) => {
+      const p = dev.property(...gs, f);
+
+      const result = p({ ...config, shrinkPath });
+
+      expect(result).toEqual({
+        kind: 'validationFailure',
+        problem: {
+          kind: 'shrinkPath',
+          message: 'Shrink path may not contain negative numbers',
+        },
+      });
+    }),
+  );
+});
+
+test('Given a non-empty shrinkPath, and a some gens that do not shrink, the property returns a validation failure', () => {
+  const arbitraries = [
+    arbitraryPropertyConfig(),
+    arbitraryGens().map((gs) => gs.map((g) => g.noShrink())),
+    arbitraryPropertyFunction(),
+    fc.array(fc.nat(), 1, 1),
+  ] as const;
+
+  stable.assert(
+    stable.property(...arbitraries, (config, gs, f, shrinkPath) => {
+      const p = dev.property(...gs, f);
+
+      const result = p({ ...config, shrinkPath });
+
+      expect(result).toEqual({
+        kind: 'validationFailure',
+        problem: {
+          kind: 'shrinkPath',
+          message:
+            'Shrink path was invalidated, re-run failing property without specifying shrinkPath to receive a relevant counterexample',
         },
       });
     }),

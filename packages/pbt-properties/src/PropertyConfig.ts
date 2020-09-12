@@ -68,5 +68,31 @@ const validateSize = (size: Size): PropertyValidationFailure | null => {
   return null;
 };
 
-export const validateConfig = (config: PropertyConfig): PropertyValidationFailure | null =>
-  validateIterations(config.iterations) || validateSize(config.size);
+const validateShrinkPath = (shrinkPath: number[] | undefined): PropertyValidationFailure | null => {
+  if (shrinkPath === undefined) return null;
+
+  if (shrinkPath.some((x) => isInteger(x) === false)) {
+    return {
+      kind: 'validationFailure',
+      problem: {
+        kind: 'shrinkPath',
+        message: 'Shrink path may only contain integers',
+      },
+    };
+  }
+
+  if (shrinkPath.some((x) => x < 0)) {
+    return {
+      kind: 'validationFailure',
+      problem: {
+        kind: 'shrinkPath',
+        message: 'Shrink path may not contain negative numbers',
+      },
+    };
+  }
+
+  return null;
+};
+
+export const preValidateConfig = (config: PropertyConfig): PropertyValidationFailure | null =>
+  validateIterations(config.iterations) || validateSize(config.size) || validateShrinkPath(config.shrinkPath);

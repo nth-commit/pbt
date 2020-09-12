@@ -12,25 +12,40 @@ type GenOutput<T> = T extends Gen<infer U> ? GenResult<U> : never;
 
 export type PropertyFunction<TGens extends Gens> = (...args: GenValues<TGens>) => boolean;
 
-export type PropertyIterationStatus = 'success' | 'predicateFailure' | 'exhaustionFailure';
-
 export type PropertyCounterexample<TGens extends Gens> = {
   originalValues: GenValues<TGens>;
   values: GenValues<TGens>;
   shrinkPath: number[];
 };
 
-export type PropertyIterationResult<TGens extends Gens> = {
-  iterationStatus: 'success' | 'predicateFailure' | 'exhaustionFailure';
-  iterationNumber: number;
+type SuccessPropertyRunResult = {
+  kind: 'success';
+};
+
+type PredicateFailurePropertyRunResult<TGens extends Gens> = {
+  kind: 'predicateFailure';
   seed: Seed;
   size: Size;
+  iterationNumber: number;
   counterexample: PropertyCounterexample<TGens> | null;
 };
 
-export type PropertyRunResult<TGens extends Gens> = {
-  lastIteration: PropertyIterationResult<TGens>;
+type ExhaustionFailurePropertyRunResult = {
+  kind: 'exhaustionFailure';
+  seed: Seed;
+  size: Size;
+  iterationNumber: number;
 };
+
+type InvalidShrinkPathPropertyRunResult = {
+  kind: 'invalidShrinkPath';
+};
+
+export type PropertyRunResult<TGens extends Gens> =
+  | SuccessPropertyRunResult
+  | PredicateFailurePropertyRunResult<TGens>
+  | ExhaustionFailurePropertyRunResult
+  | InvalidShrinkPathPropertyRunResult;
 
 /* istanbul ignore next */
 const throwingGenerator = function* () {
@@ -56,8 +71,6 @@ const seedGens = <TGens extends Gens>(gs: TGens, seed: Seed, size: Size): Iterab
 
   return gs.reduce<GenInvocationsResult<TGens>>(
     (result, g) => {
-      // TODO: Prevent against this bug:
-      // const { iterable, nextSeed } = invokeGen(g, seed, size);
       const { iterable, nextSeed } = seedGen(g, result.nextSeed, size);
       return {
         nextSeed,
@@ -132,23 +145,34 @@ namespace Exploration {
         };
   };
 
+  type PropertyIterationResult<TGens extends Gens> =
+    | Pick<SuccessPropertyRunResult, 'kind'>
+    | Pick<PredicateFailurePropertyRunResult<TGens>, 'kind' | 'counterexample'>
+    | Pick<ExhaustionFailurePropertyRunResult, 'kind'>;
+
   const runIteration = <TGens extends Gens>(
     gs: TGens,
     f: PropertyFunction<TGens>,
     seed: Seed,
     size: Size,
-  ): [PropertyIterationStatus, PropertyCounterexample<TGens> | null] => {
+  ): PropertyIterationResult<TGens> => {
     const statusAndCounterexample = first(
       pipe(
         invokeGens(gs, seed, size),
-        map((r): [PropertyIterationStatus, PropertyCounterexample<TGens> | null] | undefined => {
-          if (r.kind === 'instance') {
-            const counterexample = tryFindCounterexample(f, r, r);
-            return counterexample === NOT_A_COUNTEREXAMPLE ? ['success', null] : ['predicateFailure', counterexample];
-          }
+        map(
+          (r): PropertyIterationResult<TGens> => {
+            if (r.kind === 'instance') {
+              const counterexample = tryFindCounterexample(f, r, r);
+              return counterexample === NOT_A_COUNTEREXAMPLE
+                ? { kind: 'success' }
+                : { kind: 'predicateFailure', counterexample };
+            }
 
-          return ['exhaustionFailure', null];
-        }),
+            return {
+              kind: 'exhaustionFailure',
+            };
+          },
+        ),
       ),
     );
 
@@ -165,21 +189,38 @@ namespace Exploration {
     f: PropertyFunction<TGens>,
     initialSeed: Seed,
     initialSize: Size,
-  ): Iterable<PropertyIterationResult<TGens>> {
+  ): Iterable<PropertyRunResult<TGens>> {
+    let currentSeed = initialSeed;
+
     for (let iterationNumber = 1; iterationNumber <= Number.MAX_SAFE_INTEGER; iterationNumber++) {
+      const [leftSeed, rightSeed] = currentSeed.split();
+
       const iterationSizeOffset = iterationNumber - 1;
       const untruncatedSize = initialSize + iterationSizeOffset;
       const currentSize = ((untruncatedSize - 1) % 100) + 1;
 
-      const [iterationStatus, counterexample] = runIteration(gs, f, initialSeed, currentSize);
+      const iterationResult = runIteration(gs, f, leftSeed, currentSize);
+      switch (iterationResult.kind) {
+        case 'predicateFailure':
+          yield {
+            kind: 'predicateFailure',
+            counterexample: iterationResult.counterexample,
+            iterationNumber,
+            seed: currentSeed,
+            size: currentSize,
+          };
+        case 'exhaustionFailure':
+          yield {
+            kind: 'exhaustionFailure',
+            iterationNumber,
+            seed: currentSeed,
+            size: currentSize,
+          };
+        case 'success':
+          yield { kind: 'success' };
+      }
 
-      yield {
-        iterationNumber,
-        iterationStatus,
-        seed: initialSeed,
-        size: currentSize,
-        counterexample,
-      };
+      currentSeed = rightSeed;
     }
   };
 
@@ -189,12 +230,12 @@ namespace Exploration {
     initialSeed: Seed,
     initialSize: Size,
     iterations: number,
-  ): PropertyIterationResult<TGens> => {
+  ): PropertyRunResult<TGens> => {
     const lastIteration = last(
       pipe(
         from(runIterations(gs, f, initialSeed, initialSize)),
         take(iterations),
-        takeWhileInclusive((x) => x.iterationStatus === 'success'),
+        takeWhileInclusive((x) => x.kind === 'success'),
       ),
     );
 
@@ -216,17 +257,15 @@ namespace Reproduction {
   const traverseShrinkPath = <TGens extends Gens>(
     g: GenInstanceData<GenValues<TGens>>,
     shrinkPath: number[],
-  ): GenInstanceData<GenValues<TGens>> => {
+  ): GenInstanceData<GenValues<TGens>> | null => {
     const shrinkComponent: number | undefined = shrinkPath[0];
     if (shrinkComponent === undefined) {
       return g;
     }
 
     const currentData = first(pipe(g.shrink(), skip(shrinkComponent)));
-
-    /* istanbul ignore next */
     if (!currentData) {
-      throw 'Invalid shrink path';
+      return null;
     }
 
     return traverseShrinkPath(currentData, shrinkPath.slice(1));
@@ -254,26 +293,30 @@ namespace Reproduction {
     initialSeed: Seed,
     initialSize: Size,
     shrinkPath: number[],
-  ): PropertyIterationResult<TGens> => {
-    const rootInstance = genInitial(gs, initialSeed, initialSize)!;
+  ): PropertyRunResult<TGens> => {
+    // Split the seed, like it was in the original run
+    const [leftSeed] = initialSeed.split();
+    const rootInstance = genInitial(gs, leftSeed, initialSize)!;
     const shrunkValues = traverseShrinkPath(rootInstance, shrinkPath);
 
-    /* istanbul ignore next */
-    const iterationStatus: PropertyIterationStatus = invokePropertyFunction(f, shrunkValues)
-      ? 'success'
-      : 'predicateFailure';
+    if (!shrunkValues) {
+      return { kind: 'invalidShrinkPath' };
+    }
 
-    return {
-      iterationStatus,
-      iterationNumber: 1,
-      seed: initialSeed,
-      size: initialSize,
-      counterexample: {
-        shrinkPath,
-        values: shrunkValues.value,
-        originalValues: rootInstance.value,
-      },
-    };
+    /* istanbul ignore next */
+    return invokePropertyFunction(f, shrunkValues)
+      ? { kind: 'success' }
+      : {
+          kind: 'predicateFailure',
+          iterationNumber: 1,
+          seed: initialSeed,
+          size: initialSize,
+          counterexample: {
+            shrinkPath,
+            values: shrunkValues.value,
+            originalValues: rootInstance.value,
+          },
+        };
   };
 }
 
@@ -283,12 +326,9 @@ const runProperty = <TGens extends Gens>(
   config: PropertyConfig,
 ): PropertyRunResult<TGens> => {
   const { iterations, seed, size, shrinkPath } = config;
-
-  return {
-    lastIteration: shrinkPath
-      ? Reproduction.reproduceProperty(gs, f, seed, size, shrinkPath)
-      : Exploration.exploreProperty(gs, f, seed, size, iterations),
-  };
+  return shrinkPath
+    ? Reproduction.reproduceProperty(gs, f, seed, size, shrinkPath)
+    : Exploration.exploreProperty(gs, f, seed, size, iterations);
 };
 
 export default runProperty;

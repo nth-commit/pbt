@@ -1,12 +1,14 @@
 import { Gens, Seed, Size } from 'pbt-core';
 import { PropertyCounterexample } from './runProperty';
 
+export type ValidationProblem = {
+  kind: 'iterations' | 'size' | 'shrinkPath';
+  message: string;
+};
+
 export type PropertyValidationFailure = {
   kind: 'validationFailure';
-  problem: {
-    kind: 'iterations' | 'size';
-    message: string;
-  };
+  problem: ValidationProblem;
 };
 
 export type PropertyFailure<TGens extends Gens> = {
