@@ -2,24 +2,23 @@ import * as fc from 'fast-check';
 import * as dev from '../src';
 import * as stable from './helpers/stableApi';
 import {
-  extendableArbitrary,
   arbitraryPropertyConfig,
-  arbitraryGens,
   arbitraryPropertyFunction,
   arbitraryDecimal,
+  arbitraryGens,
 } from './helpers/arbitraries';
 import { DEFAULT_MAX_ITERATIONS } from './helpers/constants';
 
 test('Given iterations is a decimal, the property returns a validation failure', () => {
-  const arb = extendableArbitrary()
-    .extend(() => arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGens({ minLength: iterations }))
-    .extend(() => arbitraryPropertyFunction())
-    .extend(() => arbitraryDecimal(1, DEFAULT_MAX_ITERATIONS))
-    .toArbitrary();
+  const arbitraries = [
+    arbitraryPropertyConfig(),
+    arbitraryGens(),
+    arbitraryPropertyFunction(),
+    arbitraryDecimal(1, DEFAULT_MAX_ITERATIONS),
+  ] as const;
 
   stable.assert(
-    stable.property(arb, ([config, gs, f, iterations]) => {
+    stable.property(...arbitraries, (config, gs, f, iterations) => {
       const p = dev.property(...gs, f);
 
       const result = p({ ...config, iterations });
@@ -36,15 +35,15 @@ test('Given iterations is a decimal, the property returns a validation failure',
 });
 
 test('Given iterations <= 0, the property returns a validation failure', () => {
-  const arb = extendableArbitrary()
-    .extend(() => arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGens({ minLength: iterations }))
-    .extend(() => arbitraryPropertyFunction())
-    .extend(() => fc.oneof(fc.constant(0), fc.integer(0)))
-    .toArbitrary();
+  const arbitraries = [
+    arbitraryPropertyConfig(),
+    arbitraryGens(),
+    arbitraryPropertyFunction(),
+    fc.oneof(fc.constant(0), fc.integer(0)),
+  ] as const;
 
   stable.assert(
-    stable.property(arb, ([config, gs, f, iterations]) => {
+    stable.property(...arbitraries, (config, gs, f, iterations) => {
       const p = dev.property(...gs, f);
 
       const result = p({ ...config, iterations });
@@ -61,15 +60,15 @@ test('Given iterations <= 0, the property returns a validation failure', () => {
 });
 
 test('Given size is a decimal, the property returns a validation failure', () => {
-  const arb = extendableArbitrary()
-    .extend(() => arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGens({ minLength: iterations }))
-    .extend(() => arbitraryPropertyFunction())
-    .extend(() => arbitraryDecimal(0, 100))
-    .toArbitrary();
+  const arbitraries = [
+    arbitraryPropertyConfig(),
+    arbitraryGens(),
+    arbitraryPropertyFunction(),
+    arbitraryDecimal(0, 100),
+  ] as const;
 
   stable.assert(
-    stable.property(arb, ([config, gs, f, size]) => {
+    stable.property(...arbitraries, (config, gs, f, size) => {
       const p = dev.property(...gs, f);
 
       const result = p({ ...config, size });
@@ -86,15 +85,15 @@ test('Given size is a decimal, the property returns a validation failure', () =>
 });
 
 test('Given size < 0, the property returns a validation failure', () => {
-  const arb = extendableArbitrary()
-    .extend(() => arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGens({ minLength: iterations }))
-    .extend(() => arbitraryPropertyFunction())
-    .extend(() => fc.oneof(fc.constant(-1), fc.integer(-1)))
-    .toArbitrary();
+  const arbitraries = [
+    arbitraryPropertyConfig(),
+    arbitraryGens(),
+    arbitraryPropertyFunction(),
+    fc.oneof(fc.constant(-1), fc.integer(-1)),
+  ] as const;
 
   stable.assert(
-    stable.property(arb, ([config, gs, f, size]) => {
+    stable.property(...arbitraries, (config, gs, f, size) => {
       const p = dev.property(...gs, f);
 
       const result = p({ ...config, size });
@@ -111,15 +110,15 @@ test('Given size < 0, the property returns a validation failure', () => {
 });
 
 test('Given size > 100, the property returns a validation failure', () => {
-  const arb = extendableArbitrary()
-    .extend(() => arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGens({ minLength: iterations }))
-    .extend(() => arbitraryPropertyFunction())
-    .extend(() => fc.oneof(fc.constant(101), fc.integer(101, Number.MAX_SAFE_INTEGER)))
-    .toArbitrary();
+  const arbitraries = [
+    arbitraryPropertyConfig(),
+    arbitraryGens(),
+    arbitraryPropertyFunction(),
+    fc.oneof(fc.constant(101), fc.integer(101, Number.MAX_SAFE_INTEGER)),
+  ] as const;
 
   stable.assert(
-    stable.property(arb, ([config, gs, f, size]) => {
+    stable.property(...arbitraries, (config, gs, f, size) => {
       const p = dev.property(...gs, f);
 
       const result = p({ ...config, size });

@@ -1,11 +1,9 @@
 import fc from 'fast-check';
 import * as dev from '../src';
 import * as devGen from 'pbt-gen';
-import * as devCore from 'pbt-core';
 import * as stable from './helpers/stableApi';
 import { arbitraryPropertyConfig, arbitraryFailingPropertyFunction } from './helpers/arbitraries';
 import { spyOn } from './helpers/spies';
-import { empty } from 'ix/iterable';
 
 const failwith = (str: string): void => {
   throw new Error(str);

@@ -1,24 +1,21 @@
+import fc from 'fast-check';
+import * as devGen from 'pbt-gen';
 import * as dev from '../src';
 import * as stable from './helpers/stableApi';
 import {
-  extendableArbitrary,
-  arbitraryPropertyConfig,
   arbitraryGen,
   arbitraryGens,
+  arbitraryPropertyConfig,
   arbitraryPropertyFunction,
   arbitrarySucceedingPropertyFunction,
 } from './helpers/arbitraries';
 import { spyOn, spyOnAll, calls, GenSpy } from './helpers/spies';
 
 test('A generator receives the initial size', () => {
-  const arb = extendableArbitrary()
-    .extend(() => arbitraryPropertyConfig())
-    .extend(() => arbitraryGen())
-    .extend(() => arbitraryPropertyFunction())
-    .toArbitrary();
+  const arbitraries = [arbitraryPropertyConfig(), arbitraryGen(), arbitraryPropertyFunction()] as const;
 
   stable.assert(
-    stable.property(arb, ([config, g, f]) => {
+    stable.property(...arbitraries, (config, g, f) => {
       const spy = spyOn(g);
       const p = dev.property(spy, f);
 
@@ -31,14 +28,14 @@ test('A generator receives the initial size', () => {
 });
 
 test('A generator always receives a size, where 0 <= size <= 100', () => {
-  const arb = extendableArbitrary()
-    .extend(() => arbitraryPropertyConfig())
-    .extend(() => arbitraryGens())
-    .extend(() => arbitraryPropertyFunction())
-    .toArbitrary();
+  const arbitraries = [
+    arbitraryPropertyConfig(),
+    arbitraryGens().filter((gs) => gs.length > 0),
+    arbitraryPropertyFunction(),
+  ] as const;
 
   stable.assert(
-    stable.property(arb, ([config, gs, f]) => {
+    stable.property(...arbitraries, (config, gs, f) => {
       const spies = spyOnAll(gs);
       const p = dev.property(...spies, f);
 
@@ -55,14 +52,14 @@ test('A generator always receives a size, where 0 <= size <= 100', () => {
 });
 
 test('Each generator is invoked for each iteration of a succeeding property', () => {
-  const arb = extendableArbitrary()
-    .extend(() => arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGens({ minLength: iterations }))
-    .extend(() => arbitrarySucceedingPropertyFunction())
-    .toArbitrary();
+  const arbitraries = [
+    arbitraryPropertyConfig(),
+    arbitraryGens().filter((gs) => gs.length > 0),
+    arbitrarySucceedingPropertyFunction(),
+  ] as const;
 
   stable.assert(
-    stable.property(arb, ([config, gs, f]) => {
+    stable.property(...arbitraries, (config, gs, f) => {
       const spies = spyOnAll(gs);
       const p = dev.property(...spies, f);
 
@@ -78,14 +75,14 @@ test('Each generator is invoked for each iteration of a succeeding property', ()
 });
 
 test('If initial size = 0, then each generator is ultimately invoked with a size, where size = (iterations - 1) % 100', () => {
-  const arb = extendableArbitrary()
-    .extend(() => arbitraryPropertyConfig().map((c) => ({ ...c, size: 0 })))
-    .extend(({ iterations }) => arbitraryGens({ minLength: iterations }))
-    .extend(() => arbitrarySucceedingPropertyFunction())
-    .toArbitrary();
+  const arbitraries = [
+    arbitraryPropertyConfig().map((c) => ({ ...c, size: 0 })),
+    arbitraryGens().filter((gs) => gs.length > 0),
+    arbitrarySucceedingPropertyFunction(),
+  ] as const;
 
   stable.assert(
-    stable.property(arb, ([config, gs, f]) => {
+    stable.property(...arbitraries, (config, gs, f) => {
       const spies = spyOnAll(gs);
       const p = dev.property(...spies, f);
 

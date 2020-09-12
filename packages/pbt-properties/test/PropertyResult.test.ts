@@ -1,25 +1,18 @@
-import fc from 'fast-check';
 import * as dev from '../src';
-import * as devCore from 'pbt-core';
+import * as devGen from 'pbt-gen';
 import * as stable from './helpers/stableApi';
 import {
-  extendableArbitrary,
-  arbitraryGens,
   arbitrarySucceedingPropertyFunction,
   arbitraryPropertyConfig,
-  arbitrarilyShuffleArray,
+  arbitraryGens,
+  arbitrarilyShuffleIn,
 } from './helpers/arbitraries';
-import { GenStub } from './helpers/stubs';
 
 test('Given a succeeding property function, the property holds', () => {
-  const arb = extendableArbitrary()
-    .extend(() => arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGens({ minLength: iterations, minGens: 0 }))
-    .extend(() => arbitrarySucceedingPropertyFunction())
-    .toArbitrary();
+  const arbitraries = [arbitraryPropertyConfig(), arbitraryGens(), arbitrarySucceedingPropertyFunction()] as const;
 
   stable.assert(
-    stable.property(arb, ([config, gs, f]) => {
+    stable.property(...arbitraries, (config, gs, f) => {
       const p = dev.property(...gs, f);
 
       const result = p(config);
@@ -30,13 +23,10 @@ test('Given a succeeding property function, the property holds', () => {
 });
 
 test('Given a false predicate, the property does not hold', () => {
-  const arb = extendableArbitrary()
-    .extend(() => arbitraryPropertyConfig())
-    .extend(({ iterations }) => arbitraryGens({ minLength: iterations, minGens: 0 }))
-    .toArbitrary();
+  const arbitraries = [arbitraryPropertyConfig(), arbitraryGens()] as const;
 
   stable.assert(
-    stable.property(arb, ([config, gs]) => {
+    stable.property(...arbitraries, (config, gs) => {
       const f = (_: unknown) => false;
       const p = dev.property(...gs, f);
 
@@ -48,19 +38,14 @@ test('Given a false predicate, the property does not hold', () => {
 });
 
 test('Given an exhausting generator, the property does not hold', () => {
-  const arb = extendableArbitrary()
-    .extend(() => arbitraryPropertyConfig())
-    .extend(
-      ({ iterations }) =>
-        arbitraryGens({ minLength: iterations })
-          .map((gs) => [...gs, GenStub.exhausted()])
-          .chain(arbitrarilyShuffleArray) as fc.Arbitrary<devCore.Gens>,
-    )
-    .extend(() => arbitrarySucceedingPropertyFunction())
-    .toArbitrary();
+  const arbitraries = [
+    arbitraryPropertyConfig(),
+    arbitraryGens().chain((gs) => arbitrarilyShuffleIn(gs, devGen.exhausted())),
+    arbitrarySucceedingPropertyFunction(),
+  ] as const;
 
   stable.assert(
-    stable.property(arb, ([config, gs, f]) => {
+    stable.property(...arbitraries, (config, gs, f) => {
       const p = dev.property(...gs, f);
 
       const result = p(config);

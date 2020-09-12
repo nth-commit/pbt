@@ -1,8 +1,8 @@
 import * as fc from 'fast-check';
+import * as devGen from 'pbt-gen';
 import * as devCore from 'pbt-core';
 import * as dev from '../../src';
 import { DEFAULT_MAX_ITERATIONS } from './constants';
-import { GenStub } from './stubs';
 
 export type Extender<T extends any[], U> = (...args: T) => fc.Arbitrary<U>;
 
@@ -28,37 +28,9 @@ export const arbitraryGenValue = (): fc.Arbitrary<unknown> => fc.anything();
 export const arbitraryGenValues = (minLength: number): fc.Arbitrary<unknown[]> =>
   fc.array(arbitraryGenValue(), minLength, 200);
 
-export type GenConstraints = {
-  minLength: number;
-};
+export const arbitraryGen = () => fc.constant(devGen.integer.constant(0, 10));
 
-const resolveGenConstraints = (constraints: Partial<GenConstraints>): GenConstraints => ({
-  minLength: 0,
-  ...constraints,
-});
-
-export const arbitraryGen = (constraints: Partial<GenConstraints> = {}): fc.Arbitrary<devCore.Gen<unknown>> => {
-  const resolvedConstraints = resolveGenConstraints(constraints);
-  return arbitraryGenValues(resolvedConstraints.minLength).map((values) => GenStub.exhaustAfter(values));
-};
-
-export type GensConstraints = GenConstraints & {
-  minGens: number;
-  genArbitrary: fc.Arbitrary<devCore.Gen<unknown>>;
-};
-
-const resolveGensConstraints = (constraints: Partial<GensConstraints>): GensConstraints => ({
-  minGens: 1,
-  genArbitrary: arbitraryGen(constraints),
-  ...resolveGenConstraints(constraints),
-});
-
-export const arbitraryGens = (constraints: Partial<GensConstraints> = {}): fc.Arbitrary<devCore.Gens> => {
-  const resolvedConstraints = resolveGensConstraints(constraints);
-  return fc.array(resolvedConstraints.genArbitrary, resolvedConstraints.minGens, 20) as fc.Arbitrary<devCore.Gens>;
-};
-
-export const arbitraryNonEmptyGen = (): fc.Arbitrary<devCore.Gen<unknown>> => arbitraryGen({ minLength: 1 });
+export const arbitraryGens = () => fc.array(arbitraryGen(), 0, 20);
 
 export const arbitrarySucceedingPropertyFunction = <T extends devCore.Gens>(): fc.Arbitrary<dev.PropertyFunction<T>> =>
   fc.constant(() => true);
@@ -102,3 +74,6 @@ export const arbitrarilyShuffleArray = <T>(arr: T[]): fc.Arbitrary<T[]> => {
       .map((x) => x.value),
   );
 };
+
+export const arbitrarilyShuffleIn = <T>(arr: T[], target: T): fc.Arbitrary<T[]> =>
+  arbitrarilyShuffleArray([...arr, target]);
