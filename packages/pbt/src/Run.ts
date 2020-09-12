@@ -47,10 +47,10 @@ export type RunResult<Values extends any[]> =
   | ExhaustionFailure;
 
 const toPropertyConfig = (runConfig: Partial<RunConfig>): PropertyConfig => ({
-  iterations: 100,
+  iterations: runConfig.iterations === undefined ? 100 : runConfig.iterations,
   seed: runConfig.seed === undefined ? Seed.spawn() : Seed.create(runConfig.seed),
-  size: 0,
-  shrinkPath: undefined,
+  size: runConfig.size === undefined ? 0 : runConfig.size,
+  shrinkPath: runConfig.shrinkPath === undefined ? undefined : runConfig.shrinkPath.split(':').map((n) => parseInt(n)),
 });
 
 const toRunResult = <Values extends any[]>(propertyResult: PropertyResult<Values>): RunResult<Values> => {
@@ -65,7 +65,7 @@ const toRunResult = <Values extends any[]>(propertyResult: PropertyResult<Values
         seed: propertyResult.seed.valueOf(),
         counterexample: {
           ...propertyResult.counterexample,
-          shrinkPath: '',
+          shrinkPath: propertyResult.counterexample.shrinkPath.join(':'),
         },
       };
   }
