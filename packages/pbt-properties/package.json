@@ -8,7 +8,7 @@
     "directory": "packages/pbt-properties"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
+    "registry": "https://npm.pkg.github.com/nth-commit"
   },
   "main": "./lib/cjs/index.js",
   "module": "./lib/esm/index.js",
