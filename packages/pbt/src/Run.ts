@@ -8,45 +8,45 @@ export type RunConfig = {
   shrinkPath: string | undefined;
 };
 
-export type Success = {
-  kind: 'success';
-};
-
-export type ValidationFailure = {
-  kind: 'validationFailure';
-  problem: {
-    kind: 'iterations' | 'size' | 'shrinkPath';
-    message: string;
+export namespace RunResult {
+  export type Success = {
+    kind: 'success';
   };
-};
 
-export type Counterexample<Values extends any[]> = {
-  originalValues: Values;
-  values: Values;
-  shrinkPath: string;
-};
+  export type ValidationFailure = {
+    kind: 'validationFailure';
+    problem: {
+      kind: 'iterations' | 'size' | 'shrinkPath';
+      message: string;
+    };
+  };
 
-export type PredicateFailure<Values extends any[]> = {
-  kind: 'failure';
-  reason: 'predicate';
-  seed: number;
-  size: number;
-  iterationsRequested: number;
-  iterationsCompleted: number;
-  counterexample: Counterexample<Values>;
-};
+  export type Failure<Values extends any[] = unknown[]> = {
+    kind: 'failure';
+    reason: 'predicate';
+    seed: number;
+    size: number;
+    iterationsRequested: number;
+    iterationsCompleted: number;
+    counterexample: {
+      originalValues: Values;
+      values: Values;
+      shrinkPath: string;
+    };
+  };
 
-export type ExhaustionFailure = {
-  kind: 'exhaustion';
-  iterationsRequested: number;
-  iterationsCompleted: number;
-};
+  export type Exhausted = {
+    kind: 'exhaustion';
+    iterationsRequested: number;
+    iterationsCompleted: number;
+  };
+}
 
-export type RunResult<Values extends any[]> =
-  | Success
-  | ValidationFailure
-  | PredicateFailure<Values>
-  | ExhaustionFailure;
+export type RunResult<Values extends any[] = unknown[]> =
+  | RunResult.Success
+  | RunResult.ValidationFailure
+  | RunResult.Failure<Values>
+  | RunResult.Exhausted;
 
 const toPropertyConfig = (runConfig: Partial<RunConfig>): PropertyConfig => ({
   iterations: runConfig.iterations === undefined ? 100 : runConfig.iterations,
