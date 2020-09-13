@@ -15,7 +15,9 @@
     "build:clean": "lerna run build:clean --stream",
     "test": "lerna run test --stream",
     "prettier:write": "prettier --write **/*.{ts,tsx}",
-    "prettier:check": "prettier --check **/*.{ts,tsx}"
+    "prettier:check": "prettier --check **/*.{ts,tsx}",
+    "pack": "lerna run pack --parallel --stream",
+    "publish": "lerna publish --canary --yes"
   },
   "licence": "See licence in \"LICENCE\""
 }
