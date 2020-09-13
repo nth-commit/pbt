@@ -26,3 +26,5 @@ jobs:
 
     - name: Publish pre-release packages
       run: yarn run publish
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
