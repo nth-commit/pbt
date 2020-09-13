@@ -4,7 +4,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nth-commit/pbt",
+    "url": "ssh://git@github.com/nth-commit/pbt.git",
     "directory": "packages/pbt-properties"
   },
   "publishConfig": {
