@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "property-based-testing",
+  "name": "pbt",
   "description": "An unnamed property-based testing framework for TypeScript",
   "workspaces": [
     "packages/*"
@@ -17,7 +17,7 @@
     "prettier:write": "prettier --write **/*.{ts,tsx}",
     "prettier:check": "prettier --check **/*.{ts,tsx}",
     "pack": "lerna run pack --parallel --stream",
-    "publish": "lerna publish --canary --yes"
+    "publish": "lerna publish --yes --registry 'https://npm.pkg.github.com/@nth-commit' --canary"
   },
   "licence": "See licence in \"LICENCE\""
 }

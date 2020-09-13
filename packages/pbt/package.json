@@ -4,11 +4,8 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nth-commit/pbt",
+    "url": "ssh://git@github.com/nth-commit/pbt.git",
     "directory": "packages/pbt"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/nth-commit"
   },
   "main": "./lib/cjs/index.js",
   "module": "./lib/esm/index.js",
@@ -17,10 +14,10 @@
     "lib/"
   ],
   "dependencies": {
-    "ix": "^4.0.0",
     "pbt-core": "0.0.0",
     "pbt-gen": "0.0.0",
-    "pbt-properties": "0.0.0"
+    "pbt-properties": "0.0.0",
+    "ix": "^4.0.0"
   },
   "devDependencies": {
     "@types/jest": "^26.0.10",
@@ -38,7 +35,6 @@
     "build:clean": "rimraf lib",
     "test": "cross-env fastCheckRuns=50 jest --coverage --no-cache",
     "test:watch": "cross-env fastCheckRuns=10 jest --watchAll --no-cache",
-    "pack": "npm pack",
     "sandbox": "ts-node --project scripts/tsconfig.json scripts/sandbox"
   }
 }

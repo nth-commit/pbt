@@ -18,13 +18,19 @@ jobs:
     - name: Build
       run: yarn build
        
-    - name: Prettier
-      run: yarn prettier:check
+    # - name: Prettier
+    #   run: yarn prettier:check
       
-    - name: Test
-      run: yarn test
+    # - name: Test
+    #   run: yarn test
+
+    - name: Configure NPM
+      run: |
+        echo "@nth-commit:registry=https://npm.pkg.github.com/" > .npmrc
+        echo '//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}' >> .npmrc
 
     - name: Publish pre-release packages
       run: yarn run publish
       env:
-        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SHA: ${GITHUB_SHA::8}
