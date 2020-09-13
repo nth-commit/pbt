@@ -2,6 +2,14 @@
   "name": "pbt-core",
   "version": "0.0.0",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nth-commit/pbt",
+    "directory": "packages/pbt-core"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "main": "./lib/cjs/index.js",
   "module": "./lib/esm/index.js",
   "types": "./lib/esm/index.d.ts",
@@ -28,6 +36,7 @@
     "build:clean": "rimraf lib",
     "test": "jest --coverage --no-cache",
     "test:watch": "cross-env fastCheckRuns=10 jest --watchAll --no-cache",
+    "pack": "npm pack",
     "sandbox": "ts-node --project scripts/tsconfig.json scripts/sandbox"
   }
 }
