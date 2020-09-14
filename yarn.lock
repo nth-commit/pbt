@@ -5502,6 +5502,40 @@ path-type@^3.0.0:
   dependencies:
     pify "^3.0.0"
 
+"pbt-0.0.1@npm:pbt@0.0.1-alpha.85":
+  version "0.0.1-alpha.85"
+  resolved "https://registry.yarnpkg.com/pbt/-/pbt-0.0.1-alpha.85.tgz#73dcbb13c1dee2506a0c9110d8793547d4544f26"
+  integrity sha512-Pk6lrJ0s+iMre8FFCLgnrx2kkpWwIjJxPzWzIlB0IknfOKoR4J02c1FWVJqQS3KK8JjbhOmu/wQckbEUMA6uYA==
+  dependencies:
+    ix "^4.0.0"
+    pbt-core "^0.0.1-alpha.85+dd114dd"
+    pbt-gen "^0.0.1-alpha.85+dd114dd"
+    pbt-properties "^0.0.1-alpha.85+dd114dd"
+
+pbt-core@^0.0.1-alpha.85+dd114dd:
+  version "0.0.1-alpha.85"
+  resolved "https://registry.yarnpkg.com/pbt-core/-/pbt-core-0.0.1-alpha.85.tgz#de34d1d3a40cbca241c0e9248a68e86754812ddc"
+  integrity sha512-hCNEvhvki8hqakw+hs0qrQ4lf8lJraliacqgJzDyFp/7Ml+3bi/jUldPvJFSYq/A0Aahjb0OejXm+hukJrJaLA==
+  dependencies:
+    ix "^4.0.0"
+    pure-rand "^3.1.0"
+
+pbt-gen@^0.0.1-alpha.85+dd114dd:
+  version "0.0.1-alpha.85"
+  resolved "https://registry.yarnpkg.com/pbt-gen/-/pbt-gen-0.0.1-alpha.85.tgz#cdf77a8ef7680037a128fde298796ed7ca48fbb4"
+  integrity sha512-3QqemiokgFl846SPVD8OJN/2yybdqJh5FkSgOdMWoPlzGmOXLSuMjLG3TFU9MUWYEP8UKRsNcREh/72g/Lv9zw==
+  dependencies:
+    ix "^4.0.0"
+    pbt-core "^0.0.1-alpha.85+dd114dd"
+
+pbt-properties@^0.0.1-alpha.85+dd114dd:
+  version "0.0.1-alpha.85"
+  resolved "https://registry.yarnpkg.com/pbt-properties/-/pbt-properties-0.0.1-alpha.85.tgz#0edbb235b9bf359a76712520060dc9b394504228"
+  integrity sha512-n8JbKGdAMyQ4fd5DGVQtqk+oF7w7FBCBWs1XXLSFqh0xI1e7KLGdhtmQ3Up1o5OHCVIVAWPiDFkHwGna1WgJrQ==
+  dependencies:
+    ix "^4.0.0"
+    pbt-core "^0.0.1-alpha.85+dd114dd"
+
 performance-now@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/performance-now/-/performance-now-2.1.0.tgz#6309f4e0e5fa913ec1c69307ae364b4b377c9e7b"
