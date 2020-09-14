@@ -1,0 +1,43 @@
+name: Build and publish master
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: "0"
+
+    - name: Restore packages
+      run: yarn
+    
+    - name: Build
+      run: yarn build
+
+    # - name: Prettier
+    #   run: yarn prettier:check
+
+    # - name: Test
+    #   run: yarn test
+
+    - name: Git fetch
+      run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
+    - name: Configure NPM
+      run: |
+        echo "@nth-commit:registry=https://npm.pkg.github.com/" >> .npmrc
+        echo '//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}' >> .npmrc
+
+    - name: Publish pre-release packages
+      run: |
+        git config --global user.email "you@example.com"
+        git config --global user.name "Your Name"
+        yarn lerna publish prerelease --yes --registry 'https://npm.pkg.github.com/@nth-commit' --preid alpha-${GITHUB_SHA::8} --pre-dist-tag latest --no-push --no-changelog
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

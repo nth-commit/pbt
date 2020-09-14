@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "property-based-testing",
+  "name": "pbt",
   "description": "An unnamed property-based testing framework for TypeScript",
   "workspaces": [
     "packages/*"
