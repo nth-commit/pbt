@@ -11,8 +11,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      with:
-        fetch-depth: "0"
 
     - name: Restore packages
       run: yarn
@@ -20,24 +18,17 @@ jobs:
     - name: Build
       run: yarn build
 
-    # - name: Prettier
-    #   run: yarn prettier:check
+    - name: Prettier
+      run: yarn prettier:check
 
-    # - name: Test
-    #   run: yarn test
-
-    - name: Git fetch
-      run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+    - name: Test
+      run: yarn test
 
     - name: Configure NPM
-      run: |
-        echo "@nth-commit:registry=https://npm.pkg.github.com/" >> .npmrc
-        echo '//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}' >> .npmrc
+      run: echo '//registry.npmjs.org/:_authToken=${NPM_AUTH_TOKEN}' >> .npmrc
 
     - name: Publish pre-release packages
       run: |
-        git config --global user.email "you@example.com"
-        git config --global user.name "Your Name"
-        yarn lerna publish prerelease --yes --registry 'https://npm.pkg.github.com/@nth-commit' --preid alpha-${GITHUB_SHA::8} --pre-dist-tag latest --no-push --no-changelog
+        yarn lerna publish --yes --registry 'https://registry.npmjs.org' --canary --pre-dist-tag latest
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
