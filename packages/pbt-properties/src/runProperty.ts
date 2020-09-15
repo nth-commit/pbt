@@ -3,45 +3,43 @@ import { pipe, last, concat, from, first } from 'ix/iterable';
 import { map, skip, take } from 'ix/iterable/operators';
 import { filterIndexed, indexed, mapIndexed, takeWhileInclusive, zipSafe } from './iterableOperators';
 import { PropertyConfig } from './PropertyConfig';
+import { PropertyResult } from './PropertyResult';
 
 type GenResults<Values extends any[]> = { [P in keyof Values]: GenResult<Values[P]> };
 
-export type PropertyFunction<Values extends any[]> = (...args: Values) => boolean;
+export type PropertyFunction<Values extends any[]> = (...args: Values) => boolean | void;
 
-export type PropertyCounterexample<Values extends any[]> = {
-  originalValues: Values;
-  values: Values;
-  shrinkPath: number[];
-};
+export namespace PropertyRunResult {
+  export type Success = {
+    kind: 'success';
+  };
 
-type SuccessPropertyRunResult = {
-  kind: 'success';
-};
+  export type Failure<Values extends any[]> = {
+    kind: 'failure';
+    reason: PropertyResult.FailureReason;
+    seed: Seed;
+    size: Size;
+    iterationNumber: number;
+    counterexample: PropertyResult.Counterexample<Values>;
+  };
 
-type PredicateFailurePropertyRunResult<Values extends any[]> = {
-  kind: 'predicateFailure';
-  seed: Seed;
-  size: Size;
-  iterationNumber: number;
-  counterexample: PropertyCounterexample<Values>;
-};
+  export type Exhaustion = {
+    kind: 'exhaustion';
+    seed: Seed;
+    size: Size;
+    iterationNumber: number;
+  };
 
-type ExhaustionFailurePropertyRunResult = {
-  kind: 'exhaustionFailure';
-  seed: Seed;
-  size: Size;
-  iterationNumber: number;
-};
-
-type InvalidShrinkPathPropertyRunResult = {
-  kind: 'invalidShrinkPath';
-};
+  export type InvalidShrinkPath = {
+    kind: 'invalidShrinkPath';
+  };
+}
 
 export type PropertyRunResult<Values extends any[]> =
-  | SuccessPropertyRunResult
-  | PredicateFailurePropertyRunResult<Values>
-  | ExhaustionFailurePropertyRunResult
-  | InvalidShrinkPathPropertyRunResult;
+  | PropertyRunResult.Success
+  | PropertyRunResult.Failure<Values>
+  | PropertyRunResult.Exhaustion
+  | PropertyRunResult.InvalidShrinkPath;
 
 /* istanbul ignore next */
 const throwingGenerator = function* () {
@@ -93,48 +91,89 @@ const invokeGens = <Values extends any[]>(gs: Gens<Values>, seed: Seed, size: Si
     map((genResults) => combineGenResults(genResults as GenResults<Values>)),
   );
 
+const invokePropertyFunction = <Values extends any[]>(
+  f: PropertyFunction<Values>,
+  values: Values,
+): PropertyResult.FailureReason | null => {
+  try {
+    return f(...values) === false ? { kind: 'predicate' } : null;
+  } catch (error) {
+    return { kind: 'throws', error };
+  }
+};
+
 namespace Exploration {
-  const NOT_A_COUNTEREXAMPLE = Symbol();
+  const isNotNull = <T>(x: T | null): x is T => x !== null;
 
-  const isCounterexample = <Values extends any[]>(
-    maybeCounterexample: PropertyCounterexample<Values> | typeof NOT_A_COUNTEREXAMPLE,
-  ): maybeCounterexample is PropertyCounterexample<Values> => maybeCounterexample !== NOT_A_COUNTEREXAMPLE;
-
-  const tryFindCounterexample = <Values extends any[]>(
+  const tryFindFailure = <Values extends any[]>(
     f: PropertyFunction<Values>,
     instanceData: GenInstanceData<Values>,
     originalInstanceData: GenInstanceData<Values>,
-  ): PropertyCounterexample<Values> | typeof NOT_A_COUNTEREXAMPLE => {
-    if (f(...instanceData.value)) {
-      return NOT_A_COUNTEREXAMPLE;
+  ): [PropertyResult.Counterexample<Values>, PropertyResult.FailureReason] | null => {
+    const failureReason = invokePropertyFunction(f, instanceData.value);
+    if (!failureReason) {
+      return null;
     }
 
-    const maybeIndexedSimplerCounterexample = first(
+    const smallerFailureAndIndex = first(
       pipe(
         instanceData.shrink(),
         indexed(),
-        mapIndexed((childInstanceData) => tryFindCounterexample(f, childInstanceData, originalInstanceData)),
-        filterIndexed(isCounterexample),
+        mapIndexed((childInstanceData) => tryFindFailure(f, childInstanceData, originalInstanceData)),
+        filterIndexed(isNotNull),
       ),
     );
 
-    return maybeIndexedSimplerCounterexample
-      ? {
-          shrinkPath: [...maybeIndexedSimplerCounterexample.value.shrinkPath, maybeIndexedSimplerCounterexample.index],
-          values: maybeIndexedSimplerCounterexample.value.values,
-          originalValues: originalInstanceData.value,
-        }
-      : {
-          shrinkPath: [],
+    if (!smallerFailureAndIndex) {
+      return [
+        {
           values: instanceData.value,
           originalValues: originalInstanceData.value,
-        };
+          shrinkPath: [],
+        },
+        failureReason,
+      ];
+    }
+
+    const { index: smallerIndex, value: smallerFailure } = smallerFailureAndIndex;
+    const [smallerCounterexample, smallerReason] = smallerFailure;
+    return [
+      {
+        shrinkPath: [...smallerCounterexample.shrinkPath, smallerIndex],
+        values: smallerCounterexample.values,
+        originalValues: originalInstanceData.value,
+      },
+      smallerReason,
+    ];
   };
 
   type PropertyIterationResult<Values extends any[]> =
-    | Pick<SuccessPropertyRunResult, 'kind'>
-    | Pick<PredicateFailurePropertyRunResult<Values>, 'kind' | 'counterexample'>
-    | Pick<ExhaustionFailurePropertyRunResult, 'kind'>;
+    | Pick<PropertyRunResult.Success, 'kind'>
+    | Pick<PropertyRunResult.Failure<Values>, 'kind' | 'reason' | 'counterexample'>
+    | Pick<PropertyRunResult.Exhaustion, 'kind'>;
+
+  const mapGenResultToPropertyIterationResult = <Values extends any[]>(
+    f: PropertyFunction<Values>,
+    genResult: GenResult<Values>,
+  ): PropertyIterationResult<Values> => {
+    switch (genResult.kind) {
+      case 'instance': {
+        const failure = tryFindFailure(f, genResult, genResult);
+        if (!failure) {
+          return { kind: 'success' };
+        }
+
+        const [counterexample, reason] = failure;
+        return {
+          kind: 'failure',
+          counterexample,
+          reason,
+        };
+      }
+      default:
+        return { kind: 'exhaustion' };
+    }
+  };
 
   const runIteration = <Values extends any[]>(
     gs: Gens<Values>,
@@ -142,32 +181,19 @@ namespace Exploration {
     seed: Seed,
     size: Size,
   ): PropertyIterationResult<Values> => {
-    const statusAndCounterexample = first(
+    const propertyIterationResult = first(
       pipe(
         invokeGens(gs, seed, size),
-        map(
-          (r): PropertyIterationResult<Values> => {
-            if (r.kind === 'instance') {
-              const counterexample = tryFindCounterexample(f, r, r);
-              return counterexample === NOT_A_COUNTEREXAMPLE
-                ? { kind: 'success' }
-                : { kind: 'predicateFailure', counterexample };
-            }
-
-            return {
-              kind: 'exhaustionFailure',
-            };
-          },
-        ),
+        map((r) => mapGenResultToPropertyIterationResult(f, r)),
       ),
     );
 
     /* istanbul ignore next */
-    if (!statusAndCounterexample) {
+    if (!propertyIterationResult) {
       throw new Error('Fatal: Failed to run iteration');
     }
 
-    return statusAndCounterexample;
+    return propertyIterationResult;
   };
 
   const runIterations = function* <Values extends any[]>(
@@ -187,17 +213,18 @@ namespace Exploration {
 
       const iterationResult = runIteration(gs, f, leftSeed, currentSize);
       switch (iterationResult.kind) {
-        case 'predicateFailure':
+        case 'failure':
           yield {
-            kind: 'predicateFailure',
+            kind: 'failure',
+            reason: iterationResult.reason,
             counterexample: iterationResult.counterexample,
             iterationNumber,
             seed: currentSeed,
             size: currentSize,
           };
-        case 'exhaustionFailure':
+        case 'exhaustion':
           yield {
-            kind: 'exhaustionFailure',
+            kind: 'exhaustion',
             iterationNumber,
             seed: currentSeed,
             size: currentSize,
@@ -289,20 +316,23 @@ namespace Reproduction {
       return { kind: 'invalidShrinkPath' };
     }
 
-    /* istanbul ignore next */
-    return f(...shrunkInstance.value)
-      ? { kind: 'success' }
-      : {
-          kind: 'predicateFailure',
-          iterationNumber: 1,
-          seed: initialSeed,
-          size: initialSize,
-          counterexample: {
-            shrinkPath,
-            values: shrunkInstance.value,
-            originalValues: rootInstance.value,
-          },
-        };
+    const reason = invokePropertyFunction(f, shrunkInstance.value);
+    if (!reason) {
+      return { kind: 'success' };
+    }
+
+    return {
+      kind: 'failure',
+      reason,
+      iterationNumber: 1,
+      seed: initialSeed,
+      size: initialSize,
+      counterexample: {
+        shrinkPath,
+        values: shrunkInstance.value,
+        originalValues: rootInstance.value,
+      },
+    };
   };
 }
 

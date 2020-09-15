@@ -11,18 +11,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: "0"
 
     - name: Restore packages
       run: yarn
     
     - name: Build
       run: yarn build
-
-    - name: Prettier
-      run: yarn prettier:check
-
-    - name: Test
-      run: yarn test
 
     - name: Configure NPM
       run: echo '//registry.npmjs.org/:_authToken=${NPM_AUTH_TOKEN}' >> .npmrc

@@ -6,34 +6,31 @@ const tryAssert = (p: dev.Property<unknown[]>, config?: Partial<dev.RunConfig>):
   try {
     dev.assert(p, config);
   } catch (error) {
-    if (error instanceof dev.PbtAssertionError) {
-      return error;
-    }
-    throw error;
+    return error;
   }
   return null;
 };
 
 test('An assertion does not throw for an infallible property', () => {
   stable.assert(
-    stable.property(fc.anything().noShrink(), () => {
+    stable.property(fc.nat().noShrink(), (seed) => {
       const g = dev.integer.constant(0, 10);
       const p = dev.property(g, (x) => x <= 10);
 
-      const error = tryAssert(p);
+      const error = tryAssert(p, { seed });
 
       expect(error).toBeNull();
     }),
   );
 });
 
-test('An assertion throws for a fallible property', () => {
+test('An assertion throws for a fallible predicate property', () => {
   stable.assert(
-    stable.property(fc.anything().noShrink(), () => {
+    stable.property(fc.nat().noShrink(), (seed) => {
       const g = dev.integer.constant(0, 10);
       const p = dev.property(g, (x) => x < 5);
 
-      const error = tryAssert(p);
+      const error = tryAssert(p, { seed });
 
       expect(error).not.toBeNull();
       expect(error!.message).toMatch(
@@ -42,6 +39,31 @@ test('An assertion throws for a fallible property', () => {
             '^Property failed after \\d+ test\\(s\\)',
             'Reproduction: \\{ \\"seed\\": \\d+, \\"size\\": \\d+(, \\"shrinkPath\\": \\".*\\")? \\}',
             'Counterexample: \\[5\\]$',
+          ].join('\n'),
+          'g',
+        ),
+      );
+    }),
+  );
+});
+
+test('An assertion throws for a fallible throwing property', () => {
+  stable.assert(
+    stable.property(fc.nat().noShrink(), (seed) => {
+      const g = dev.integer.constant(0, 10);
+      const p = dev.property(g, (x) => {
+        expect(x).toBeLessThan(5);
+      });
+
+      const error = tryAssert(p, { seed: 0 });
+
+      expect(error).not.toBeNull();
+      expect(error!.message).toMatch(
+        new RegExp(
+          [
+            '^Property failed after \\d+ test\\(s\\)',
+            'Reproduction: \\{ \\"seed\\": \\d+, \\"size\\": \\d+(, \\"shrinkPath\\": \\".*\\")? \\}',
+            'Counterexample: \\[5\\]',
           ].join('\n'),
           'g',
         ),

@@ -1,19 +1,33 @@
 import { Seed, Size } from 'pbt-core';
-import { PropertyCounterexample } from './runProperty';
 
 export namespace PropertyResult {
   export type Success = {
     kind: 'success';
   };
 
+  export type Counterexample<Values extends any[]> = {
+    originalValues: Values;
+    values: Values;
+    shrinkPath: number[];
+  };
+
+  export type FailureReason =
+    | {
+        kind: 'predicate';
+      }
+    | {
+        kind: 'throws';
+        error: unknown;
+      };
+
   export type Failure<Values extends any[]> = {
     kind: 'failure';
-    reason: 'predicate';
+    reason: FailureReason;
     seed: Seed;
     size: Size;
     iterationsRequested: number;
     iterationsCompleted: number;
-    counterexample: PropertyCounterexample<Values>;
+    counterexample: Counterexample<Values>;
   };
 
   export type ValidationFailure = {
@@ -37,24 +51,22 @@ export type PropertyResult<Values extends any[]> =
   | PropertyResult.Failure<Values>
   | PropertyResult.Exhausted;
 
-export const exhaustionFailure = (
-  iterationsRequested: number,
-  iterationsCompleted: number,
-): PropertyResult.Exhausted => ({
+export const exhausted = (iterationsRequested: number, iterationsCompleted: number): PropertyResult.Exhausted => ({
   kind: 'exhaustion',
   iterationsRequested,
   iterationsCompleted,
 });
 
-export const predicateFailure = <Values extends any[]>(
+export const failed = <Values extends any[]>(
+  reason: PropertyResult.FailureReason,
   seed: Seed,
   size: Size,
   iterationsRequested: number,
   iterationsCompleted: number,
-  counterexample: PropertyCounterexample<Values>,
+  counterexample: PropertyResult.Counterexample<Values>,
 ): PropertyResult.Failure<Values> => ({
   kind: 'failure',
-  reason: 'predicate',
+  reason,
   seed,
   size,
   iterationsRequested,

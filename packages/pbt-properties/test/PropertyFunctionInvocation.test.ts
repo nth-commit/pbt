@@ -8,13 +8,14 @@ import {
   arbitraryGens,
 } from './helpers/arbitraries';
 import { GenStub } from './helpers/stubs';
+import * as spies from './helpers/spies';
 
 test('The test function receives a value from the generator', () => {
   const arbitraries = [arbitraryPropertyConfig(), arbitraryGenValue(), arbitraryPropertyFunction()] as const;
 
   stable.assert(
     stable.property(...arbitraries, (config, x, f) => {
-      const spyF = jest.fn<boolean, unknown[]>(f);
+      const spyF = spies.spyOn(f);
       const p = dev.property(GenStub.singleton(x), spyF);
 
       p({ ...config, iterations: 1 });
@@ -29,7 +30,7 @@ test('Given a succeeding property function, the test function is only called onc
 
   stable.assert(
     stable.property(...arbitraries, (config, gs, f) => {
-      const spyF = jest.fn(f);
+      const spyF = spies.spyOn(f);
       const p = dev.property(...gs, spyF);
 
       p(config);

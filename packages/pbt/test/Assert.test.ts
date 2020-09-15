@@ -1,10 +1,11 @@
 import fc from 'fast-check';
 import * as devInternal from '../src/Assert';
 import * as devProperties from 'pbt-properties';
-import { arbitraryFailurePropertyResult } from './helpers/arbitraries';
+import { arbitraryFailurePropertyResult, arbitraryPredicateFailurePropertyResult } from './helpers/arbitraries';
 import * as stable from './helpers/stableApi';
 import * as mocks from './helpers/mocks';
 import * as spies from './helpers/spies';
+import { failwith } from './helpers/failwith';
 
 const parseReproductionJournalEntry = (str: string): { seed: number; size: number; shrinkPath: string } => {
   const regex = /Reproduction: (\{.*\})/;
@@ -120,7 +121,7 @@ test('The journal is empty for an infallible property', () => {
 
       const journal = devInternal.assert(p);
 
-      expect(journal).toHaveLength(0);
+      expect(journal).toBeNull();
     }),
   );
 });
@@ -132,7 +133,8 @@ test('The journal documents the number of tests of a fallible property', () => {
 
       const journal = devInternal.assert(p);
 
-      expect(journal[0]).toEqual(`Property failed after ${r.iterationsCompleted} test(s)`);
+      expect(journal).not.toBeNull();
+      expect(journal!.entries[0]).toEqual(`Property failed after ${r.iterationsCompleted} test(s)`);
     }),
   );
 });
@@ -144,7 +146,8 @@ test('The journal documents the seed and size needed to reproduce a fallible pro
 
       const journal = devInternal.assert(p);
 
-      const reproductionJournalEntry = journal[1];
+      expect(journal).not.toBeNull();
+      const reproductionJournalEntry = journal!.entries[1];
       expect(reproductionJournalEntry).toContain('Reproduction: ');
 
       const reproduction = parseReproductionJournalEntry(reproductionJournalEntry);
@@ -181,7 +184,8 @@ test('The journal documents the shrinkPath needed to reproduce a fallible proper
 
         const journal = devInternal.assert(p);
 
-        const reproductionJournalEntry = journal[1];
+        expect(journal).not.toBeNull();
+        const reproductionJournalEntry = journal!.entries[1];
         expect(reproductionJournalEntry).toContain('Reproduction: ');
 
         const reproduction = parseReproductionJournalEntry(reproductionJournalEntry);
@@ -195,20 +199,34 @@ test('The journal documents the shrinkPath needed to reproduce a fallible proper
   );
 });
 
-test('The journal documents the counterexample for a fallible property (0 or 1-arity)', () => {
+test('The journal documents the counterexample for a fallible property', () => {
   stable.assert(
     stable.property(arbitraryFailurePropertyResult(), (r) => {
       const p = mocks.properties.failure(r);
 
       const journal = devInternal.assert(p);
 
-      const counterexampleJournalEntry = journal[2];
+      expect(journal).not.toBeNull();
+      const counterexampleJournalEntry = journal!.entries[2];
       expect(counterexampleJournalEntry).toContain('Counterexample: ');
 
       // Roundtrip through JSON serializer to remove any anomalies like Infinity serializing as null
       const expectedCounterexample = JSON.parse(JSON.stringify(r.counterexample.values));
       const counterexample = parseCounterexampleJournalEntry(counterexampleJournalEntry);
       expect(counterexample).toEqual(expectedCounterexample);
+    }),
+  );
+});
+
+test('The journal terminates after the counterexample, for a property that return false', () => {
+  stable.assert(
+    stable.property(arbitraryPredicateFailurePropertyResult(), (r) => {
+      const p = mocks.properties.failure(r);
+
+      const journal = devInternal.assert(p);
+
+      expect(journal).not.toBeNull();
+      expect(journal!.entries).toHaveLength(3);
     }),
   );
 });

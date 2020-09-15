@@ -1,15 +1,24 @@
 import { Property } from 'pbt-properties';
 import { run, RunConfig, RunResult } from './Run';
 
-export type AssertionJournal = string[];
+export type AssertionJournal = {
+  entries: string[];
+  error?: unknown;
+};
 
-export const assert = <Values extends any[]>(p: Property<Values>, config?: Partial<RunConfig>): AssertionJournal => {
+export const assert = <Values extends any[]>(
+  p: Property<Values>,
+  config?: Partial<RunConfig>,
+): AssertionJournal | null => {
   const result = run(p, config);
   switch (result.kind) {
     case 'success':
-      return [];
+      return null;
     case 'failure':
-      return [...renderTitle(result), ...renderReproduction(result), ...renderCounterexample(result)];
+      return {
+        entries: [...renderTitle(result), ...renderReproduction(result), ...renderCounterexample(result)],
+        error: (result as any).reason.error,
+      };
     /* istanbul ignore next */
     default:
       throw new Error(`Unhandled result: ${JSON.stringify(result)}`);

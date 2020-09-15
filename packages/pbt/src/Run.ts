@@ -23,7 +23,7 @@ export namespace RunResult {
 
   export type Failure<Values extends any[] = unknown[]> = {
     kind: 'failure';
-    reason: 'predicate';
+    reason: PropertyResult.FailureReason;
     seed: number;
     size: number;
     iterationsRequested: number;

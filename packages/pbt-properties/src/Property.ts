@@ -1,5 +1,5 @@
 import { Gens } from 'pbt-core';
-import { success, exhaustionFailure, predicateFailure, PropertyResult } from './PropertyResult';
+import { success, exhausted, failed, PropertyResult } from './PropertyResult';
 import { PropertyConfig, preValidateConfig } from './PropertyConfig';
 import runProperty, { PropertyFunction } from './runProperty';
 import { GenValues } from './GenValues';
@@ -22,10 +22,11 @@ export const property = <TGens extends Gens>(
     switch (runResult.kind) {
       case 'success':
         return success();
-      case 'exhaustionFailure':
-        return exhaustionFailure(config.iterations, runResult.iterationNumber - 1);
-      case 'predicateFailure':
-        return predicateFailure(
+      case 'exhaustion':
+        return exhausted(config.iterations, runResult.iterationNumber - 1);
+      case 'failure':
+        return failed(
+          runResult.reason,
           runResult.seed,
           runResult.size,
           config.iterations,
