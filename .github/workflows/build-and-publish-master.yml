@@ -31,6 +31,6 @@ jobs:
 
     - name: Publish pre-release packages
       run: |
-        yarn lerna publish --yes --registry 'https://registry.npmjs.org' --canary --pre-dist-tag latest
+        yarn lerna publish --yes --registry 'https://registry.npmjs.org' --canary --pre-dist-tag latest --force-publish
       env:
         NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
