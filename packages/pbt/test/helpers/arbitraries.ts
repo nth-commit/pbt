@@ -1,10 +1,10 @@
 import fc from 'fast-check';
-import * as dev from '../../src';
+import * as devCore from 'pbt-core';
 import * as devProperties from 'pbt-properties';
 
-export const arbitrarySeed = (): fc.Arbitrary<dev.Seed> => fc.nat().map(dev.Seed.create).noShrink();
+export const arbitrarySeed = (): fc.Arbitrary<devCore.Seed> => fc.nat().map(devCore.Seed.create).noShrink();
 
-export const arbitrarySize = (): fc.Arbitrary<dev.Size> =>
+export const arbitrarySize = (): fc.Arbitrary<devCore.Size> =>
   fc.oneof(fc.integer(0, 100), fc.constant(0), fc.constant(100));
 
 const arbitraryFailureReason = (): fc.Arbitrary<devProperties.PropertyResult.FailureReason> => {
