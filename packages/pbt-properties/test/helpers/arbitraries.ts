@@ -3,6 +3,7 @@ import * as devGen from 'pbt-gen';
 import * as devCore from 'pbt-core';
 import * as dev from '../../src';
 import { DEFAULT_MAX_ITERATIONS } from './constants';
+import { withInvocationCount } from './functionHelpers';
 
 export type Extender<T extends any[], U> = (...args: T) => fc.Arbitrary<U>;
 
@@ -39,11 +40,15 @@ export const arbitrarySucceedingPropertyFunction = <Values extends any[]>(): fc.
 export const arbitraryFailingPropertyFunction = <Values extends any[]>(
   failAfterIterations: number = 0,
 ): fc.Arbitrary<dev.PropertyFunction<Values>> => {
-  let iterationCount = -1;
-  return fc.constant(() => {
-    iterationCount++;
-    return iterationCount < failAfterIterations;
-  });
+  return fc.oneof(
+    fc.constant(withInvocationCount((i) => i < failAfterIterations)),
+    fc.anything().map((error) =>
+      withInvocationCount((i) => {
+        if (i < failAfterIterations) return;
+        throw error;
+      }),
+    ),
+  );
 };
 
 export const arbitraryPropertyFunction = <Values extends any[]>(): fc.Arbitrary<dev.PropertyFunction<Values>> =>
