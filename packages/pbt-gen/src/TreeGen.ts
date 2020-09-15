@@ -7,6 +7,7 @@ import { GenLike, mapGenLike } from './GenLike';
 import { Shrink } from './Shrink';
 import { Tree } from './Tree';
 import { TreeGenInstance, TreeGenResult } from './TreeGenResult';
+import * as SeedExtensions from './SeedExtensions';
 
 export type ITreeGen<T> = GenLike<TreeGenResult<T>>;
 
@@ -106,7 +107,7 @@ const extendTreeGen = <T>(treeGenBase: ITreeGen<T>): TreeGen<T> => {
   const flatMapTreeGen = <U>(k: (x: T) => TreeGen<U>): TreeGen<U> =>
     extendTreeGen<U>((seed, size) =>
       pipe(
-        Seed.stream(seed),
+        SeedExtensions.stream(seed),
         flatMap((seed0) => {
           const nextTreeGen = flatMapGenOnce(treeGenBase, k);
           return nextTreeGen(seed0, size);

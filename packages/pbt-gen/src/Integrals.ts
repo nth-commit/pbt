@@ -64,3 +64,9 @@ export const integer = {
 
   linear: (min: number, max: number): Gen<number> => integral(Range.linear(min, max, 0)),
 };
+
+export const naturalNumber = {
+  constant: (max: number = Number.MAX_SAFE_INTEGER) => integer.constant(0, max),
+
+  linear: (max: number = Number.MAX_SAFE_INTEGER) => integer.linear(0, max),
+};

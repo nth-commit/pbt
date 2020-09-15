@@ -19,6 +19,8 @@ export const arbitraryGenParams = (): fc.Arbitrary<GenParams> =>
 
 export const arbitraryInteger = (): fc.Arbitrary<number> => fc.integer(-1000, 1000);
 
+export const arbitraryNaturalNumber = (): fc.Arbitrary<number> => fc.nat(1000);
+
 export const arbitraryIterations = (): fc.Arbitrary<number> => fc.integer(1, 100);
 
 const getHexRepresentation = (x: unknown): string => {
@@ -57,6 +59,8 @@ export const arbitraryPredicate = (arity?: number): fc.Arbitrary<(...args: any[]
 const generators = {
   'integer.constant': dev.integer.constant(0, 10),
   'integer.linear': dev.integer.linear(0, 10),
+  'naturalNumber.constant': dev.naturalNumber.constant(10),
+  'naturalNumber.linear': dev.naturalNumber.linear(10),
 };
 
 export const arbitraryFullGenerator = (): fc.Arbitrary<dev.Gen<unknown>> => {

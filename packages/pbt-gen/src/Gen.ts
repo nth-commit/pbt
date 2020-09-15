@@ -7,6 +7,7 @@ import { Shrink } from './Shrink';
 import { Tree } from './Tree';
 import { TreeGen } from './TreeGen';
 import { TreeGenResult } from './TreeGenResult';
+import * as SeedExtensions from './SeedExtensions';
 
 export type Gen<T> = IGen<T> & {
   map: <U>(f: (x: T) => U) => Gen<U>;
@@ -64,7 +65,7 @@ export const create = <T>(f: (seed: Seed, size: Size) => T, shrink: Shrink<T>): 
   stream(
     (seed, size) =>
       pipe(
-        Seed.stream(seed),
+        SeedExtensions.stream(seed),
         map((seed0) => f(seed0, size)),
       ),
     shrink,
