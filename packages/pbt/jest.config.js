@@ -16,5 +16,8 @@ module.exports = {
       "functions": 100,
       "lines": 100,
     }
-  }
+  },
+  coveragePathIgnorePatterns: [
+    'src/index.ts'
+  ]
 };
