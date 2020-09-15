@@ -11,15 +11,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-        
+
     - name: Restore packages
       run: yarn
-    
+
     - name: Build
       run: yarn build
-       
+
     - name: Prettier
       run: yarn prettier:check
-      
+
     - name: Test
       run: yarn test
