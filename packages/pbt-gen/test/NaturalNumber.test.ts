@@ -3,9 +3,10 @@ import { toArray, pipe, first, last, count } from 'ix/iterable';
 import { take, map } from 'ix/iterable/operators';
 import * as dev from '../src';
 import * as stable from './helpers/stableApi';
-import { arbitraryGenParams, arbitraryIterations, arbitraryNaturalNumber } from './helpers/arbitraries';
-import { calculateProbabilityOfUniformDistribution } from './helpers/statistics';
+import { arbitraryGenParams, arbitraryIterations, arbitraryNaturalNumber, arbitrarySize } from './helpers/arbitraries';
+import { analyzeUniformDistribution } from './helpers/statistics';
 import { castToInstance } from './helpers/iterableOperators';
+import { Seed } from 'pbt-core';
 
 type GeneralizedNaturalNumberGenFactory = (max?: number) => dev.Gen<number>;
 
@@ -123,12 +124,11 @@ test('Instances shrink with "towardsNumber"', () => {
 
 describe('Constant', () => {
   test('Instances are uniformly distributed across the range', () => {
-    const arbIterations = arbitraryIterations()
-      .noShrink()
-      .filter((x) => x > 50);
-
     stable.assert(
-      stable.property(arbitraryGenParams(), arbIterations, ({ seed, size }, iterations) => {
+      stable.property(arbitrarySize(), (size) => {
+        const seed = Seed.spawn();
+        const sampleSize = 1_000;
+        const min = 0;
         const max = 10;
         const g = dev.naturalNumber.unscaled(max);
 
@@ -137,13 +137,16 @@ describe('Constant', () => {
             g(seed, size),
             castToInstance(),
             map((r) => r.value),
-            take(iterations),
+            take(sampleSize),
           ),
         );
 
-        const { pValue } = calculateProbabilityOfUniformDistribution(0, max, xs);
-        expect(pValue).toBeGreaterThanOrEqual(0.0005);
+        const { pValue } = analyzeUniformDistribution(min, max, xs);
+        expect(pValue).toBeGreaterThanOrEqual(0.01);
       }),
+      {
+        numRuns: 1,
+      },
     );
   });
 });
@@ -203,27 +206,23 @@ describe('Linear', () => {
   });
 
   test('If size = 100, instances are uniformly distributed across the range', () => {
-    const arbIterations = arbitraryIterations()
-      .noShrink()
-      .filter((x) => x > 50);
+    const seed = Seed.spawn();
+    const size = 100;
+    const sampleSize = 1_000;
+    const min = 0;
+    const max = 10;
+    const g = dev.naturalNumber.scaleLinearly(max);
 
-    stable.assert(
-      stable.property(arbitraryGenParams(), arbIterations, ({ seed }, iterations) => {
-        const max = 10;
-        const g = dev.naturalNumber.scaleLinearly(max);
-
-        const xs = toArray(
-          pipe(
-            g(seed, 100),
-            castToInstance(),
-            map((r) => r.value),
-            take(iterations),
-          ),
-        );
-
-        const { pValue } = calculateProbabilityOfUniformDistribution(0, max, xs);
-        expect(pValue).toBeGreaterThanOrEqual(0.0005);
-      }),
+    const xs = toArray(
+      pipe(
+        g(seed, size),
+        castToInstance(),
+        map((r) => r.value),
+        take(sampleSize),
+      ),
     );
+
+    const { pValue } = analyzeUniformDistribution(min, max, xs);
+    expect(pValue).toBeGreaterThanOrEqual(0.01);
   });
 });
