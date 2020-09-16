@@ -57,7 +57,7 @@ const nextNumber = (size: Size, range: Range, seed: Seed): number => {
 };
 
 const integral = (range: Range): Gen<number> =>
-  create((seed, size) => nextNumber(size, range, seed), Shrink.towardsNumber(range.origin, 0));
+  create((seed, size) => nextNumber(size, range, seed), Shrink.towardsNumber(range.origin));
 
 export const integer = {
   constant: (min: number, max: number): Gen<number> => integral(Range.constant(min, max, 0)),
