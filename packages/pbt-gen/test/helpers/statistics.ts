@@ -3,7 +3,7 @@ import { mean, variance, errorFunction } from 'simple-statistics';
 const arrayRange = (startIndex: number, endIndex: number): number[] =>
   [...Array(endIndex).keys()].map((x) => x + startIndex);
 
-export const calculateProbabilityOfUniformDistribution = (
+export const analyzeUniformDistribution = (
   min: number,
   max: number,
   xs: number[],

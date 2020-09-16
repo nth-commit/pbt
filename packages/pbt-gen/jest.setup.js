@@ -1,1 +1,1 @@
-globalThis.__pbtInfiniteStreamProtection = 1_000;
+globalThis.__pbtInfiniteStreamProtection = 10_000;
