@@ -29,7 +29,7 @@ export const arbitraryGenValue = (): fc.Arbitrary<unknown> => fc.anything();
 export const arbitraryGenValues = (minLength: number): fc.Arbitrary<unknown[]> =>
   fc.array(arbitraryGenValue(), minLength, 200);
 
-export const arbitraryGen = () => fc.constant(devGen.integer.constant(0, 10));
+export const arbitraryGen = () => fc.constant(devGen.integer.unscaled(0, 10));
 
 export const arbitraryGens = () => fc.array(arbitraryGen(), 0, 20);
 

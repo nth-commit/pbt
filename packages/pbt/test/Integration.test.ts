@@ -14,7 +14,7 @@ const tryAssert = (p: dev.Property<unknown[]>, config?: Partial<dev.RunConfig>):
 test('An assertion does not throw for an infallible property', () => {
   stable.assert(
     stable.property(fc.nat().noShrink(), (seed) => {
-      const g = dev.gen.integer.constant(0, 10);
+      const g = dev.gen.integer.unscaled(0, 10);
       const p = dev.property(g, (x) => x <= 10);
 
       const error = tryAssert(p, { seed });
@@ -27,7 +27,7 @@ test('An assertion does not throw for an infallible property', () => {
 test('An assertion throws for a fallible predicate property', () => {
   stable.assert(
     stable.property(fc.nat().noShrink(), (seed) => {
-      const g = dev.gen.integer.constant(0, 10);
+      const g = dev.gen.integer.unscaled(0, 10);
       const p = dev.property(g, (x) => x < 5);
 
       const error = tryAssert(p, { seed });
@@ -50,7 +50,7 @@ test('An assertion throws for a fallible predicate property', () => {
 test('An assertion throws for a fallible throwing property', () => {
   stable.assert(
     stable.property(fc.nat().noShrink(), (seed) => {
-      const g = dev.gen.integer.constant(0, 10);
+      const g = dev.gen.integer.unscaled(0, 10);
       const p = dev.property(g, (x) => {
         expect(x).toBeLessThan(5);
       });
@@ -75,7 +75,7 @@ test('An assertion throws for a fallible throwing property', () => {
 test('An assertion failure is reproducible', () => {
   stable.assert(
     stable.property(fc.nat().noShrink(), (seed) => {
-      const g = dev.gen.integer.constant(0, 10);
+      const g = dev.gen.integer.unscaled(0, 10);
       const p = dev.property(g, (x) => x < 5);
 
       const config0: Partial<dev.RunConfig> = { seed };

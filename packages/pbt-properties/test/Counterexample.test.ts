@@ -13,7 +13,7 @@ test('Given a property that fails when a >= x, it returns [x] as the counterexam
   stable.assert(
     stable.property(arbitrarySeed(), arbitrarySize(), (seed, size) => {
       const x = 10;
-      const g = devGen.integer.linear(0, 100);
+      const g = devGen.integer.scaleLinearly(0, 100);
       const f = (a: number): boolean => a < x;
       const p = dev.property(g, f);
 
@@ -37,7 +37,7 @@ test('Given a property that is only related to a, all other gens shrink to their
   stable.assert(
     stable.property(arbitrarySeed(), arbitrarySize(), fc.integer(1, 10), (seed, size, otherGenCount) => {
       const x = 10;
-      const g = devGen.integer.linear(0, 100);
+      const g = devGen.integer.scaleLinearly(0, 100);
       const gs = [g, ...arrayRange(0, otherGenCount).map(() => g)];
       const f = (a: number, ..._: number[]): boolean => a < x;
       const p = (dev.property as any)(...gs, f) as Property<[]>;

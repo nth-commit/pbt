@@ -3,7 +3,7 @@ import { Gen, create } from './Gen';
 import { Shrink } from './Shrink';
 
 type Range = {
-  getSizedBounds: (size: Size) => [min: number, max: number, maxDp: number];
+  getSizedBounds: (size: Size) => [min: number, max: number];
   origin: number;
 };
 
@@ -16,16 +16,16 @@ namespace Range {
 
   const clamp = (min: number, max: number, n: number): number => Math.min(max, Math.max(min, n));
 
-  export const constant = (x: number, y: number, dp: number): Range => {
+  export const constant = (x: number, y: number): Range => {
     const [min, max] = sort(x, y);
 
     return {
-      getSizedBounds: () => [min, max, dp],
+      getSizedBounds: () => [min, max],
       origin: min,
     };
   };
 
-  export const linear = (x: number, y: number, dp: number): Range => {
+  export const linear = (x: number, y: number): Range => {
     const [min, max] = sort(x, y);
 
     return {
@@ -34,39 +34,26 @@ namespace Range {
         const diff = max - min;
         const scaledMax = Math.round(diff * sizeRatio) + min;
         const clamped = clamp(min, max, scaledMax);
-        return [min, clamped, dp];
+        return [min, clamped];
       },
       origin: min,
     };
   };
 }
 
-const nextNumber = (size: Size, range: Range, seed: Seed): number => {
-  const [min, max, maxDp] = range.getSizedBounds(size);
-
-  /* istanbul ignore next */
-  if (min > max) throw new Error('This causes the random to hang...');
-
-  /* istanbul ignore next */
-  if (maxDp === 0) {
-    return seed.nextInt(min, max);
-  }
-
-  /* istanbul ignore next */
-  throw new Error(`Unsupported: Number of decimal places ${maxDp}`);
-};
+const nextNumber = (size: Size, range: Range, seed: Seed): number => seed.nextInt(...range.getSizedBounds(size));
 
 const integral = (range: Range): Gen<number> =>
   create((seed, size) => nextNumber(size, range, seed), Shrink.towardsNumber(range.origin));
 
 export const integer = {
-  constant: (min: number, max: number): Gen<number> => integral(Range.constant(min, max, 0)),
+  unscaled: (min: number, max: number): Gen<number> => integral(Range.constant(min, max)),
 
-  linear: (min: number, max: number): Gen<number> => integral(Range.linear(min, max, 0)),
+  scaleLinearly: (min: number, max: number): Gen<number> => integral(Range.linear(min, max)),
 };
 
 export const naturalNumber = {
-  constant: (max: number = Number.MAX_SAFE_INTEGER) => integer.constant(0, max),
+  unscaled: (max: number = Number.MAX_SAFE_INTEGER) => integer.unscaled(0, max),
 
-  linear: (max: number = Number.MAX_SAFE_INTEGER) => integer.linear(0, max),
+  scaleLinearly: (max: number = Number.MAX_SAFE_INTEGER) => integer.scaleLinearly(0, max),
 };
