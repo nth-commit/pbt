@@ -130,7 +130,7 @@ describe('Constant', () => {
     stable.assert(
       stable.property(arbitraryGenParams(), arbIterations, ({ seed, size }, iterations) => {
         const max = 10;
-        const g = dev.naturalNumber.constant(max);
+        const g = dev.naturalNumber.unscaled(max);
 
         const xs = toArray(
           pipe(
@@ -157,7 +157,7 @@ describe('Linear', () => {
         arbitraryNaturalNumber(),
         ({ seed }, iterations, max) => {
           const size = 0;
-          const g = dev.naturalNumber.linear(max);
+          const g = dev.naturalNumber.scaleLinearly(max);
 
           const xs = toArray(
             pipe(
@@ -183,7 +183,7 @@ describe('Linear', () => {
   ])('Instances are scaled by the size parameter', ({ max, scaledMax, size }) => {
     stable.assert(
       stable.property(arbitraryGenParams(), arbitraryIterations(), ({ seed }, iterations) => {
-        const g = dev.naturalNumber.linear(max);
+        const g = dev.naturalNumber.scaleLinearly(max);
 
         const xs = toArray(
           pipe(
@@ -210,7 +210,7 @@ describe('Linear', () => {
     stable.assert(
       stable.property(arbitraryGenParams(), arbIterations, ({ seed }, iterations) => {
         const max = 10;
-        const g = dev.naturalNumber.linear(max);
+        const g = dev.naturalNumber.scaleLinearly(max);
 
         const xs = toArray(
           pipe(

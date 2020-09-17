@@ -12,7 +12,11 @@ export namespace Seed {
     const innerMakeSeed = (seeder: number): Seed => {
       const r0 = makeRandom(seeder);
       return {
-        nextInt: (min: number, max: number): number => uniformIntDistribution(min, max, r0)[0],
+        nextInt: (min: number, max: number): number => {
+          const actualMin = min < max ? min : max;
+          const actualMax = max > min ? max : min;
+          return uniformIntDistribution(actualMin, actualMax, r0)[0];
+        },
         split: () => {
           const [i, r1] = r0.next();
           const [j] = r1.next();

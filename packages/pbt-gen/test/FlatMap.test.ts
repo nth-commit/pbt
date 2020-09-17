@@ -93,17 +93,12 @@ test('Snapshot', () => {
     [0, 1],
     [20, 2],
     [50, 5],
-    [100, 1],
   ]);
-  const g = dev.integer.linear(0, 5).flatMap((x) => dev.integer.linear(0, 5).map((y) => `[${x},${y}]`));
+  const g = dev.integer.scaleLinearly(0, 5).flatMap((x) => dev.integer.scaleLinearly(0, 5).map((y) => `[${x},${y}]`));
 
   for (const [size, iterations] of iterationsBySize.entries()) {
-    const results = toArray(pipe(g(seed, size), castToInstance(), map(GenInstance.evaluate), take(iterations)));
+    const results = toArray(pipe(g(seed, size), castToInstance(), map(GenInstance.format), take(iterations)));
 
-    results.forEach((evaluatedInstance, i) =>
-      expect(JSON.stringify(evaluatedInstance, null, 2).replace(/"/g, '')).toMatchSnapshot(
-        `size=${size} iteration=${i + 1}`,
-      ),
-    );
+    results.forEach((result, i) => expect(result).toMatchSnapshot(`size=${size} iteration=${i + 1}`));
   }
 });

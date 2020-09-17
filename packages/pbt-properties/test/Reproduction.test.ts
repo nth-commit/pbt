@@ -22,7 +22,7 @@ test('A failure result is reproducible with the returned parameters', () => {
   stable.assert(
     stable.property(
       arbitraryPropertyConfig(),
-      fc.integer(0, 10).map((n) => arrayRange(0, n).map(() => devGen.integer.constant(0, 10))),
+      fc.integer(0, 10).map((n) => arrayRange(0, n).map(() => devGen.integer.unscaled(0, 10))),
       fc.integer(0, 10).chain((n) => arbitraryFailingPropertyFunction(n)),
       (config, gs, f) => {
         const p = dev.property(...gs, f);
@@ -51,7 +51,7 @@ test('A property can eventually become successful, when reproduced with an exist
   stable.assert(
     stable.property(
       arbitraryPropertyConfig(),
-      fc.integer(0, 10).map((n) => arrayRange(0, n).map(() => devGen.integer.constant(0, 10))),
+      fc.integer(0, 10).map((n) => arrayRange(0, n).map(() => devGen.integer.unscaled(0, 10))),
       fc.integer(0, 10).chain((n) => arbitraryFailingPropertyFunction(n)),
       arbitrarySucceedingPropertyFunction(),
       (config, gs, fallibleF, infallibleF) => {
@@ -79,7 +79,7 @@ test('A property function is only invoked again once, after a failure is reprodu
   stable.assert(
     stable.property(
       arbitraryPropertyConfig(),
-      fc.integer(0, 10).map((n) => arrayRange(0, n).map(() => devGen.integer.constant(0, 10))),
+      fc.integer(0, 10).map((n) => arrayRange(0, n).map(() => devGen.integer.unscaled(0, 10))),
       fc.integer(0, 10).chain((n) => arbitraryFailingPropertyFunction(n)),
       (config, gs, f) => {
         const spyF = spyOn(f);

@@ -97,4 +97,19 @@ export namespace GenInstance {
     kind: 'instance',
     ...joinDatas(...instances),
   });
+
+  const formatInternal = (instance: GenInstanceData<string>, nestCount: number): string => {
+    const valueFormatted = '-'.repeat(nestCount * 3) + instance.value;
+
+    const shrinksFormatted = toArray(
+      pipe(
+        instance.shrink(),
+        map((i) => formatInternal(i, nestCount + 1)),
+      ),
+    );
+
+    return [valueFormatted, ...shrinksFormatted].join('\n');
+  };
+
+  export const format = (instance: GenInstanceData<string>): string => formatInternal(instance, 0);
 }

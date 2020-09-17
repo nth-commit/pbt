@@ -57,10 +57,10 @@ export const arbitraryPredicate = (arity?: number): fc.Arbitrary<(...args: any[]
   arbitraryFunction(fc.boolean(), arity);
 
 const generators = {
-  'integer.constant': dev.integer.constant(0, 10),
-  'integer.linear': dev.integer.linear(0, 10),
-  'naturalNumber.constant': dev.naturalNumber.constant(10),
-  'naturalNumber.linear': dev.naturalNumber.linear(10),
+  'integer.unscaled': dev.integer.unscaled(0, 10),
+  'integer.scaleLinearly': dev.integer.scaleLinearly(0, 10),
+  'naturalNumber.unscaled': dev.naturalNumber.unscaled(10),
+  'naturalNumber.scaleLinearly': dev.naturalNumber.scaleLinearly(10),
 };
 
 export const arbitraryFullGenerator = (): fc.Arbitrary<dev.Gen<unknown>> => {
