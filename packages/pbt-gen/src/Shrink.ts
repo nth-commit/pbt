@@ -1,5 +1,6 @@
 import { pipe, generate, concat, of, empty } from 'ix/iterable';
 import { flatMap, map, skip } from 'ix/iterable/operators';
+import { indexed } from './iterableOperators';
 
 export type Shrink<T> = (value: T) => Iterable<T>;
 
@@ -79,6 +80,21 @@ export namespace Shrink {
             combinations<T>(l)(arr),
             skip(1), // Already have this combination from the first pass
           ),
+        ),
+      ),
+    );
+  };
+
+  export const elements = <T>(shrinker: Shrink<T>): Shrink<T[]> => (arr) => {
+    if (arr.length === 0) return empty();
+
+    return pipe(
+      arr,
+      indexed(),
+      flatMap(({ value, index }) =>
+        pipe(
+          shrinker(value),
+          map((x) => [...arr.slice(0, index), x, ...arr.slice(index + 1)]),
         ),
       ),
     );

@@ -1,6 +1,6 @@
 import { OperatorFunction, UnaryFunction } from 'ix/interfaces';
 import { IterableX, pipe } from 'ix/iterable';
-import { tap } from 'ix/iterable/operators';
+import { map, tap } from 'ix/iterable/operators';
 
 const getMaxIterations = (): number | undefined => (globalThis as any).__pbtInfiniteStreamProtection;
 
@@ -45,3 +45,18 @@ export class TakeWhileInclusiveIterable<TSource> extends IterableX<TSource> {
 export const takeWhileInclusive = <T>(predicate: (value: T, index: number) => boolean): OperatorFunction<T, T> => (
   source: Iterable<T>,
 ): IterableX<T> => new TakeWhileInclusiveIterable<T>(source, predicate);
+
+export type Indexed<T> = { value: T; index: number };
+
+export const indexed = <TSource>(): OperatorFunction<TSource, { value: TSource; index: number }> => {
+  return map((value, index) => ({ value, index }));
+};
+
+export const mapIndexed = <TSourceValue, TResultValue>(
+  f: (x: TSourceValue) => TResultValue,
+): OperatorFunction<Indexed<TSourceValue>, Indexed<TResultValue>> => {
+  return map(({ index, value }) => ({
+    index,
+    value: f(value),
+  }));
+};

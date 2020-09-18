@@ -88,3 +88,31 @@ test.each([
 
   expect(shrinks).toEqual(expectedShrinks);
 });
+
+test.each([
+  { value: [], elementShrinker: Shrink.towardsNumber(0), expectedShrinks: [] },
+  { value: [1], elementShrinker: Shrink.towardsNumber(0), expectedShrinks: [[0]] },
+  {
+    value: [1, 2],
+    elementShrinker: Shrink.towardsNumber(0),
+    expectedShrinks: [
+      [0, 2],
+      [1, 0],
+      [1, 1],
+    ],
+  },
+  {
+    value: [1, 1, 0],
+    elementShrinker: Shrink.towardsNumber(0),
+    expectedShrinks: [
+      [0, 1, 0],
+      [1, 0, 0],
+    ],
+  },
+])('elements', ({ value, elementShrinker, expectedShrinks }) => {
+  const shrinker = Shrink.elements(elementShrinker);
+
+  const shrinks = Array.from(shrinker(value));
+
+  expect(shrinks).toEqual(expectedShrinks);
+});
