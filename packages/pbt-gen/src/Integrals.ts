@@ -10,12 +10,12 @@ const integral = (range: Range): Gen<number> =>
 
 export const integer = {
   unscaled: (min: number, max: number): Gen<number> => integral(Range.constant(min, max)),
-
   scaleLinearly: (min: number, max: number): Gen<number> => integral(Range.linear(min, max)),
 };
 
-export const naturalNumber = {
-  unscaled: (max: number = Number.MAX_SAFE_INTEGER) => integer.unscaled(0, max),
+const maxInt32 = Math.pow(2, 31) - 1;
 
-  scaleLinearly: (max: number = Number.MAX_SAFE_INTEGER) => integer.scaleLinearly(0, max),
+export const naturalNumber = {
+  unscaled: (max: number = maxInt32) => integer.unscaled(0, max),
+  scaleLinearly: (max: number = maxInt32) => integer.scaleLinearly(0, max),
 };

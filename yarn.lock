@@ -5512,10 +5512,28 @@ path-type@^3.0.0:
     pbt-gen "^0.0.1-alpha.85+dd114dd"
     pbt-properties "^0.0.1-alpha.85+dd114dd"
 
+"pbt-0.0.1@npm:pbt@0.0.1-alpha.86":
+  version "0.0.1-alpha.86"
+  resolved "https://registry.yarnpkg.com/pbt/-/pbt-0.0.1-alpha.86.tgz#2a89ab0ea74c47c43c0ca6c658dbf12259f5b82b"
+  integrity sha512-FLhBKbcg3INVm2tyEhYgSKXW/FUFd+uyj55x8XRNadY30VQlnZn4ghTBEKgNDhq6VeVmLIdMUO5XCSEIZlFqrA==
+  dependencies:
+    ix "^4.0.0"
+    pbt-core "^0.0.1-alpha.86+844d900"
+    pbt-gen "^0.0.1-alpha.86+844d900"
+    pbt-properties "^0.0.1-alpha.86+844d900"
+
 pbt-core@^0.0.1-alpha.85+dd114dd:
   version "0.0.1-alpha.85"
   resolved "https://registry.yarnpkg.com/pbt-core/-/pbt-core-0.0.1-alpha.85.tgz#de34d1d3a40cbca241c0e9248a68e86754812ddc"
   integrity sha512-hCNEvhvki8hqakw+hs0qrQ4lf8lJraliacqgJzDyFp/7Ml+3bi/jUldPvJFSYq/A0Aahjb0OejXm+hukJrJaLA==
+  dependencies:
+    ix "^4.0.0"
+    pure-rand "^3.1.0"
+
+pbt-core@^0.0.1-alpha.86+844d900:
+  version "0.0.1-alpha.86"
+  resolved "https://registry.yarnpkg.com/pbt-core/-/pbt-core-0.0.1-alpha.86.tgz#14b6ba0e732317c3d00941aa5d9da17017f14eef"
+  integrity sha512-mBP73e2xyYoq0hEjfLU+m/ZWy0zqwNa3spSjbJa+V067sheqoOQVc7GjsGXukBEg+cmQKzgZmKNv3zA59KVUNA==
   dependencies:
     ix "^4.0.0"
     pure-rand "^3.1.0"
@@ -5528,6 +5546,14 @@ pbt-gen@^0.0.1-alpha.85+dd114dd:
     ix "^4.0.0"
     pbt-core "^0.0.1-alpha.85+dd114dd"
 
+pbt-gen@^0.0.1-alpha.86+844d900:
+  version "0.0.1-alpha.86"
+  resolved "https://registry.yarnpkg.com/pbt-gen/-/pbt-gen-0.0.1-alpha.86.tgz#8f5685ebf163827815720b435c9ff17d862e7497"
+  integrity sha512-C6sm3fo1YkQHBJKYjmXtVUp+mI4+Knlz0qMub5z0AXqYBD89kSSSg+sYAnj1WtPMM5qAWO3zTbj2hZrJXA65jQ==
+  dependencies:
+    ix "^4.0.0"
+    pbt-core "^0.0.1-alpha.86+844d900"
+
 pbt-properties@^0.0.1-alpha.85+dd114dd:
   version "0.0.1-alpha.85"
   resolved "https://registry.yarnpkg.com/pbt-properties/-/pbt-properties-0.0.1-alpha.85.tgz#0edbb235b9bf359a76712520060dc9b394504228"
@@ -5535,6 +5561,14 @@ pbt-properties@^0.0.1-alpha.85+dd114dd:
   dependencies:
     ix "^4.0.0"
     pbt-core "^0.0.1-alpha.85+dd114dd"
+
+pbt-properties@^0.0.1-alpha.86+844d900:
+  version "0.0.1-alpha.86"
+  resolved "https://registry.yarnpkg.com/pbt-properties/-/pbt-properties-0.0.1-alpha.86.tgz#f3e8857e73f02abbb2a37de7c30a5ecd31068acb"
+  integrity sha512-uBmGtY063IjEB/mEnVmYsZXQKezBq0azmwg54Do/IeqYr3yJW9lvUt0FPG48qnECpLrR1H8IrcXBLM5Ph8xaDQ==
+  dependencies:
+    ix "^4.0.0"
+    pbt-core "^0.0.1-alpha.86+844d900"
 
 performance-now@^2.1.0:
   version "2.1.0"
