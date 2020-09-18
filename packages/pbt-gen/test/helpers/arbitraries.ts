@@ -97,3 +97,16 @@ export const arbitraryGenerator = (): fc.Arbitrary<dev.Gen<unknown>> => {
       .map((g) => augmentGenToString(g, key));
   });
 };
+
+export const arbitraryRecord = <Key extends string, Value>(
+  arbitraryKey: fc.Arbitrary<Key>,
+  arbitraryValue: fc.Arbitrary<Value>,
+): fc.Arbitrary<Record<Key, Value>> => {
+  const arbitraryKvp = fc.tuple(arbitraryKey, arbitraryValue);
+  return fc.array(arbitraryKvp).map((kvps) =>
+    kvps.reduce((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {} as Record<Key, Value>),
+  );
+};
