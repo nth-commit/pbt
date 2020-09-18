@@ -51,12 +51,3 @@ export type Indexed<T> = { value: T; index: number };
 export const indexed = <TSource>(): OperatorFunction<TSource, { value: TSource; index: number }> => {
   return map((value, index) => ({ value, index }));
 };
-
-export const mapIndexed = <TSourceValue, TResultValue>(
-  f: (x: TSourceValue) => TResultValue,
-): OperatorFunction<Indexed<TSourceValue>, Indexed<TResultValue>> => {
-  return map(({ index, value }) => ({
-    index,
-    value: f(value),
-  }));
-};

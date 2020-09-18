@@ -1,4 +1,4 @@
-import { concat, pipe } from 'ix/iterable';
+import { concat, pipe, toArray } from 'ix/iterable';
 import { filter as filterIterable, flatMap as flatMapIterable, map as mapIterable } from 'ix/iterable/operators';
 
 export type Tree<T> = [T, Iterable<Tree<T>>];
@@ -95,20 +95,23 @@ export namespace Tree {
       mapIterable((x) => expand(x, f)),
     );
 
-    return Tree.create(outcome, concat(expandedOutcome, expandedShrinks));
+    return Tree.create(outcome, concat(expandedShrinks, expandedOutcome));
   };
 
   /* istanbul ignore next */
-  const printInternal = ([outcome, shrinks]: Tree<string>, nestCount: number): void => {
-    const prefix = '-'.repeat(nestCount * 3);
-    console.log(prefix + outcome);
-    for (const shrink of shrinks) {
-      printInternal(shrink, nestCount + 1);
-    }
+  const formatInternal = ([outcome, shrinks]: Tree<string>, nestCount: number): string => {
+    const valueFormatted = '-'.repeat(nestCount * 3) + outcome;
+
+    const shrinksFormatted = toArray(
+      pipe(
+        shrinks,
+        mapIterable((i) => formatInternal(i, nestCount + 1)),
+      ),
+    );
+
+    return [valueFormatted, ...shrinksFormatted].join('\n');
   };
 
   /* istanbul ignore next */
-  export const print = (tree: Tree<string>): void => {
-    printInternal(tree, 0);
-  };
+  export const format = (tree: Tree<string>): string => formatInternal(tree, 0);
 }
