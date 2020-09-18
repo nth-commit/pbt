@@ -19,7 +19,9 @@ export const array = {
   scaleLinearly: <T>(min: number, max: number, g: Gen<T>): Gen<T[]> => arrayFromRange(Range.linear(min, max), g),
 };
 
-export const element = <T>(collection: T[] | Record<any, T> | Set<T> | Map<unknown, T>): Gen<T> => {
+export const element = <T>(
+  collection: ReadonlyArray<T> | Readonly<Record<any, T>> | ReadonlySet<T> | ReadonlyMap<unknown, T>,
+): Gen<T> => {
   const elements = Array.isArray(collection)
     ? collection
     : collection instanceof Set
