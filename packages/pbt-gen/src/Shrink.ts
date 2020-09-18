@@ -59,11 +59,11 @@ export namespace Shrink {
    * first pass simply drops elements from the end of the original array. The second pass generates arrays of the
    * same lengths, but will attempt all possible combinations at each length.
    */
-  export const array = <T>(): Shrink<T[]> => (arr) => {
+  export const array = <T>(targetLength: number): Shrink<T[]> => (arr) => {
     const { length } = arr;
 
     const shrunkLengths = pipe(
-      halves(length - 0),
+      halves(length - targetLength),
       map((dropCount) => length - dropCount),
     );
 

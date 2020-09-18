@@ -1,4 +1,4 @@
-import { pipe } from 'ix/iterable';
+import { concat, pipe } from 'ix/iterable';
 import { filter as filterIterable, flatMap as flatMapIterable, map as mapIterable } from 'ix/iterable/operators';
 
 export type Tree<T> = [T, Iterable<Tree<T>>];
@@ -85,6 +85,17 @@ export namespace Tree {
     );
 
     return [combinedOutcome, combinedShrinks];
+  };
+
+  export const expand = <T>([outcome, shrinks]: Tree<T>, f: (x: T) => Iterable<T>): Tree<T> => {
+    const expandedOutcome = unfoldForest((x) => x, f, outcome);
+
+    const expandedShrinks = pipe(
+      shrinks,
+      mapIterable((x) => expand(x, f)),
+    );
+
+    return Tree.create(outcome, concat(expandedOutcome, expandedShrinks));
   };
 
   /* istanbul ignore next */

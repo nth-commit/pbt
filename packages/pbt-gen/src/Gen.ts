@@ -15,6 +15,7 @@ export type Gen<T> = IGen<T> & {
   flatMap: <U>(k: (x: T) => Gen<U>) => Gen<U>;
   reduce: <U>(length: number, f: (acc: U, x: T, i: number) => U, init: U) => Gen<U>;
   noShrink: () => Gen<T>;
+  preShrink: (shrinker: Shrink<T>) => Gen<T>;
 };
 
 const mapTreeToInstanceData = <T>([outcome, shrinks]: Tree<T>): GenInstanceData<T> => ({
@@ -52,29 +53,43 @@ const mapTreeGenToGen = <T>(gTree: TreeGen<T>): Gen<T> => {
 
   const noShrinkGen = (): Gen<T> => mapTreeGenToGen(gTree.noShrink());
 
+  const preShrinkGen = (shrinker: Shrink<T>) => mapTreeGenToGen(gTree.preShrink(shrinker));
+
   return Object.assign(mapTreeGenToBaseGen(gTree), {
     map: mapGen,
     filter: filterGen,
     flatMap: flatMapGen,
     reduce: reduceGen,
     noShrink: noShrinkGen,
+    preShrink: preShrinkGen,
   });
 };
 
-export const stream = <T>(g: GenLike<T>, shrink: Shrink<T>): Gen<T> => {
-  const gTree = TreeGen.fromGenLike(g, shrink);
-  return mapTreeGenToGen(gTree);
-};
-
-export const create = <T>(f: (seed: Seed, size: Size) => T, shrink: Shrink<T>): Gen<T> =>
-  stream(
-    (seed, size) =>
-      pipe(
-        SeedExtensions.stream(seed),
-        map((seed0) => f(seed0, size)),
+export function create<T>(g: GenLike<GenResult<T>>): Gen<T>;
+export function create<T>(f: (seed: Seed, size: Size) => T, shrink: Shrink<T>): Gen<T>;
+export function create<T>(...args: any[]): Gen<T> {
+  /* istanbul ignore else */
+  if (args.length === 1) {
+    const g: GenLike<GenResult<T>> = args[0];
+    return mapTreeGenToGen(TreeGen.fromGen(g));
+  } else if (args.length === 2) {
+    const f: (seed: Seed, size: Size) => T = args[0];
+    const shrink: Shrink<T> = args[1];
+    return mapTreeGenToGen(
+      TreeGen.fromGenLike(
+        (seed, size) =>
+          pipe(
+            SeedExtensions.stream(seed),
+            map((seed0) => f(seed0, size)),
+          ),
+        shrink,
       ),
-    shrink,
-  );
+    );
+  }
+
+  /* istanbul ignore next */
+  throw new Error('Fatal: Unrecognised args');
+}
 
 export const exhausted = <T>(): Gen<T> => {
   const gTree = TreeGen.exhausted<T>();

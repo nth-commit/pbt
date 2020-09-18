@@ -16,6 +16,7 @@ export type TreeGen<T> = ITreeGen<T> & {
   flatMap: <U>(k: (x: T) => TreeGen<U>) => TreeGen<U>;
   reduce: <U>(length: number, f: (acc: U, x: T, i: number) => U, init: U) => TreeGen<U>;
   noShrink: () => TreeGen<T>;
+  preShrink: (shrinker: Shrink<T>) => TreeGen<T>;
 };
 
 const mapResult = <T, U>(f: (x: T) => U) => (r: TreeGenResult<T>): TreeGenResult<U> => {
@@ -136,6 +137,15 @@ const discardShrinks = <T>(r: TreeGenResult<T>): TreeGenResult<T> => {
   };
 };
 
+const expandShrinksForResult = <T>(shrinker: Shrink<T>) => (r: TreeGenResult<T>): TreeGenResult<T> => {
+  if (TreeGenResult.isNotInstance(r)) return r;
+
+  return {
+    kind: 'instance',
+    value: Tree.expand(r.value, shrinker),
+  };
+};
+
 const extendTreeGen = <T>(treeGenBase: ITreeGen<T>): TreeGen<T> => {
   const mapTreeGen = <U>(f: (x: T) => U): TreeGen<U> => extendTreeGen<U>(mapGenLike(treeGenBase, mapResult(f)));
 
@@ -166,12 +176,16 @@ const extendTreeGen = <T>(treeGenBase: ITreeGen<T>): TreeGen<T> => {
 
   const noShrinkTreeGen = (): TreeGen<T> => extendTreeGen<T>(mapGenLike(treeGenBase, discardShrinks));
 
+  const preShrinkTreeGen = (shrinker: Shrink<T>): TreeGen<T> =>
+    extendTreeGen<T>(mapGenLike(treeGenBase, expandShrinksForResult(shrinker)));
+
   return Object.assign(treeGenBase, {
     map: mapTreeGen,
     filter: filterTreeGen,
     flatMap: flatMapTreeGen,
     reduce: reduceTreeGen,
     noShrink: noShrinkTreeGen,
+    preShrink: preShrinkTreeGen,
   });
 };
 

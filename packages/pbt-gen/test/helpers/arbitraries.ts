@@ -56,11 +56,17 @@ export const arbitraryFunction = <T>(
 export const arbitraryPredicate = (arity?: number): fc.Arbitrary<(...args: any[]) => boolean> =>
   arbitraryFunction(fc.boolean(), arity);
 
-const generators = {
-  'integer.unscaled': dev.integer.unscaled(0, 10),
-  'integer.scaleLinearly': dev.integer.scaleLinearly(0, 10),
-  'naturalNumber.unscaled': dev.naturalNumber.unscaled(10),
-  'naturalNumber.scaleLinearly': dev.naturalNumber.scaleLinearly(10),
+type GeneratorName =
+  | 'integer.unscaled'
+  | 'integer.scaleLinearly'
+  | 'naturalNumber.unscaled'
+  | 'naturalNumber.scaleLinearly';
+
+const generators: Record<GeneratorName, dev.Gen<unknown>> = {
+  'integer.unscaled': dev.integer.unscaled(0, 10) as dev.Gen<unknown>,
+  'integer.scaleLinearly': dev.integer.scaleLinearly(0, 10) as dev.Gen<unknown>,
+  'naturalNumber.unscaled': dev.naturalNumber.unscaled(10) as dev.Gen<unknown>,
+  'naturalNumber.scaleLinearly': dev.naturalNumber.scaleLinearly(10) as dev.Gen<unknown>,
 };
 
 export const arbitraryFullGenerator = (): fc.Arbitrary<dev.Gen<unknown>> => {

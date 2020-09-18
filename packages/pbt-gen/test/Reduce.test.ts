@@ -15,8 +15,8 @@ const arbitraryReduceParams = (): fc.Arbitrary<[length: number, f: (...args: any
 
 test('It exhausts if the generator exhausts', () => {
   stable.assert(
-    stable.property(arbitraryGenParams(), arbitraryReduceParams(), ({ seed, size }, reducerParams) => {
-      const g = dev.exhausted().reduce(...reducerParams);
+    stable.property(arbitraryGenParams(), arbitraryReduceParams(), ({ seed, size }, reduceParams) => {
+      const g = dev.exhausted().reduce(...reduceParams);
 
       const results = toArray(pipe(g(seed, size)));
 
@@ -32,8 +32,8 @@ test('It discards if the generator discards', () => {
       arbitraryIterations(),
       arbitraryGenerator(),
       arbitraryReduceParams(),
-      ({ seed, size }, iterations, gInitial, reducerParams) => {
-        const g = gInitial.filter(() => false).reduce(...reducerParams);
+      ({ seed, size }, iterations, gInitial, reduceParams) => {
+        const g = gInitial.filter(() => false).reduce(...reduceParams);
 
         const results = toArray(pipe(g(seed, size), take(iterations)));
 
@@ -48,14 +48,14 @@ test('It discards if the generator discards', () => {
 
 test('It behaves like Array.prototype.reduce', () => {
   stable.assert(
-    stable.property(arbitraryGenParams(), arbitraryReduceParams(), ({ seed, size }, reducerParams) => {
+    stable.property(arbitraryGenParams(), arbitraryReduceParams(), ({ seed, size }, reduceParams) => {
       // The generator cannot be a higher-order generator, as that will consume more of the seed, and make it
-      // "unreproducible" (lol) as an array reduce.
+      // "unreproducible" as an array reduce.
       const g = dev.integer.unscaled(0, 10);
 
       const reducedByGen = first(
         pipe(
-          g.reduce(...reducerParams)(seed, size),
+          g.reduce(...reduceParams)(seed, size),
           castToInstance(),
           map((r) => r.value),
         ),
@@ -65,11 +65,11 @@ test('It behaves like Array.prototype.reduce', () => {
         pipe(
           // Seed requires an extra split, to reproduce the initial split inside of Gen.reduce
           g(seed.split()[0], size),
-          take(reducerParams[0]),
+          take(reduceParams[0]),
           castToInstance(),
           map((r) => r.value),
         ),
-      ).reduce(reducerParams[1], reducerParams[2]);
+      ).reduce(reduceParams[1], reduceParams[2]);
 
       expect(reducedByGen).toEqual(reducedByArray);
     }),
