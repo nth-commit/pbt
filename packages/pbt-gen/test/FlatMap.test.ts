@@ -35,7 +35,7 @@ test('It exhausts if the right generator exhausts', () => {
     stable.property(arbitraryGenParams(), arbitraryFullGenerator(), ({ seed, size }, gLeft) => {
       const g = gLeft.flatMap(() => dev.exhausted());
 
-      const results = toArray(pipe(g(seed, size), take(3)));
+      const results = toArray(pipe(g(seed, size), take(1)));
 
       expect(results).toEqual([{ kind: 'exhaustion' }]);
     }),

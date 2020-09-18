@@ -1,6 +1,5 @@
 import { pipe, of, concat, empty } from 'ix/iterable';
 import { map, flatMap, filter } from 'ix/iterable/operators';
-import { Seed } from 'pbt-core';
 import { takeWhileInclusive } from './iterableOperators';
 import { Gen as IGen, GenInstanceData, GenResult } from 'pbt-core';
 import { GenLike, mapGenLike } from './GenLike';
@@ -15,6 +14,7 @@ export type TreeGen<T> = ITreeGen<T> & {
   map: <U>(f: (x: T) => U) => TreeGen<U>;
   filter: (f: (x: T) => boolean) => TreeGen<T>;
   flatMap: <U>(k: (x: T) => TreeGen<U>) => TreeGen<U>;
+  reduce: <U>(length: number, f: (acc: U, x: T, i: number) => U, init: U) => TreeGen<U>;
   noShrink: () => TreeGen<T>;
 };
 
@@ -88,6 +88,44 @@ const flatMapGenOnce = <T, U>(treeGenBase: ITreeGen<T>, k: (x: T) => ITreeGen<U>
   );
 };
 
+const reduceTreeGenOnce = <T, U>(
+  treeGenBase: ITreeGen<T>,
+  length: number,
+  f: (acc: U, x: T, i: number) => U,
+  init: U,
+): ITreeGen<U> =>
+  function* (seed, size) {
+    let reduction = {
+      acc: init,
+      trees: [] as Array<Tree<T>>,
+    };
+
+    for (const result of treeGenBase(seed, size)) {
+      switch (result.kind) {
+        case 'instance':
+          const tree = result.value;
+          reduction = {
+            acc: f(reduction.acc, tree[0], reduction.trees.length),
+            trees: [...reduction.trees, tree],
+          };
+          break;
+        case 'discard':
+        case 'exhaustion':
+          yield result;
+      }
+
+      if (reduction.trees.length >= length) break;
+    }
+
+    yield {
+      kind: 'instance',
+      value: Tree.map(
+        Tree.combine(reduction.trees),
+        (xs): U => xs.reduce((acc: U, curr: T, i: number) => f(acc, curr, i), init),
+      ),
+    };
+  };
+
 const discardShrinks = <T>(r: TreeGenResult<T>): TreeGenResult<T> => {
   if (TreeGenResult.isNotInstance(r)) return r;
 
@@ -115,12 +153,24 @@ const extendTreeGen = <T>(treeGenBase: ITreeGen<T>): TreeGen<T> => {
       ),
     );
 
+  const reduceTreeGen = <U>(length: number, f: (acc: U, x: T, i: number) => U, init: U): TreeGen<U> =>
+    extendTreeGen<U>((seed, size) =>
+      pipe(
+        SeedExtensions.stream(seed),
+        flatMap((seed0) => {
+          const nextTreeGen = reduceTreeGenOnce(treeGenBase, length, f, init);
+          return nextTreeGen(seed0, size);
+        }),
+      ),
+    );
+
   const noShrinkTreeGen = (): TreeGen<T> => extendTreeGen<T>(mapGenLike(treeGenBase, discardShrinks));
 
   return Object.assign(treeGenBase, {
     map: mapTreeGen,
     filter: filterTreeGen,
     flatMap: flatMapTreeGen,
+    reduce: reduceTreeGen,
     noShrink: noShrinkTreeGen,
   });
 };

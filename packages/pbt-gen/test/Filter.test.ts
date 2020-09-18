@@ -5,7 +5,7 @@ import * as devCore from 'pbt-core';
 import * as stable from './helpers/stableApi';
 import * as dev from '../src';
 import { arbitraryGenParams, arbitraryIterations, arbitraryGenerator, arbitraryPredicate } from './helpers/arbitraries';
-import { excludeShrink } from './helpers/iterableOperators';
+import { withoutShrinkFunction } from './helpers/iterableOperators';
 import { traverseShrinks } from './helpers/traverseShrinks';
 
 test('It is a no-op with a true predicate', () => {
@@ -17,7 +17,7 @@ test('It is a no-op with a true predicate', () => {
       ({ seed, size }, iterations, gInitial) => {
         const gFiltered = gInitial.filter(() => true);
 
-        const iterate = <T>(g: dev.Gen<T>) => toArray(pipe(g(seed, size), take(iterations), excludeShrink()));
+        const iterate = <T>(g: dev.Gen<T>) => toArray(pipe(g(seed, size), take(iterations), withoutShrinkFunction()));
 
         expect(iterate(gFiltered)).toEqual(iterate(gInitial));
       },

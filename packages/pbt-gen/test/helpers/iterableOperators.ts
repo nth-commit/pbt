@@ -12,7 +12,7 @@ export const castToInstance = <T>(): OperatorFunction<devCore.GenResult<T>, devC
 
 type GenResultExcludingShrink<T> = Exclude<devCore.GenResult<T>, 'shrink'>;
 
-export const excludeShrink = <T>(): OperatorFunction<devCore.GenResult<T>, GenResultExcludingShrink<T>> => (
+export const withoutShrinkFunction = <T>(): OperatorFunction<devCore.GenResult<T>, GenResultExcludingShrink<T>> => (
   source: Iterable<devCore.GenResult<T>>,
 ): IterableX<GenResultExcludingShrink<T>> =>
   map((x) => {

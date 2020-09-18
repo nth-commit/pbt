@@ -3,7 +3,7 @@ import { take, filter } from 'ix/iterable/operators';
 import * as stable from './helpers/stableApi';
 import * as devCore from 'pbt-core';
 import { arbitraryGenerator, arbitraryGenParams, arbitraryIterations } from './helpers/arbitraries';
-import { excludeShrink } from './helpers/iterableOperators';
+import { withoutShrinkFunction } from './helpers/iterableOperators';
 
 test('It is repeatable', () => {
   stable.assert(
@@ -12,7 +12,7 @@ test('It is repeatable', () => {
       arbitraryIterations(),
       arbitraryGenerator(),
       ({ seed, size }, iterations, g) => {
-        const iterate = () => toArray(pipe(g(seed, size), take(iterations), excludeShrink()));
+        const iterate = () => toArray(pipe(g(seed, size), take(iterations), withoutShrinkFunction()));
 
         expect(iterate()).toEqual(iterate());
       },
