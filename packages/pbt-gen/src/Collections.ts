@@ -1,4 +1,4 @@
-import { Gen, create } from './Gen';
+import { Gen, create, exhausted } from './Gen';
 import { Range } from './Range';
 import { Shrink } from './Shrink';
 
@@ -17,4 +17,21 @@ export const array = {
   unscaled: <T>(min: number, max: number, g: Gen<T>): Gen<T[]> => arrayFromRange(Range.constant(min, max), g),
 
   scaleLinearly: <T>(min: number, max: number, g: Gen<T>): Gen<T[]> => arrayFromRange(Range.linear(min, max), g),
+};
+
+export const element = <T>(collection: T[] | Record<any, T> | Set<T> | Map<unknown, T>): Gen<T> => {
+  const elements = Array.isArray(collection)
+    ? collection
+    : collection instanceof Set
+    ? [...collection.values()]
+    : collection instanceof Map
+    ? [...collection.values()]
+    : Object.values(collection);
+
+  return elements.length === 0
+    ? exhausted()
+    : create((seed) => {
+        const index = seed.nextInt(0, elements.length - 1);
+        return elements[index];
+      }, Shrink.none());
 };

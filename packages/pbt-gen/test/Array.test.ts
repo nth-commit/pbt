@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import { toArray, pipe, first } from 'ix/iterable';
+import { toArray, pipe } from 'ix/iterable';
 import { map, take } from 'ix/iterable/operators';
 import * as devCore from 'pbt-core';
 import * as dev from '../src';
@@ -7,11 +7,6 @@ import * as stable from './helpers/stableApi';
 import { arbitraryGenParams, arbitraryIterations, arbitraryGenerator, arbitraryFunction } from './helpers/arbitraries';
 import { castToInstance } from './helpers/iterableOperators';
 import { GenInstance } from 'pbt-core';
-
-const abritraryReducer = () => arbitraryFunction(fc.anything(), 2);
-
-const arbitraryReduceParams = (): fc.Arbitrary<[length: number, f: (...args: any[]) => unknown, init: unknown]> =>
-  fc.tuple(arbitraryIterations(), abritraryReducer(), fc.anything());
 
 test('It exhausts if the generator exhausts', () => {
   stable.assert(
