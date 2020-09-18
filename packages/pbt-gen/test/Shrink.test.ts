@@ -1,14 +1,14 @@
 import { Shrink } from '../src/Shrink';
 
 test.each([
-  { target: 0, value: 0, expectedShrinks: [] },
-  { target: 0, value: 100, expectedShrinks: [0, 50, 75, 87, 93, 96, 98, 99] },
-  { target: 0, value: 200, expectedShrinks: [0, 100, 150, 175, 187, 193, 196, 198, 199] },
-  { target: 10, value: 100, expectedShrinks: [10, 55, 77, 88, 94, 97, 98, 99] },
-  { target: -10, value: 100, expectedShrinks: [-10, 45, 72, 86, 93, 96, 98, 99] },
-  { target: 0, value: -100, expectedShrinks: [0, -50, -75, -87, -93, -96, -98, -99] },
-  { target: -10, value: 0, expectedShrinks: [-10, -5, -3, -2, -1] },
-])('towardsNumber', ({ target, value, expectedShrinks }) => {
+  { value: 0, target: 0, expectedShrinks: [] },
+  { value: 100, target: 0, expectedShrinks: [0, 50, 75, 87, 93, 96, 98, 99] },
+  { value: 200, target: 0, expectedShrinks: [0, 100, 150, 175, 187, 193, 196, 198, 199] },
+  { value: 100, target: 10, expectedShrinks: [10, 55, 77, 88, 94, 97, 98, 99] },
+  { value: 100, target: -10, expectedShrinks: [-10, 45, 72, 86, 93, 96, 98, 99] },
+  { value: -100, target: 0, expectedShrinks: [0, -50, -75, -87, -93, -96, -98, -99] },
+  { value: 0, target: -10, expectedShrinks: [-10, -5, -3, -2, -1] },
+])('towardsNumber', ({ value, target, expectedShrinks }) => {
   const shrinker = Shrink.towardsNumber(target);
 
   const shrinks = Array.from(shrinker(value));
@@ -63,15 +63,26 @@ test.each([
 });
 
 test.each([
-  { value: [], expectedShrinks: [] },
-  { value: ['a'], expectedShrinks: [[]] },
-  { value: ['a', 'b'], expectedShrinks: [[], ['a'], ['b']] },
+  { value: [], targetLength: 0, expectedShrinks: [] },
+  { value: ['a'], targetLength: 0, expectedShrinks: [[]] },
+  { value: ['a', 'b'], targetLength: 0, expectedShrinks: [[], ['a'], ['b']] },
+  { value: ['a', 'b'], targetLength: 1, expectedShrinks: [['a'], ['b']] },
   {
     value: ['a', 'b', 'c'],
+    targetLength: 0,
     expectedShrinks: [[], ['a'], ['a', 'b'], ['b'], ['c'], ['a', 'c'], ['b', 'c']],
   },
-])('array', ({ value, expectedShrinks }) => {
-  const shrinker = Shrink.array();
+  {
+    value: ['a', 'b', 'c'],
+    targetLength: 2,
+    expectedShrinks: [
+      ['a', 'b'],
+      ['a', 'c'],
+      ['b', 'c'],
+    ],
+  },
+])('array', ({ value, targetLength, expectedShrinks }) => {
+  const shrinker = Shrink.array(targetLength);
 
   const shrinks = Array.from(shrinker(value));
 
