@@ -1,5 +1,5 @@
 import { pipe } from 'ix/iterable';
-import { filter as filterIterable, map as mapIterable } from 'ix/iterable/operators';
+import { filter as filterIterable, flatMap as flatMapIterable, map as mapIterable } from 'ix/iterable/operators';
 
 export type Tree<T> = [T, Iterable<Tree<T>>];
 
@@ -65,4 +65,39 @@ export namespace Tree {
       mapIterable(([x, xs]) => [x, filterForest(xs, pred)]),
     );
   }
+
+  export const combine = <T>(forest: Tree<T>[]): Tree<T[]> => {
+    const combinedOutcome: T[] = forest.map(([outcome]) => outcome);
+
+    const combinedShrinks: Iterable<Tree<T[]>> = pipe(
+      forest,
+      mapIterable(
+        ([_, shrinks], i): Iterable<Tree<T[]>> => {
+          const leftForest = forest.slice(0, i);
+          const rightForest = forest.slice(i + 1);
+          return pipe(
+            shrinks,
+            mapIterable((shrunkTree) => combine([...leftForest, shrunkTree, ...rightForest])),
+          );
+        },
+      ),
+      flatMapIterable((x) => x),
+    );
+
+    return [combinedOutcome, combinedShrinks];
+  };
+
+  /* istanbul ignore next */
+  const printInternal = ([outcome, shrinks]: Tree<string>, nestCount: number): void => {
+    const prefix = '-'.repeat(nestCount * 3);
+    console.log(prefix + outcome);
+    for (const shrink of shrinks) {
+      printInternal(shrink, nestCount + 1);
+    }
+  };
+
+  /* istanbul ignore next */
+  export const print = (tree: Tree<string>): void => {
+    printInternal(tree, 0);
+  };
 }
