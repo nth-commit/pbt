@@ -8,12 +8,18 @@ export const castToInstance = <T>(iteration: dev.GenIteration<T>): dev.GenIterat
   return iteration;
 };
 
-export const runGen = <T>(
+export const iterate = <T>(
   gen: dev.Gen<T>,
   { seed, size, iterations }: domainGen.GenRunParams,
 ): Array<dev.GenIteration<T>> => toArray(pipe(gen(seed, size), take(iterations)));
 
-export const runSucceedingGen = <T>(gen: dev.Gen<T>, runParams: domainGen.GenRunParams): T[] =>
-  runGen(gen, runParams)
-    .map(castToInstance)
-    .map((instance) => instance.tree[0]);
+export const iterateAsInstances = <T>(
+  gen: dev.Gen<T>,
+  runParams: domainGen.GenRunParams,
+): dev.GenIteration.Instance<T>[] => iterate(gen, runParams).map(castToInstance);
+
+export const iterateAsTrees = <T>(gen: dev.Gen<T>, runParams: domainGen.GenRunParams): dev.Tree<T>[] =>
+  iterateAsInstances(gen, runParams).map((instance) => instance.tree);
+
+export const iterateAsOutcomes = <T>(gen: dev.Gen<T>, runParams: domainGen.GenRunParams): T[] =>
+  iterateAsTrees(gen, runParams).map(dev.Tree.outcome);

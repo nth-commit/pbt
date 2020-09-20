@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import * as dev from '../../src/Gen';
 import { Gens_Ranged, Gens_Ranged_Constant, Gens_Ranged_Linear } from './Gen.Spec';
-import { runSucceedingGen } from './Helpers/genRunner';
+import { iterateAsOutcomes } from './Helpers/genRunner';
 import * as domainGen from './Helpers/domainGen';
 import { analyzeUniformDistribution } from './Helpers/statistics';
 
@@ -76,7 +76,7 @@ test.each(Object.keys(rangeFixtures))('It is generates instances in the range (%
 
   fc.assert(
     fc.property(domainGen.runParams(), metaGen, (runParams, { gen, min, max }) => {
-      const xs = runSucceedingGen(gen, runParams).map(getOrder);
+      const xs = iterateAsOutcomes(gen, runParams).map(getOrder);
 
       xs.forEach((x) => {
         expect(x).toBeGreaterThanOrEqual(min);
@@ -104,7 +104,7 @@ test.each(Object.keys(constantRangeFixtures))(
       fc.property(genRunParams, (runParams) => {
         const gen = genFactory(min, max);
 
-        const xs = runSucceedingGen(gen, runParams).map(getOrder);
+        const xs = iterateAsOutcomes(gen, runParams).map(getOrder);
 
         const { pValue } = analyzeUniformDistribution(min, max, xs);
         expect(pValue).toBeGreaterThanOrEqual(0.01);
@@ -125,7 +125,7 @@ test.each(Object.keys(linearRangeFixtures))(
 
     fc.assert(
       fc.property(genRunParams, metaGen, (runParams, { gen, min }) => {
-        const xs = runSucceedingGen(gen, runParams).map(getOrder);
+        const xs = iterateAsOutcomes(gen, runParams).map(getOrder);
 
         xs.forEach((x) => {
           expect(x).toEqual(min);
@@ -147,7 +147,7 @@ test.each(Object.keys(linearRangeFixtures))(
         const rangeSize = max - min;
         const halfMax = min + Math.ceil(rangeSize / 2);
 
-        const xs = runSucceedingGen(gen, runParams).map(getOrder);
+        const xs = iterateAsOutcomes(gen, runParams).map(getOrder);
 
         xs.forEach((x) => {
           expect(x).toBeLessThanOrEqual(halfMax);
@@ -174,7 +174,7 @@ test.each(Object.keys(linearRangeFixtures))(
       fc.property(genRunParams, (runParams) => {
         const gen = genFactory(min, max);
 
-        const xs = runSucceedingGen(gen, runParams).map(getOrder);
+        const xs = iterateAsOutcomes(gen, runParams).map(getOrder);
 
         const { pValue } = analyzeUniformDistribution(min, max, xs);
         expect(pValue).toBeGreaterThanOrEqual(0.01);

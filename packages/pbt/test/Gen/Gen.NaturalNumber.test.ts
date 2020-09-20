@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import * as dev from '../../src/Gen';
 import * as domainGen from './Helpers/domainGen';
-import { castToInstance, runGen, runSucceedingGen } from './Helpers/genRunner';
+import { iterate, iterateAsOutcomes, iterateAsTrees } from './Helpers/genRunner';
 
 type Gens_NaturalNumber = 'naturalNumber.unscaled' | 'naturalNumber.scaleLinearly';
 
@@ -17,7 +17,7 @@ test.each(Object.keys(genFactories))('It generates integers (%s)', (genLabel: st
     fc.property(domainGen.runParams(), domainGen.naturalNumber(), (runParams, max) => {
       const gen = genFactory(max);
 
-      const xs = runSucceedingGen(gen, runParams);
+      const xs = iterateAsOutcomes(gen, runParams);
 
       xs.forEach((x) => {
         expect(x).toEqual(Math.round(x));
@@ -33,7 +33,7 @@ test.each(Object.keys(genFactories))('When max < 0, it exhausts (%s)', (genLabel
     fc.property(domainGen.runParams(), domainGen.negativeInteger(), (runParams, max) => {
       const gen = genFactory(max);
 
-      const genIterations = runGen(gen, { ...runParams });
+      const genIterations = iterate(gen, { ...runParams });
 
       expect(genIterations).toEqual([{ kind: 'exhausted' }]);
     }),
@@ -53,9 +53,9 @@ test('Regression tests', () => {
     for (const [size, iterations] of iterationsBySize.entries()) {
       const gen = genFactories[genLabel as Gens_NaturalNumber](10);
 
-      const formattedIterations = runGen(gen, { seed, size, iterations })
-        .map(castToInstance)
-        .map((instance) => dev.Tree.format(dev.Tree.map(instance.tree, (x) => x.toString())));
+      const formattedIterations = iterateAsTrees(gen, { seed, size, iterations }).map((tree) =>
+        dev.Tree.format(dev.Tree.map(tree, (x) => x.toString())),
+      );
 
       formattedIterations.forEach((result, i) =>
         expect(result).toMatchSnapshot(`scaleMode=${genLabel} size=${size} iteration=${i + 1}`),
