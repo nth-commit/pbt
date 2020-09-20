@@ -1,6 +1,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  setupFilesAfterEnv: ['./jest.setup.js'],
   globals: {
     'ts-jest': {
       tsConfig: 'test/tsconfig.json'
@@ -18,6 +19,8 @@ module.exports = {
     }
   },
   coveragePathIgnorePatterns: [
-    'src/index.ts'
+    'src/index.ts',
+    'src/Core',
+    'src/Gen'
   ]
 };

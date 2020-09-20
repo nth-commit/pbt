@@ -1,4 +1,4 @@
-import { Seed } from 'pbt-core';
+import { Seed } from './Core';
 import { Property, PropertyConfig, PropertyResult } from 'pbt-properties';
 
 export type RunConfig = {
