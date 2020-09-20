@@ -26,7 +26,7 @@ test.each(Object.keys(makeGens))('It generates integers', (genLabel: string) => 
   );
 });
 
-test.each(Object.keys(makeGens).slice(1))('It is resilient to min/max parameter ordering', (genLabel: string) => {
+test.each(Object.keys(makeGens))('It is resilient to min/max parameter ordering', (genLabel: string) => {
   const makeGen = makeGens[genLabel as Gens_Integer];
 
   fc.assert(
@@ -40,46 +40,6 @@ test.each(Object.keys(makeGens).slice(1))('It is resilient to min/max parameter 
       for (let i = 0; i < xs1.length; i++) {
         expect(xs1[i]).toEqual(xs2[i]);
       }
-    }),
-  );
-});
-
-test('For integer.scaledLinearly, when size = 0, it generates numbers equal to the min', () => {
-  const genRunParams = domainGen.runParams().map<domainGen.GenRunParams>((runParams) => ({ ...runParams, size: 0 }));
-
-  fc.assert(
-    fc.property(genRunParams, domainGen.integer(), domainGen.naturalNumber(), (runParams, min, rangeSize) => {
-      const gen = dev.integer.scaleLinearly(min, min + rangeSize);
-
-      const xs = runSucceedingGen(gen, runParams);
-
-      xs.forEach((x) => {
-        expect(x).toEqual(min);
-      });
-    }),
-  );
-});
-
-test('For integer.scaledLinearly, when size = 50, it generates numbers in approximately the lower half of the range', () => {
-  const examples = [
-    { min: 0, max: 10, scaledMax: 5 },
-    { min: -10, max: 0, scaledMax: -5 },
-    { min: -5, max: 5, scaledMax: 0 },
-    { min: -5, max: 6, scaledMax: 1 },
-    { min: -6, max: 5, scaledMax: 0 },
-  ];
-
-  const genRunParams = domainGen.runParams().map<domainGen.GenRunParams>((runParams) => ({ ...runParams, size: 50 }));
-
-  fc.assert(
-    fc.property(genRunParams, fc.constantFrom(...examples), (runParams, example) => {
-      const gen = dev.integer.scaleLinearly(example.min, example.max);
-
-      const xs = runSucceedingGen(gen, runParams);
-
-      xs.forEach((x) => {
-        expect(x).toBeLessThanOrEqual(example.scaledMax);
-      });
     }),
   );
 });
