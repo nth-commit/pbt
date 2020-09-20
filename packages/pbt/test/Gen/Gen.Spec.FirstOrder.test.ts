@@ -9,6 +9,8 @@ const gens: { [P in Gens_FirstOrder]: fc.Arbitrary<dev.Gen<unknown>> } = {
   'integer.scaleLinearly': fc
     .tuple(domainGen.integer(), domainGen.integer())
     .map((args) => dev.integer.scaleLinearly(...args)),
+  'naturalNumber.unscaled': fc.constant(dev.naturalNumber.unscaled()),
+  'naturalNumber.scaleLinearly': fc.constant(dev.naturalNumber.scaleLinearly()),
 };
 
 test.each(Object.keys(gens))('It exclusively generates instances (%s)', (genLabel: string) => {

@@ -18,6 +18,11 @@ export const runParams = (): fc.Arbitrary<GenRunParams> =>
 
 export const integer = (): fc.Arbitrary<number> => fc.integer(-1000, 1000);
 
+export const negativeInteger = (): fc.Arbitrary<number> =>
+  naturalNumber()
+    .filter((x) => x > 0)
+    .map((x) => -x);
+
 export const naturalNumber = (): fc.Arbitrary<number> => fc.nat(1000);
 
 export const element = <T>(collection: Record<any, T>): fc.Arbitrary<T> => {

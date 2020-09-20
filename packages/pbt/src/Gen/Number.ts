@@ -1,5 +1,5 @@
 import { Seed, Size } from './Imports';
-import { Gen, create } from './Gen';
+import { Gen, create, exhausted } from './Gen';
 import { Range } from './Range';
 import { Shrink } from './Shrink';
 
@@ -16,6 +16,12 @@ export const integer = {
 const maxInt32 = Math.pow(2, 31) - 1;
 
 export const naturalNumber = {
-  unscaled: (max: number = maxInt32) => integer.unscaled(0, max),
-  scaleLinearly: (max: number = maxInt32) => integer.scaleLinearly(0, max),
+  unscaled: (max: number = maxInt32): Gen<number> => {
+    if (max < 0) return exhausted();
+    return integer.unscaled(0, max);
+  },
+  scaleLinearly: (max: number = maxInt32): Gen<number> => {
+    if (max < 0) return exhausted();
+    return integer.scaleLinearly(0, max);
+  },
 };

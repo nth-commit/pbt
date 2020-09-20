@@ -3,19 +3,19 @@ import * as dev from '../../src/Gen';
 import * as domainGen from './Helpers/domainGen';
 import { castToInstance, runGen, runSucceedingGen } from './Helpers/genRunner';
 
-type Gens_Integer = 'integer.unscaled' | 'integer.scaleLinearly';
+type Gens_NaturalNumber = 'naturalNumber.unscaled' | 'naturalNumber.scaleLinearly';
 
-const genFactories: Record<Gens_Integer, (min: number, max: number) => dev.Gen<number>> = {
-  'integer.unscaled': dev.integer.unscaled,
-  'integer.scaleLinearly': dev.integer.scaleLinearly,
+const genFactories: Record<Gens_NaturalNumber, (max: number) => dev.Gen<number>> = {
+  'naturalNumber.unscaled': dev.naturalNumber.unscaled,
+  'naturalNumber.scaleLinearly': dev.naturalNumber.scaleLinearly,
 };
 
 test.each(Object.keys(genFactories))('It generates integers (%s)', (genLabel: string) => {
-  const genFactory = genFactories[genLabel as Gens_Integer];
+  const genFactory = genFactories[genLabel as Gens_NaturalNumber];
 
   fc.assert(
-    fc.property(domainGen.runParams(), domainGen.integer(), domainGen.integer(), (runParams, a, b) => {
-      const gen = genFactory(a, b);
+    fc.property(domainGen.runParams(), domainGen.naturalNumber(), (runParams, max) => {
+      const gen = genFactory(max);
 
       const xs = runSucceedingGen(gen, runParams);
 
@@ -26,20 +26,16 @@ test.each(Object.keys(genFactories))('It generates integers (%s)', (genLabel: st
   );
 });
 
-test.each(Object.keys(genFactories))('It is resilient to min/max parameter ordering (%s)', (genLabel: string) => {
-  const genFactory = genFactories[genLabel as Gens_Integer];
+test.each(Object.keys(genFactories))('When max < 0, it exhausts (%s)', (genLabel: string) => {
+  const genFactory = genFactories[genLabel as Gens_NaturalNumber];
 
   fc.assert(
-    fc.property(domainGen.runParams(), domainGen.integer(), domainGen.integer(), (runParams, a, b) => {
-      const gen1 = genFactory(a, b);
-      const gen2 = genFactory(b, a);
+    fc.property(domainGen.runParams(), domainGen.negativeInteger(), (runParams, max) => {
+      const gen = genFactory(max);
 
-      const xs1 = runSucceedingGen(gen1, runParams);
-      const xs2 = runSucceedingGen(gen2, runParams);
+      const genIterations = runGen(gen, { ...runParams });
 
-      for (let i = 0; i < xs1.length; i++) {
-        expect(xs1[i]).toEqual(xs2[i]);
-      }
+      expect(genIterations).toEqual([{ kind: 'exhausted' }]);
     }),
   );
 });
@@ -55,7 +51,7 @@ test('Regression tests', () => {
 
   for (const genLabel in genFactories) {
     for (const [size, iterations] of iterationsBySize.entries()) {
-      const gen = genFactories[genLabel as Gens_Integer](0, 10);
+      const gen = genFactories[genLabel as Gens_NaturalNumber](10);
 
       const formattedIterations = runGen(gen, { seed, size, iterations })
         .map(castToInstance)
