@@ -1,5 +1,6 @@
 import fc from 'fast-check';
 import * as dev from '../../../src/Gen';
+import { Gens_FirstOrder } from '../Gen.Spec';
 
 export type GenRunParams = {
   seed: dev.Seed;
@@ -30,4 +31,29 @@ export const element = <T>(collection: Record<any, T>): fc.Arbitrary<T> => {
   return fc.constantFrom(...elements);
 };
 
-export type GenAndSpec<T, TSpec extends {}> = dev.Gen<T> & TSpec;
+export namespace defaultGens {
+  export const integerUnscaled = (): fc.Arbitrary<dev.Gen<number>> =>
+    fc.tuple(integer(), integer()).map((args) => dev.integer.unscaled(...args));
+
+  export const integerScaledLinearly = (): fc.Arbitrary<dev.Gen<number>> =>
+    fc.tuple(integer(), integer()).map((args) => dev.integer.unscaled(...args));
+
+  export const naturalNumberUnscaled = (): fc.Arbitrary<dev.Gen<number>> =>
+    naturalNumber().map((max) => dev.naturalNumber.unscaled(max));
+
+  export const naturalNumberScaledLinearly = (): fc.Arbitrary<dev.Gen<number>> =>
+    naturalNumber().map((max) => dev.naturalNumber.scaleLinearly(max));
+}
+
+export const firstOrderGen = (): fc.Arbitrary<dev.Gen<unknown>> => {
+  type GensByLabel = { [P in Gens_FirstOrder]: fc.Arbitrary<dev.Gen<unknown>> };
+
+  const gensByLabel: GensByLabel = {
+    'integer.unscaled': defaultGens.integerUnscaled(),
+    'integer.scaleLinearly': defaultGens.integerScaledLinearly(),
+    'naturalNumber.unscaled': defaultGens.integerUnscaled(),
+    'naturalNumber.scaleLinearly': defaultGens.naturalNumberScaledLinearly(),
+  };
+
+  return element(gensByLabel).chain((x) => x);
+};

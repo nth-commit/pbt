@@ -6,6 +6,10 @@ export type Tree<T> = [outcome: T, shrinks: Iterable<Tree<T>>];
 export namespace Tree {
   export const create = <T>(x: T, xs: Iterable<Tree<T>>): Tree<T> => [x, xs];
 
+  export const outcome = <T>([x]: Tree<T>): T => x;
+
+  export const shrinks = <T>([_, xs]: Tree<T>): Iterable<Tree<T>> => xs;
+
   export const map = <T, U>([outcome, shrinks]: Tree<T>, f: (x: T) => U): Tree<U> => {
     return create(
       f(outcome),
