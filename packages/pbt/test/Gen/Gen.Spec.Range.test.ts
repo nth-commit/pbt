@@ -5,6 +5,8 @@ import { runSucceedingGen } from './Helpers/genRunner';
 import * as domainGen from './Helpers/domainGen';
 import { analyzeUniformDistribution } from './Helpers/statistics';
 
+type GenFactory<T> = (min: number, max: number) => dev.Gen<T>;
+
 type MetaGen<T> = fc.Arbitrary<{
   min: number;
   max: number;
@@ -13,47 +15,67 @@ type MetaGen<T> = fc.Arbitrary<{
 
 type RangeFixture<T> = {
   getOrder: (x: T) => number;
-  makeGen: (min: number, max: number) => dev.Gen<T>;
+  genFactory: GenFactory<T>;
+  metaGen: MetaGen<T>;
 };
 
 const id = <T>(x: T) => x;
 
-const makeNumericRangeFixture = (makeGen: (min: number, max: number) => dev.Gen<number>): RangeFixture<number> => {
+const createIntegerRangeFixture = (genFactory: (min: number, max: number) => dev.Gen<number>): RangeFixture<number> => {
   return {
     getOrder: id,
-    makeGen,
+    genFactory,
+    metaGen: fc.tuple(domainGen.integer(), domainGen.naturalNumber()).map(([min, width]) => {
+      const max = min + width;
+      return {
+        gen: genFactory(min, max),
+        min,
+        max,
+      };
+    }),
   };
 };
 
-const createMetaGen = <T>(makeGen: (min: number, max: number) => dev.Gen<T>): MetaGen<T> =>
-  fc.tuple(domainGen.naturalNumber(), domainGen.naturalNumber()).map(([a, b]) => {
-    const min = a < b ? a : b;
-    const max = a > b ? a : b;
-    return {
-      gen: makeGen(min, max),
-      min,
-      max,
-    };
-  });
+const createNaturalNumberRangeFixture = (genFactory: (max: number) => dev.Gen<number>): RangeFixture<number> => {
+  return {
+    getOrder: id,
+    genFactory: (min, max) => {
+      if (min !== 0 || max < 0) throw new Error('Fatal: Unsupported gen params for naturalNumber');
+      return genFactory(max);
+    },
+    metaGen: domainGen.naturalNumber().map((max) => {
+      const min = 0;
+      return {
+        gen: genFactory(max),
+        min,
+        max,
+      };
+    }),
+  };
+};
 
 const rangeFixtures: Record<Gens_Ranged, RangeFixture<any>> = {
-  'integer.unscaled': makeNumericRangeFixture(dev.integer.unscaled),
-  'integer.scaleLinearly': makeNumericRangeFixture(dev.integer.scaleLinearly),
+  'integer.unscaled': createIntegerRangeFixture(dev.integer.unscaled),
+  'integer.scaleLinearly': createIntegerRangeFixture(dev.integer.scaleLinearly),
+  'naturalNumber.unscaled': createNaturalNumberRangeFixture(dev.naturalNumber.unscaled),
+  'naturalNumber.scaleLinearly': createNaturalNumberRangeFixture(dev.naturalNumber.scaleLinearly),
 };
 
 const constantRangeFixtures: Record<Gens_Ranged_Constant, RangeFixture<any>> = {
   'integer.unscaled': rangeFixtures['integer.unscaled'],
+  'naturalNumber.unscaled': rangeFixtures['naturalNumber.unscaled'],
 };
 
 const linearRangeFixtures: Record<Gens_Ranged_Linear, RangeFixture<any>> = {
   'integer.scaleLinearly': rangeFixtures['integer.scaleLinearly'],
+  'naturalNumber.scaleLinearly': rangeFixtures['naturalNumber.scaleLinearly'],
 };
 
 test.each(Object.keys(rangeFixtures))('It is generates instances in the range (%s)', (genLabel: string) => {
-  const { getOrder, makeGen } = rangeFixtures[genLabel as Gens_Ranged];
+  const { getOrder, metaGen } = rangeFixtures[genLabel as Gens_Ranged];
 
   fc.assert(
-    fc.property(domainGen.runParams(), createMetaGen(makeGen), (runParams, { gen, min, max }) => {
+    fc.property(domainGen.runParams(), metaGen, (runParams, { gen, min, max }) => {
       const xs = runSucceedingGen(gen, runParams).map(getOrder);
 
       xs.forEach((x) => {
@@ -68,9 +90,9 @@ test.each(Object.keys(rangeFixtures))('It is generates instances in the range (%
 });
 
 test.each(Object.keys(constantRangeFixtures))(
-  'For constant ranges, it generates instances with a uniformly distributed order',
+  'For constant ranges, it generates instances with a uniformly distributed order (%s)',
   (genLabel: string) => {
-    const { getOrder, makeGen } = rangeFixtures[genLabel as Gens_Ranged];
+    const { getOrder, genFactory } = rangeFixtures[genLabel as Gens_Ranged];
 
     const min = 0;
     const max = 1000;
@@ -80,7 +102,7 @@ test.each(Object.keys(constantRangeFixtures))(
 
     fc.assert(
       fc.property(genRunParams, (runParams) => {
-        const gen = makeGen(min, max);
+        const gen = genFactory(min, max);
 
         const xs = runSucceedingGen(gen, runParams).map(getOrder);
 
@@ -95,14 +117,14 @@ test.each(Object.keys(constantRangeFixtures))(
 );
 
 test.each(Object.keys(linearRangeFixtures))(
-  'For linear ranges, when size = 0, it generates instances with an order equal to the min',
+  'For linear ranges, when size = 0, it generates instances with an order equal to the min (%s)',
   (genLabel: string) => {
-    const { getOrder, makeGen } = rangeFixtures[genLabel as Gens_Ranged];
+    const { getOrder, metaGen } = rangeFixtures[genLabel as Gens_Ranged];
 
     const genRunParams = domainGen.runParams().map<domainGen.GenRunParams>((runParams) => ({ ...runParams, size: 0 }));
 
     fc.assert(
-      fc.property(genRunParams, createMetaGen(makeGen), (runParams, { gen, min }) => {
+      fc.property(genRunParams, metaGen, (runParams, { gen, min }) => {
         const xs = runSucceedingGen(gen, runParams).map(getOrder);
 
         xs.forEach((x) => {
@@ -114,14 +136,14 @@ test.each(Object.keys(linearRangeFixtures))(
 );
 
 test.each(Object.keys(linearRangeFixtures))(
-  'For linear ranges, when size = 50, it generates numbers in approximately the lower half of the range',
+  'For linear ranges, when size = 50, it generates numbers in approximately the lower half of the range (%s)',
   (genLabel: string) => {
-    const { getOrder, makeGen } = rangeFixtures[genLabel as Gens_Ranged];
+    const { getOrder, metaGen } = rangeFixtures[genLabel as Gens_Ranged];
 
     const genRunParams = domainGen.runParams().map<domainGen.GenRunParams>((runParams) => ({ ...runParams, size: 50 }));
 
     fc.assert(
-      fc.property(genRunParams, createMetaGen(makeGen), (runParams, { gen, min, max }) => {
+      fc.property(genRunParams, metaGen, (runParams, { gen, min, max }) => {
         const rangeSize = max - min;
         const halfMax = min + Math.ceil(rangeSize / 2);
 
@@ -136,9 +158,9 @@ test.each(Object.keys(linearRangeFixtures))(
 );
 
 test.each(Object.keys(linearRangeFixtures))(
-  'For linear ranges, when size = 100, it generates instances with a uniformly distributed order',
+  'For linear ranges, when size = 100, it generates instances with a uniformly distributed order (%s)',
   (genLabel: string) => {
-    const { getOrder, makeGen } = rangeFixtures[genLabel as Gens_Ranged];
+    const { getOrder, genFactory } = rangeFixtures[genLabel as Gens_Ranged];
 
     const min = 0;
     const max = 1000;
@@ -150,7 +172,7 @@ test.each(Object.keys(linearRangeFixtures))(
 
     fc.assert(
       fc.property(genRunParams, (runParams) => {
-        const gen = makeGen(min, max);
+        const gen = genFactory(min, max);
 
         const xs = runSucceedingGen(gen, runParams).map(getOrder);
 
