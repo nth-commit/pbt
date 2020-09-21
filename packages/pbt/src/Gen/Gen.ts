@@ -21,6 +21,9 @@ export namespace GenIteration {
   };
 
   export const isInstance = <T>(iteration: GenIteration<T>): iteration is Instance<T> => iteration.kind === 'instance';
+
+  export const isNotInstance = <T>(iteration: GenIteration<T>): iteration is Discard | Exhausted =>
+    !isInstance(iteration);
 }
 
 export type GenIteration<T> = GenIteration.Instance<T> | GenIteration.Discard | GenIteration.Exhausted;
