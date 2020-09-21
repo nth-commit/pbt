@@ -1,11 +1,12 @@
 import fc from 'fast-check';
+import * as devCore from '../../src/Core';
 import * as dev from '../../src/Gen';
 import * as domainGen from './Helpers/domainGen';
 import { iterate, iterateAsOutcomes, iterateAsTrees } from './Helpers/genRunner';
 
 type Gens_NaturalNumber = 'naturalNumber.unscaled' | 'naturalNumber.scaleLinearly';
 
-const genFactories: Record<Gens_NaturalNumber, (max: number) => dev.Gen<number>> = {
+const genFactories: Record<Gens_NaturalNumber, (max?: number) => dev.Gen<number>> = {
   'naturalNumber.unscaled': dev.naturalNumber.unscaled,
   'naturalNumber.scaleLinearly': dev.naturalNumber.scaleLinearly,
 };
@@ -40,6 +41,22 @@ test.each(Object.keys(genFactories))('When max < 0, it exhausts (%s)', (genLabel
   );
 });
 
+test.each(Object.keys(genFactories))('When max is not supplie, it is aiiiiight (%s)', (genLabel: string) => {
+  const genFactory = genFactories[genLabel as Gens_NaturalNumber];
+
+  fc.assert(
+    fc.property(domainGen.runParams(), (runParams) => {
+      const gen = genFactory();
+
+      const genIterations = iterate(gen, { ...runParams });
+
+      for (const genIteration of genIterations) {
+        expect(genIteration.kind).toEqual('instance');
+      }
+    }),
+  );
+});
+
 test('Regression tests', () => {
   const seed = dev.Seed.create(0);
   const iterationsBySize = new Map<number, number>([
@@ -54,7 +71,7 @@ test('Regression tests', () => {
       const gen = genFactories[genLabel as Gens_NaturalNumber](10);
 
       const formattedIterations = iterateAsTrees(gen, { seed, size, iterations }).map((tree) =>
-        dev.Tree.format(dev.Tree.map(tree, (x) => x.toString())),
+        devCore.Tree.format(devCore.Tree.map(tree, (x) => x.toString())),
       );
 
       formattedIterations.forEach((result, i) =>

@@ -1,22 +1,20 @@
 import fc from 'fast-check';
-import { repeatValue } from 'ix/iterable';
 import * as dev from '../../src/Gen';
 import { Gens_SecondOrder } from './Gen.Spec';
 import { iterate } from './Helpers/genRunner';
 import * as domainGen from './Helpers/domainGen';
 
 const gens: { [P in Gens_SecondOrder]: fc.Arbitrary<(gen: dev.Gen<unknown>) => dev.Gen<unknown>> } = {
-  noShrink: fc.constant(dev.noShrink),
+  'operators.filter': domainGen.predicate().map((predicate) => (gen) => dev.operators.filter(gen, predicate)),
+  'operators.noShrink': fc.constant(dev.operators.noShrink),
 };
 
 test.each(Object.keys(gens))('It discards when the input gen discards (%s)', (genLabel: string) => {
   const genSecondOrderGen = gens[genLabel as Gens_SecondOrder];
 
   fc.assert(
-    fc.property(domainGen.runParams(), domainGen.firstOrderGen(), genSecondOrderGen, (runParams, _, secondOrderGen) => {
-      // TODO: Use false pred on an arbitrary gen
-      const baseGen: dev.Gen<unknown> = () => repeatValue({ kind: 'discard', value: null });
-      const gen = secondOrderGen(baseGen);
+    fc.property(domainGen.runParams(), domainGen.gen(), genSecondOrderGen, (runParams, baseGen, secondOrderGen) => {
+      const gen = secondOrderGen(dev.operators.filter(baseGen, () => false));
 
       const genIterations = iterate(gen, runParams);
 

@@ -118,4 +118,13 @@ export namespace Tree {
 
   /* istanbul ignore next */
   export const format = (tree: Tree<string>): string => formatInternal(tree, 0);
+
+  export const traverse = function* <T>([outcome, shrinks]: Tree<T>): Iterable<T> {
+    yield outcome;
+
+    yield* pipe(
+      shrinks,
+      flatMapIterable((shrink) => traverse(shrink)),
+    );
+  };
 }
