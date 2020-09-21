@@ -9,7 +9,8 @@ const gens: { [P in Gens]: fc.Arbitrary<dev.Gen<unknown>> } = {
   'integer.scaleLinearly': domainGen.defaultGens.integerScaledLinearly(),
   'naturalNumber.unscaled': domainGen.defaultGens.integerUnscaled(),
   'naturalNumber.scaleLinearly': domainGen.defaultGens.integerScaledLinearly(),
-  noShrink: domainGen.firstOrderGen().map(dev.noShrink),
+  'operators.filter': domainGen.defaultGens.filterGen(),
+  'operators.noShrink': domainGen.defaultGens.noShrinkGen(),
 };
 
 test.each(Object.keys(gens))('It is repeatable (%s)', (genLabel: string) => {

@@ -4,7 +4,7 @@ export type Gens_FirstOrder =
   | 'naturalNumber.unscaled'
   | 'naturalNumber.scaleLinearly';
 
-export type Gens_SecondOrder = 'noShrink';
+export type Gens_SecondOrder = 'operators.filter' | 'operators.noShrink';
 
 export type Gens = Gens_FirstOrder | Gens_SecondOrder;
 
