@@ -3,6 +3,7 @@ import { createHash } from 'crypto';
 import { mersenne } from 'pure-rand';
 import * as dev from '../../../src/Gen';
 import { Gens, Gens_FirstOrder } from '../Gen.Spec';
+import { empty } from 'ix/iterable';
 
 export type GenRunParams = {
   seed: dev.Seed;
@@ -84,10 +85,24 @@ export namespace defaultGens {
   export const naturalNumberScaledLinearly = (): fc.Arbitrary<dev.Gen<number>> =>
     naturalNumber().map((max) => dev.naturalNumber.scaleLinearly(max));
 
-  export const noShrinkGen = (): fc.Arbitrary<dev.Gen<unknown>> => firstOrderGen().map(dev.operators.noShrink);
+  export const map = (): fc.Arbitrary<dev.Gen<unknown>> =>
+    fc.tuple(firstOrderGen(), func(fc.anything())).map(([gen, f]) => dev.operators.map(gen, f));
 
-  export const filterGen = (): fc.Arbitrary<dev.Gen<unknown>> =>
+  export const flatMap = (): fc.Arbitrary<dev.Gen<unknown>> =>
+    fc.tuple(firstOrderGen(), func(firstOrderGen())).map(([gen, k]) => dev.operators.flatMap(gen, k));
+
+  export const filter = (): fc.Arbitrary<dev.Gen<unknown>> =>
     fc.tuple(firstOrderGen(), predicate()).map(([gen, predicate]) => dev.operators.filter(gen, predicate));
+
+  export const reduce = (): fc.Arbitrary<dev.Gen<unknown>> =>
+    fc
+      .tuple(firstOrderGen(), fc.integer(1, 10), func(fc.anything(), { arity: 2 }), fc.anything())
+      .map(([gen, length, f, init]) => dev.operators.reduce(gen, length, f, init));
+
+  export const noShrink = (): fc.Arbitrary<dev.Gen<unknown>> => firstOrderGen().map(dev.operators.noShrink);
+
+  export const postShrink = (): fc.Arbitrary<dev.Gen<unknown>> =>
+    firstOrderGen().map((gen) => dev.operators.postShrink(gen, empty));
 }
 
 export const firstOrderGen = (): fc.Arbitrary<dev.Gen<unknown>> => {
@@ -111,8 +126,12 @@ export const gen = (): fc.Arbitrary<dev.Gen<unknown>> => {
     'integer.scaleLinearly': defaultGens.integerScaledLinearly(),
     'naturalNumber.unscaled': defaultGens.integerUnscaled(),
     'naturalNumber.scaleLinearly': defaultGens.naturalNumberScaledLinearly(),
-    'operators.noShrink': defaultGens.noShrinkGen(),
-    'operators.filter': defaultGens.filterGen(),
+    'operators.map': defaultGens.map(),
+    'operators.flatMap': defaultGens.flatMap(),
+    'operators.filter': defaultGens.filter(),
+    'operators.reduce': defaultGens.reduce(),
+    'operators.noShrink': defaultGens.noShrink(),
+    'operators.postShrink': defaultGens.postShrink(),
   };
 
   return element(gensByLabel).chain((x) => x);

@@ -20,6 +20,7 @@ module.exports = {
   },
   coveragePathIgnorePatterns: [
     'src/index.ts',
-    'src/Core'
+    'src/Core',
+    'src/Public'
   ]
 };
