@@ -32,7 +32,7 @@ const mapTrees = <T, U>(gen: Gen<T>, f: (tree: Tree<T>) => Tree<U>): Gen<U> =>
     };
   });
 
-const map = <T, U>(gen: Gen<T>, f: (x: T) => U): Gen<U> => mapTrees(gen, (tree) => Tree.map(tree, f));
+export const map = <T, U>(gen: Gen<T>, f: (x: T) => U): Gen<U> => mapTrees(gen, (tree) => Tree.map(tree, f));
 
 const flatMapInstanceOnce = <T, U>(r: GenIteration.Instance<T>, k: (x: T) => Gen<U>): Gen<U> => (seed, size) => {
   // Given a single instance, runs the gen returned by `k` until it sees another instance. Then, merges the existing
@@ -89,9 +89,9 @@ const flatMapGenOnce = <T, U>(gen: Gen<T>, k: (x: T) => Gen<U>): Gen<U> => (seed
   );
 };
 
-const flatMap = <T, U>(gen: Gen<T>, k: (x: T) => Gen<U>): Gen<U> => repeat(flatMapGenOnce(gen, k));
+export const flatMap = <T, U>(gen: Gen<T>, k: (x: T) => Gen<U>): Gen<U> => repeat(flatMapGenOnce(gen, k));
 
-const filter = <T>(gen: Gen<T>, f: (x: T) => boolean): Gen<T> =>
+export const filter = <T>(gen: Gen<T>, f: (x: T) => boolean): Gen<T> =>
   mapInstances(gen, (genInstance) => {
     const [outcome, shrinks] = genInstance.tree;
     if (f(outcome) === false) return { kind: 'discard', value: outcome };
@@ -135,22 +135,10 @@ const reduceOnce = <T, U>(gen: Gen<T>, length: number, f: (acc: U, x: T, i: numb
     };
   };
 
-const reduce = <T, U>(gen: Gen<T>, length: number, f: (acc: U, x: T, i: number) => U, init: U): Gen<U> =>
+export const reduce = <T, U>(gen: Gen<T>, length: number, f: (acc: U, x: T, i: number) => U, init: U): Gen<U> =>
   repeat(reduceOnce(gen, length, f, init));
 
-const noShrink = <T>(gen: Gen<T>): Gen<T> => mapTrees(gen, (tree) => Tree.create(Tree.outcome(tree), empty()));
+export const noShrink = <T>(gen: Gen<T>): Gen<T> => mapTrees(gen, (tree) => Tree.create(Tree.outcome(tree), empty()));
 
-const postShrink = <T>(gen: Gen<T>, shrinker: Shrinker<T>): Gen<T> =>
+export const postShrink = <T>(gen: Gen<T>, shrinker: Shrinker<T>): Gen<T> =>
   mapTrees(gen, (tree) => Tree.expand(tree, shrinker));
-
-export const operators = {
-  mapIterations,
-  mapInstances,
-  mapTrees,
-  map,
-  flatMap,
-  filter,
-  reduce,
-  noShrink,
-  postShrink,
-};

@@ -12,12 +12,12 @@ const gens: { [P in Gens]: fc.Arbitrary<dev.Gen<unknown>> } = {
   'array.unscaled': domainGen.defaultGens.arrayUnscaled(),
   'array.scaleLinearly': domainGen.defaultGens.arrayScaledLinearly(),
   element: domainGen.defaultGens.element(),
-  'operators.map': domainGen.defaultGens.map(),
-  'operators.flatMap': domainGen.defaultGens.flatMap(),
-  'operators.filter': domainGen.defaultGens.filter(),
-  'operators.reduce': domainGen.defaultGens.reduce(),
-  'operators.noShrink': domainGen.defaultGens.noShrink(),
-  'operators.postShrink': domainGen.defaultGens.postShrink(),
+  map: domainGen.defaultGens.map(),
+  flatMap: domainGen.defaultGens.flatMap(),
+  filter: domainGen.defaultGens.filter(),
+  reduce: domainGen.defaultGens.reduce(),
+  noShrink: domainGen.defaultGens.noShrink(),
+  postShrink: domainGen.defaultGens.postShrink(),
 };
 
 test.each(Object.keys(gens))('It is repeatable (%s)', (genLabel: string) => {

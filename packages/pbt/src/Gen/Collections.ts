@@ -1,16 +1,16 @@
-import { Gen, constant, exhausted, create } from './Gen';
-import { operators } from './Operators';
+import { Gen, constant, exhausted } from './Gen';
+import { map, flatMap, reduce, noShrink, postShrink } from './Operators';
 import { integer } from './Number';
 import { Shrink } from './Shrink';
 
 const arrayFromInteger = <T>(minLength: number, lengthGen: Gen<number>, elementGen: Gen<T>): Gen<T[]> =>
-  operators.flatMap(operators.noShrink(lengthGen), (length) => {
+  flatMap(noShrink(lengthGen), (length) => {
     if (length === 0) {
       return constant([]);
     }
 
-    return operators.postShrink(
-      operators.reduce<T, T[]>(elementGen, length, (arr, x) => [...arr, x], []),
+    return postShrink(
+      reduce<T, T[]>(elementGen, length, (arr, x) => [...arr, x], []),
       Shrink.array(minLength),
     );
   });
@@ -34,5 +34,5 @@ export const element = <T>(
 
   return elements.length === 0
     ? exhausted()
-    : operators.noShrink(operators.map(integer.unscaled(0, elements.length - 1), (ix) => elements[ix]));
+    : noShrink(map(integer.unscaled(0, elements.length - 1), (ix) => elements[ix]));
 };

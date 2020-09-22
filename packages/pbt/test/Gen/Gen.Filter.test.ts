@@ -8,7 +8,7 @@ import { iterate, iterateOutcomes, iterateTrees } from './Helpers/genRunner';
 test('When given a true predicate, it returns a gen which is equivalent to the base gen', () => {
   fc.assert(
     fc.property(domainGen.runParams(), domainGen.firstOrderGen(), (runParams, unfilteredGen) => {
-      const filteredGen = dev.operators.filter(unfilteredGen, () => true);
+      const filteredGen = dev.filter(unfilteredGen, () => true);
 
       const filteredGenIterations = iterate(filteredGen, runParams);
       const unfilteredGenIterations = iterate(unfilteredGen, runParams);
@@ -26,7 +26,7 @@ test('When given a true predicate, it returns a gen which is equivalent to the b
 test('When given a false predicate, it returns a gen which only generates discards', () => {
   fc.assert(
     fc.property(domainGen.runParams(), domainGen.firstOrderGen(), (runParams, unfilteredGen) => {
-      const filteredGen = dev.operators.filter(unfilteredGen, () => false);
+      const filteredGen = dev.filter(unfilteredGen, () => false);
 
       const filteredGenIterations = iterate(filteredGen, runParams);
       const unfilteredGenIterations = iterate(unfilteredGen, runParams);
@@ -48,7 +48,7 @@ test('It has an isomorphism with Array.prototype.filter', () => {
       domainGen.firstOrderGen(),
       domainGen.predicate({ arity: 1 }),
       (runParams, unfilteredGen, predicate) => {
-        const filteredGen = dev.operators.filter(unfilteredGen, predicate);
+        const filteredGen = dev.filter(unfilteredGen, predicate);
 
         const filteredOutcomesByGen = iterateOutcomes(filteredGen, runParams);
         const filteredOutcomesByArray = iterateOutcomes(unfilteredGen, runParams).filter(predicate);
@@ -66,7 +66,7 @@ test('It also applies the filter to the shrinks', () => {
       domainGen.firstOrderGen(),
       domainGen.predicate({ arity: 1 }),
       (runParams, unfilteredGen, predicate) => {
-        const filteredGen = dev.operators.filter(unfilteredGen, predicate);
+        const filteredGen = dev.filter(unfilteredGen, predicate);
 
         const filteredTrees = iterateTrees(filteredGen, runParams);
 

@@ -16,14 +16,14 @@ const gens: { [P in Gens_SecondOrder]: fc.Arbitrary<(gen: dev.Gen<unknown>) => d
   'array.scaleLinearly': fc
     .tuple(arrayLengthGen, arrayLengthGen)
     .map(([min, max]) => (gen) => dev.array.unscaled(min, max, gen)),
-  'operators.map': domainGen.func(fc.anything()).map((f) => (gen) => dev.operators.map(gen, f)),
-  'operators.flatMap': domainGen.func(domainGen.firstOrderGen()).map((k) => (gen) => dev.operators.flatMap(gen, k)),
-  'operators.filter': domainGen.predicate().map((predicate) => (gen) => dev.operators.filter(gen, predicate)),
-  'operators.reduce': fc
+  map: domainGen.func(fc.anything()).map((f) => (gen) => dev.map(gen, f)),
+  flatMap: domainGen.func(domainGen.firstOrderGen()).map((k) => (gen) => dev.flatMap(gen, k)),
+  filter: domainGen.predicate().map((predicate) => (gen) => dev.filter(gen, predicate)),
+  reduce: fc
     .tuple(fc.integer(1, 10), domainGen.func(fc.anything(), { arity: 2 }), fc.anything())
-    .map(([length, f, init]) => (gen) => dev.operators.reduce(gen, length, f, init)),
-  'operators.noShrink': fc.constant(dev.operators.noShrink),
-  'operators.postShrink': fc.constant((gen) => dev.operators.postShrink(gen, empty)),
+    .map(([length, f, init]) => (gen) => dev.reduce(gen, length, f, init)),
+  noShrink: fc.constant(dev.noShrink),
+  postShrink: fc.constant((gen) => dev.postShrink(gen, empty)),
 };
 
 test.each(Object.keys(gens))('It discards when the input gen discards (%s)', (genLabel: string) => {
@@ -31,7 +31,7 @@ test.each(Object.keys(gens))('It discards when the input gen discards (%s)', (ge
 
   fc.assert(
     fc.property(domainGen.runParams(), domainGen.gen(), genSecondOrderGen, (runParams, baseGen, secondOrderGen) => {
-      const gen = secondOrderGen(dev.operators.filter(baseGen, () => false));
+      const gen = secondOrderGen(dev.filter(baseGen, () => false));
 
       const genIterations = iterate(gen, runParams);
 

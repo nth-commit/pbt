@@ -139,23 +139,23 @@ export namespace defaultGens {
     collection(1, 10).map((collection) => dev.element(collection));
 
   export const map = (): fc.Arbitrary<dev.Gen<unknown>> =>
-    fc.tuple(firstOrderGen(), func(fc.anything())).map(([gen, f]) => dev.operators.map(gen, f));
+    fc.tuple(firstOrderGen(), func(fc.anything())).map(([gen, f]) => dev.map(gen, f));
 
   export const flatMap = (): fc.Arbitrary<dev.Gen<unknown>> =>
-    fc.tuple(firstOrderGen(), func(firstOrderGen())).map(([gen, k]) => dev.operators.flatMap(gen, k));
+    fc.tuple(firstOrderGen(), func(firstOrderGen())).map(([gen, k]) => dev.flatMap(gen, k));
 
   export const filter = (): fc.Arbitrary<dev.Gen<unknown>> =>
-    fc.tuple(firstOrderGen(), predicate()).map(([gen, predicate]) => dev.operators.filter(gen, predicate));
+    fc.tuple(firstOrderGen(), predicate()).map(([gen, predicate]) => dev.filter(gen, predicate));
 
   export const reduce = (): fc.Arbitrary<dev.Gen<unknown>> =>
     fc
       .tuple(firstOrderGen(), fc.integer(1, 10), func(fc.anything(), { arity: 2 }), fc.anything())
-      .map(([gen, length, f, init]) => dev.operators.reduce(gen, length, f, init));
+      .map(([gen, length, f, init]) => dev.reduce(gen, length, f, init));
 
-  export const noShrink = (): fc.Arbitrary<dev.Gen<unknown>> => firstOrderGen().map(dev.operators.noShrink);
+  export const noShrink = (): fc.Arbitrary<dev.Gen<unknown>> => firstOrderGen().map(dev.noShrink);
 
   export const postShrink = (): fc.Arbitrary<dev.Gen<unknown>> =>
-    firstOrderGen().map((gen) => dev.operators.postShrink(gen, empty));
+    firstOrderGen().map((gen) => dev.postShrink(gen, empty));
 }
 
 export const firstOrderGen = (): fc.Arbitrary<dev.Gen<unknown>> => {
@@ -183,12 +183,12 @@ export const gen = (): fc.Arbitrary<dev.Gen<unknown>> => {
     'array.unscaled': defaultGens.arrayUnscaled(),
     'array.scaleLinearly': defaultGens.arrayScaledLinearly(),
     element: defaultGens.element(),
-    'operators.map': defaultGens.map(),
-    'operators.flatMap': defaultGens.flatMap(),
-    'operators.filter': defaultGens.filter(),
-    'operators.reduce': defaultGens.reduce(),
-    'operators.noShrink': defaultGens.noShrink(),
-    'operators.postShrink': defaultGens.postShrink(),
+    map: defaultGens.map(),
+    flatMap: defaultGens.flatMap(),
+    filter: defaultGens.filter(),
+    reduce: defaultGens.reduce(),
+    noShrink: defaultGens.noShrink(),
+    postShrink: defaultGens.postShrink(),
   };
 
   return element(gensByLabel).chain((x) => x);
