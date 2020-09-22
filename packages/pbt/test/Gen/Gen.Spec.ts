@@ -2,7 +2,8 @@ export type Gens_FirstOrder =
   | 'integer.unscaled'
   | 'integer.scaleLinearly'
   | 'naturalNumber.unscaled'
-  | 'naturalNumber.scaleLinearly';
+  | 'naturalNumber.scaleLinearly'
+  | 'element';
 
 export type Gens_SecondOrder =
   | 'operators.map'

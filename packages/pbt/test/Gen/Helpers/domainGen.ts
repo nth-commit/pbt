@@ -34,6 +34,50 @@ export const element = <T>(collection: Record<any, T>): fc.Arbitrary<T> => {
   return fc.constantFrom(...elements);
 };
 
+export const record = <Key extends string, Value>(
+  keyGen: fc.Arbitrary<Key>,
+  valueGen: fc.Arbitrary<Value>,
+  minLength: number,
+  maxLength: number,
+): fc.Arbitrary<Record<Key, Value>> => {
+  const arbitraryKvp = fc.tuple(keyGen, valueGen);
+  return fc.array(arbitraryKvp, minLength, maxLength).map((kvps) =>
+    kvps.reduce((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {} as Record<Key, Value>),
+  );
+};
+
+export const map = <Key, Value>(
+  keyGen: fc.Arbitrary<Key>,
+  valueGen: fc.Arbitrary<Value>,
+  minLength: number,
+  maxLength: number,
+): fc.Arbitrary<Map<Key, Value>> =>
+  fc.array(fc.tuple(keyGen, valueGen), minLength, maxLength).map((entries) => new Map(entries));
+
+export const set = <Value>(
+  elementGen: fc.Arbitrary<Value>,
+  minLength: number,
+  maxLength: number,
+): fc.Arbitrary<Set<Value>> => fc.set(elementGen, minLength, maxLength).map((s) => new Set(s));
+
+export const iterable = (minLength: number, maxLength: number) =>
+  fc.oneof(
+    fc.array(fc.anything(), minLength, maxLength),
+    fc.set(fc.anything(), minLength, maxLength).map((x) => new Set(x)),
+    fc.array(fc.tuple(fc.anything(), fc.anything()), minLength, maxLength).map((entries) => new Map(entries)),
+  );
+
+export const collection = (minLength: number, maxLength: number) =>
+  fc.oneof(
+    fc.array(fc.anything(), minLength, maxLength),
+    record(fc.string(), fc.anything(), minLength, maxLength),
+    fc.set(fc.anything(), minLength, maxLength).map((x) => new Set(x)),
+    fc.array(fc.tuple(fc.anything(), fc.anything()), minLength, maxLength).map((entries) => new Map(entries)),
+  );
+
 const getHexRepresentation = (x: unknown): string => {
   const json = JSON.stringify(x);
   const hash = createHash('sha256');
@@ -91,6 +135,9 @@ export namespace defaultGens {
   export const arrayScaledLinearly = (): fc.Arbitrary<dev.Gen<unknown[]>> =>
     fc.tuple(naturalNumber(10), naturalNumber(10)).map((args) => dev.array.unscaled(...args, dev.constant({})));
 
+  export const element = (): fc.Arbitrary<dev.Gen<unknown>> =>
+    collection(1, 10).map((collection) => dev.element(collection));
+
   export const map = (): fc.Arbitrary<dev.Gen<unknown>> =>
     fc.tuple(firstOrderGen(), func(fc.anything())).map(([gen, f]) => dev.operators.map(gen, f));
 
@@ -119,6 +166,7 @@ export const firstOrderGen = (): fc.Arbitrary<dev.Gen<unknown>> => {
     'integer.scaleLinearly': defaultGens.integerScaledLinearly(),
     'naturalNumber.unscaled': defaultGens.integerUnscaled(),
     'naturalNumber.scaleLinearly': defaultGens.naturalNumberScaledLinearly(),
+    element: defaultGens.element(),
   };
 
   return element(gensByLabel).chain((x) => x);
@@ -134,6 +182,7 @@ export const gen = (): fc.Arbitrary<dev.Gen<unknown>> => {
     'naturalNumber.scaleLinearly': defaultGens.naturalNumberScaledLinearly(),
     'array.unscaled': defaultGens.arrayUnscaled(),
     'array.scaleLinearly': defaultGens.arrayScaledLinearly(),
+    element: defaultGens.element(),
     'operators.map': defaultGens.map(),
     'operators.flatMap': defaultGens.flatMap(),
     'operators.filter': defaultGens.filter(),

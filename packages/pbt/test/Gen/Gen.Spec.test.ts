@@ -11,6 +11,7 @@ const gens: { [P in Gens]: fc.Arbitrary<dev.Gen<unknown>> } = {
   'naturalNumber.scaleLinearly': domainGen.defaultGens.integerScaledLinearly(),
   'array.unscaled': domainGen.defaultGens.arrayUnscaled(),
   'array.scaleLinearly': domainGen.defaultGens.arrayScaledLinearly(),
+  element: domainGen.defaultGens.element(),
   'operators.map': domainGen.defaultGens.map(),
   'operators.flatMap': domainGen.defaultGens.flatMap(),
   'operators.filter': domainGen.defaultGens.filter(),

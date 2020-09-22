@@ -1,4 +1,4 @@
-import { Gen, constant } from './Gen';
+import { Gen, constant, exhausted, create } from './Gen';
 import { operators } from './Operators';
 import { integer } from './Number';
 import { Shrink } from './Shrink';
@@ -19,4 +19,20 @@ export const array = {
   unscaled: <T>(min: number, max: number, g: Gen<T>): Gen<T[]> => arrayFromInteger(min, integer.unscaled(min, max), g),
   scaleLinearly: <T>(min: number, max: number, g: Gen<T>): Gen<T[]> =>
     arrayFromInteger(min, integer.scaleLinearly(min, max), g),
+};
+
+export const element = <T>(
+  collection: ReadonlyArray<T> | Readonly<Record<any, T>> | ReadonlySet<T> | ReadonlyMap<unknown, T>,
+): Gen<T> => {
+  const elements = Array.isArray(collection)
+    ? collection
+    : collection instanceof Set
+    ? [...collection.values()]
+    : collection instanceof Map
+    ? [...collection.values()]
+    : Object.values(collection);
+
+  return elements.length === 0
+    ? exhausted()
+    : operators.noShrink(operators.map(integer.unscaled(0, elements.length - 1), (ix) => elements[ix]));
 };
