@@ -12,7 +12,7 @@ test('It has an isomorphism with Array.prototype.map', () => {
       domainGen.firstOrderGen(),
       domainGen.func(fc.anything(), { arity: 1 }),
       (runParams, unmappedGen, f) => {
-        const mappedGen = dev.operators.map(unmappedGen, f);
+        const mappedGen = dev.map(unmappedGen, f);
 
         const mappedOutcomesByGen = iterateOutcomes(mappedGen, runParams);
         const mappedOutcomesByArray = iterateOutcomes(unmappedGen, runParams).map(f);
@@ -30,7 +30,7 @@ test('It also applies the mapping to the shrinks', () => {
       domainGen.firstOrderGen(),
       fc.anything(),
       (runParams, unmappedGen, mappedSymbol) => {
-        const mappedGen = dev.operators.map(unmappedGen, () => mappedSymbol);
+        const mappedGen = dev.map(unmappedGen, () => mappedSymbol);
 
         const mappedTrees = iterateTrees(mappedGen, runParams);
 

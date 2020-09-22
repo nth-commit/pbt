@@ -6,12 +6,12 @@ export type Gens_FirstOrder =
   | 'element';
 
 export type Gens_SecondOrder =
-  | 'operators.map'
-  | 'operators.flatMap'
-  | 'operators.filter'
-  | 'operators.reduce'
-  | 'operators.postShrink'
-  | 'operators.noShrink'
+  | 'map'
+  | 'flatMap'
+  | 'filter'
+  | 'reduce'
+  | 'postShrink'
+  | 'noShrink'
   | 'array.unscaled'
   | 'array.scaleLinearly';
 

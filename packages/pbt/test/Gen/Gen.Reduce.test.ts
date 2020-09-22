@@ -13,7 +13,7 @@ test('It has an isomorphism with Array.prototype.reduce', () => {
       domainGen.func(fc.anything(), { arity: 2 }),
       fc.anything(),
       (runParams, unreducedGen, length, f, init) => {
-        const reducedGen = dev.operators.reduce(unreducedGen, length, f, init);
+        const reducedGen = dev.reduce(unreducedGen, length, f, init);
 
         const reducedByGen = iterateAsOutcomes(reducedGen, { ...runParams, iterations: 1 })[0];
 
@@ -45,7 +45,7 @@ test('Snapshot', () => {
   ]);
 
   const unreducedGen = dev.integer.scaleLinearly(0, 3);
-  const reducedGen = dev.operators.reduce(unreducedGen, 3, (acc, x) => [...acc, x], [] as number[]);
+  const reducedGen = dev.reduce(unreducedGen, 3, (acc, x) => [...acc, x], [] as number[]);
 
   for (const [size, iterations] of iterationsBySize.entries()) {
     iterateTrees(reducedGen, { seed, size, iterations })

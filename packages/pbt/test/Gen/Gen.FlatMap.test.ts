@@ -7,7 +7,7 @@ import { iterate, iterateTrees } from './Helpers/genRunner';
 test('It discards when the bound gen discards', () => {
   fc.assert(
     fc.property(domainGen.runParams(), domainGen.firstOrderGen(), (runParams, baseGen) => {
-      const gen = dev.operators.flatMap(baseGen, () => dev.operators.filter(baseGen, () => false));
+      const gen = dev.flatMap(baseGen, () => dev.filter(baseGen, () => false));
 
       const genIterations = iterate(gen, runParams);
 
@@ -21,7 +21,7 @@ test('It discards when the bound gen discards', () => {
 test('It exhausts when the bound gen exhausts', () => {
   fc.assert(
     fc.property(domainGen.runParams(), domainGen.firstOrderGen(), (runParams, baseGen) => {
-      const gen = dev.operators.flatMap(baseGen, () => dev.exhausted());
+      const gen = dev.flatMap(baseGen, () => dev.exhausted());
 
       const genIterations = iterate(gen, runParams);
 
@@ -42,9 +42,7 @@ test('Snapshot', () => {
   ]);
 
   const unflatMappedGen = dev.integer.scaleLinearly(0, 5);
-  const flatMappedGen = dev.operators.flatMap(unflatMappedGen, (x) =>
-    dev.operators.map(unflatMappedGen, (y) => `[${x},${y}]`),
-  );
+  const flatMappedGen = dev.flatMap(unflatMappedGen, (x) => dev.map(unflatMappedGen, (y) => `[${x},${y}]`));
 
   for (const [size, iterations] of iterationsBySize.entries()) {
     iterateTrees(flatMappedGen, { seed, size, iterations })
