@@ -1,4 +1,4 @@
-import { of, pipe } from 'ix/iterable';
+import { of, pipe, empty, repeatValue } from 'ix/iterable';
 import { map } from 'ix/iterable/operators';
 import { Tree } from '../Core';
 import { Seed, Size } from './Imports';
@@ -43,3 +43,11 @@ export const create = <T>(f: (seed: Seed, size: Size) => T, shrink: Shrinker<T>)
   pipe(SeedExtensions.stream(seed), map(generateInstance(f, shrink, size)));
 
 export const exhausted = <T>(): Gen<T> => () => of({ kind: 'exhausted' });
+
+export const constant = <T>(x: T): Gen<T> => () => {
+  const instance: GenIteration.Instance<T> = {
+    kind: 'instance',
+    tree: Tree.create(x, empty()),
+  };
+  return repeatValue(instance);
+};

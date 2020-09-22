@@ -1,9 +1,11 @@
 import fc from 'fast-check';
+import * as devCore from '../../src/Core';
 import * as dev from '../../src/Gen';
 import { Gens_Ranged, Gens_Ranged_Constant, Gens_Ranged_Linear } from './Gen.Spec';
-import { iterateAsOutcomes } from './Helpers/genRunner';
+import { iterateAsOutcomes, iterateTrees } from './Helpers/genRunner';
 import * as domainGen from './Helpers/domainGen';
 import { analyzeUniformDistribution } from './Helpers/statistics';
+import { take } from 'ix/iterable/operators';
 
 type GenFactory<T> = (min: number, max: number) => dev.Gen<T>;
 
@@ -25,7 +27,7 @@ const createIntegerRangeFixture = (genFactory: (min: number, max: number) => dev
   return {
     getOrder: id,
     genFactory,
-    metaGen: fc.tuple(domainGen.integer(), domainGen.naturalNumber()).map(([min, width]) => {
+    metaGen: fc.tuple(domainGen.integer(-1000, 1000), domainGen.naturalNumber()).map(([min, width]) => {
       const max = min + width;
       return {
         gen: genFactory(min, max),
@@ -54,24 +56,45 @@ const createNaturalNumberRangeFixture = (genFactory: (max: number) => dev.Gen<nu
   };
 };
 
+const createArrayRangeFixture = (
+  genFactory: (min: number, max: number, elementGen: dev.Gen<unknown>) => dev.Gen<unknown[]>,
+): RangeFixture<unknown[]> => {
+  return {
+    getOrder: (xs) => xs.length,
+    genFactory: (min, max) => genFactory(min, max, dev.constant({})),
+    metaGen: fc.tuple(domainGen.naturalNumber(10), domainGen.naturalNumber(10)).map(([min, width]) => {
+      const max = min + width;
+      return {
+        gen: genFactory(min, max, dev.constant({})),
+        min,
+        max,
+      };
+    }),
+  };
+};
+
 const rangeFixtures: Record<Gens_Ranged, RangeFixture<any>> = {
   'integer.unscaled': createIntegerRangeFixture(dev.integer.unscaled),
   'integer.scaleLinearly': createIntegerRangeFixture(dev.integer.scaleLinearly),
   'naturalNumber.unscaled': createNaturalNumberRangeFixture(dev.naturalNumber.unscaled),
   'naturalNumber.scaleLinearly': createNaturalNumberRangeFixture(dev.naturalNumber.scaleLinearly),
+  'array.unscaled': createArrayRangeFixture(dev.array.unscaled),
+  'array.scaleLinearly': createArrayRangeFixture(dev.array.scaleLinearly),
 };
 
 const constantRangeFixtures: Record<Gens_Ranged_Constant, RangeFixture<any>> = {
   'integer.unscaled': rangeFixtures['integer.unscaled'],
   'naturalNumber.unscaled': rangeFixtures['naturalNumber.unscaled'],
+  'array.unscaled': rangeFixtures['array.unscaled'],
 };
 
 const linearRangeFixtures: Record<Gens_Ranged_Linear, RangeFixture<any>> = {
   'integer.scaleLinearly': rangeFixtures['integer.scaleLinearly'],
   'naturalNumber.scaleLinearly': rangeFixtures['naturalNumber.scaleLinearly'],
+  'array.scaleLinearly': rangeFixtures['array.scaleLinearly'],
 };
 
-test.each(Object.keys(rangeFixtures))('It is generates instances in the range (%s)', (genLabel: string) => {
+test.each(Object.keys(rangeFixtures))('It is generates instances that are in range (%s)', (genLabel: string) => {
   const { getOrder, metaGen } = rangeFixtures[genLabel as Gens_Ranged];
 
   fc.assert(
@@ -83,9 +106,23 @@ test.each(Object.keys(rangeFixtures))('It is generates instances in the range (%
         expect(x).toBeLessThanOrEqual(max);
       });
     }),
-    {
-      numRuns: 1,
-    },
+  );
+});
+
+test.each(Object.keys(rangeFixtures))('It is also generates shrinks in range (%s)', (genLabel: string) => {
+  const { getOrder, metaGen } = rangeFixtures[genLabel as Gens_Ranged];
+
+  fc.assert(
+    fc.property(domainGen.runParams(), metaGen, (runParams, { gen, min, max }) => {
+      const trees = iterateTrees(gen, runParams).map((tree) => devCore.Tree.map(tree, getOrder));
+
+      for (const tree of trees) {
+        for (const x of take(10)(devCore.Tree.traverse(tree))) {
+          expect(x).toBeGreaterThanOrEqual(min);
+          expect(x).toBeLessThanOrEqual(max);
+        }
+      }
+    }),
   );
 });
 
@@ -95,7 +132,7 @@ test.each(Object.keys(constantRangeFixtures))(
     const { getOrder, genFactory } = rangeFixtures[genLabel as Gens_Ranged];
 
     const min = 0;
-    const max = 1000;
+    const max = 10;
     const sampleSize = 1000;
 
     const genRunParams = domainGen.runParams().map((runParams) => ({ ...runParams, iterations: sampleSize }));
@@ -109,9 +146,7 @@ test.each(Object.keys(constantRangeFixtures))(
         const { pValue } = analyzeUniformDistribution(min, max, xs);
         expect(pValue).toBeGreaterThanOrEqual(0.001);
       }),
-      {
-        numRuns: 1,
-      },
+      { numRuns: 1 },
     );
   },
 );

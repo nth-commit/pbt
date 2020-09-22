@@ -9,6 +9,8 @@ const gens: { [P in Gens]: fc.Arbitrary<dev.Gen<unknown>> } = {
   'integer.scaleLinearly': domainGen.defaultGens.integerScaledLinearly(),
   'naturalNumber.unscaled': domainGen.defaultGens.integerUnscaled(),
   'naturalNumber.scaleLinearly': domainGen.defaultGens.integerScaledLinearly(),
+  'array.unscaled': domainGen.defaultGens.arrayUnscaled(),
+  'array.scaleLinearly': domainGen.defaultGens.arrayScaledLinearly(),
   'operators.map': domainGen.defaultGens.map(),
   'operators.flatMap': domainGen.defaultGens.flatMap(),
   'operators.filter': domainGen.defaultGens.filter(),
