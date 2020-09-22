@@ -9,6 +9,7 @@ const gens: { [P in Gens_FirstOrder]: fc.Arbitrary<dev.Gen<unknown>> } = {
   'integer.scaleLinearly': domainGen.defaultGens.integerScaledLinearly(),
   'naturalNumber.unscaled': domainGen.defaultGens.integerUnscaled(),
   'naturalNumber.scaleLinearly': domainGen.defaultGens.integerScaledLinearly(),
+  element: domainGen.defaultGens.element(),
 };
 
 test.each(Object.keys(gens))(
