@@ -88,6 +88,7 @@ test('Snapshot', () => {
     [20, 2],
     [50, 5],
   ]);
+  
   const g = dev.integer
     .scaleLinearly(0, 3)
     .reduce<number[]>(3, (acc, x) => [...acc, x], [])

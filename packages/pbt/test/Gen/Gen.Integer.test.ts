@@ -15,15 +15,20 @@ test.each(Object.keys(genFactories))('It generates integers (%s)', (genLabel: st
   const genFactory = genFactories[genLabel as Gens_Integer];
 
   fc.assert(
-    fc.property(domainGen.runParams(), domainGen.integer(), domainGen.integer(), (runParams, a, b) => {
-      const gen = genFactory(a, b);
+    fc.property(
+      domainGen.runParams(),
+      domainGen.integer(-1000, 1000),
+      domainGen.integer(-1000, 1000),
+      (runParams, a, b) => {
+        const gen = genFactory(a, b);
 
-      const xs = iterateAsOutcomes(gen, runParams);
+        const xs = iterateAsOutcomes(gen, runParams);
 
-      xs.forEach((x) => {
-        expect(x).toEqual(Math.round(x));
-      });
-    }),
+        xs.forEach((x) => {
+          expect(x).toEqual(Math.round(x));
+        });
+      },
+    ),
   );
 });
 
@@ -31,17 +36,22 @@ test.each(Object.keys(genFactories))('It is resilient to min/max parameter order
   const genFactory = genFactories[genLabel as Gens_Integer];
 
   fc.assert(
-    fc.property(domainGen.runParams(), domainGen.integer(), domainGen.integer(), (runParams, a, b) => {
-      const gen1 = genFactory(a, b);
-      const gen2 = genFactory(b, a);
+    fc.property(
+      domainGen.runParams(),
+      domainGen.integer(-1000, 1000),
+      domainGen.integer(-1000, 1000),
+      (runParams, a, b) => {
+        const gen1 = genFactory(a, b);
+        const gen2 = genFactory(b, a);
 
-      const xs1 = iterateAsOutcomes(gen1, runParams);
-      const xs2 = iterateAsOutcomes(gen2, runParams);
+        const xs1 = iterateAsOutcomes(gen1, runParams);
+        const xs2 = iterateAsOutcomes(gen2, runParams);
 
-      for (let i = 0; i < xs1.length; i++) {
-        expect(xs1[i]).toEqual(xs2[i]);
-      }
-    }),
+        for (let i = 0; i < xs1.length; i++) {
+          expect(xs1[i]).toEqual(xs2[i]);
+        }
+      },
+    ),
   );
 });
 

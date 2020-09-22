@@ -5,7 +5,17 @@ import { Gens_SecondOrder } from './Gen.Spec';
 import { iterate } from './Helpers/genRunner';
 import * as domainGen from './Helpers/domainGen';
 
+// Generate an array of at least one element, else the properties of second-order gen can not be observed. For example,
+// it won't pipe discards/exhaustion if it doesn't try to pull from the input gen.
+const arrayLengthGen = domainGen.integer(1, 10);
+
 const gens: { [P in Gens_SecondOrder]: fc.Arbitrary<(gen: dev.Gen<unknown>) => dev.Gen<unknown>> } = {
+  'array.unscaled': fc
+    .tuple(arrayLengthGen, arrayLengthGen)
+    .map(([min, max]) => (gen) => dev.array.unscaled(min, max, gen)),
+  'array.scaleLinearly': fc
+    .tuple(arrayLengthGen, arrayLengthGen)
+    .map(([min, max]) => (gen) => dev.array.unscaled(min, max, gen)),
   'operators.map': domainGen.func(fc.anything()).map((f) => (gen) => dev.operators.map(gen, f)),
   'operators.flatMap': domainGen.func(domainGen.firstOrderGen()).map((k) => (gen) => dev.operators.flatMap(gen, k)),
   'operators.filter': domainGen.predicate().map((predicate) => (gen) => dev.operators.filter(gen, predicate)),

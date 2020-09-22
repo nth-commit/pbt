@@ -20,14 +20,14 @@ export const iterations = (): fc.Arbitrary<number> => fc.integer(1, 100);
 export const runParams = (): fc.Arbitrary<GenRunParams> =>
   fc.tuple(seed(), size(), iterations()).map(([seed, size, iterations]) => ({ seed, size, iterations }));
 
-export const integer = (): fc.Arbitrary<number> => fc.integer(-1000, 1000);
+export const integer = (min: number, max: number): fc.Arbitrary<number> => fc.integer(min, max);
 
 export const negativeInteger = (): fc.Arbitrary<number> =>
   naturalNumber()
     .filter((x) => x > 0)
     .map((x) => -x);
 
-export const naturalNumber = (): fc.Arbitrary<number> => fc.nat(1000);
+export const naturalNumber = (max: number = 1000): fc.Arbitrary<number> => fc.nat(max);
 
 export const element = <T>(collection: Record<any, T>): fc.Arbitrary<T> => {
   const elements = Object.values(collection);
@@ -74,16 +74,22 @@ export const predicate = <TArgs extends any[] = unknown[]>(
 
 export namespace defaultGens {
   export const integerUnscaled = (): fc.Arbitrary<dev.Gen<number>> =>
-    fc.tuple(integer(), integer()).map((args) => dev.integer.unscaled(...args));
+    fc.tuple(integer(-1000, 1000), integer(-1000, 1000)).map((args) => dev.integer.unscaled(...args));
 
   export const integerScaledLinearly = (): fc.Arbitrary<dev.Gen<number>> =>
-    fc.tuple(integer(), integer()).map((args) => dev.integer.unscaled(...args));
+    fc.tuple(integer(-1000, 1000), integer(-1000, 1000)).map((args) => dev.integer.unscaled(...args));
 
   export const naturalNumberUnscaled = (): fc.Arbitrary<dev.Gen<number>> =>
     naturalNumber().map((max) => dev.naturalNumber.unscaled(max));
 
   export const naturalNumberScaledLinearly = (): fc.Arbitrary<dev.Gen<number>> =>
     naturalNumber().map((max) => dev.naturalNumber.scaleLinearly(max));
+
+  export const arrayUnscaled = (): fc.Arbitrary<dev.Gen<unknown[]>> =>
+    fc.tuple(naturalNumber(10), naturalNumber(10)).map((args) => dev.array.unscaled(...args, dev.constant({})));
+
+  export const arrayScaledLinearly = (): fc.Arbitrary<dev.Gen<unknown[]>> =>
+    fc.tuple(naturalNumber(10), naturalNumber(10)).map((args) => dev.array.unscaled(...args, dev.constant({})));
 
   export const map = (): fc.Arbitrary<dev.Gen<unknown>> =>
     fc.tuple(firstOrderGen(), func(fc.anything())).map(([gen, f]) => dev.operators.map(gen, f));
@@ -124,8 +130,10 @@ export const gen = (): fc.Arbitrary<dev.Gen<unknown>> => {
   const gensByLabel: GensByLabel = {
     'integer.unscaled': defaultGens.integerUnscaled(),
     'integer.scaleLinearly': defaultGens.integerScaledLinearly(),
-    'naturalNumber.unscaled': defaultGens.integerUnscaled(),
+    'naturalNumber.unscaled': defaultGens.naturalNumberUnscaled(),
     'naturalNumber.scaleLinearly': defaultGens.naturalNumberScaledLinearly(),
+    'array.unscaled': defaultGens.arrayUnscaled(),
+    'array.scaleLinearly': defaultGens.arrayScaledLinearly(),
     'operators.map': defaultGens.map(),
     'operators.flatMap': defaultGens.flatMap(),
     'operators.filter': defaultGens.filter(),
