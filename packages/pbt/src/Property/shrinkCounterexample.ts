@@ -7,7 +7,7 @@ import { PropertyIteration, AnyValues } from './PropertyIteration';
 type Trees<Values extends AnyValues> = { [P in keyof Values]: Tree<Values[P]> };
 
 export const shrinkCounterexample = <Values extends AnyValues>(
-  trees: Trees<Values>,
+  counterexample: Trees<Values>,
   f: PropertyFunction<Values>,
 ): Iterable<PropertyIteration<Values>> => {
   return empty();

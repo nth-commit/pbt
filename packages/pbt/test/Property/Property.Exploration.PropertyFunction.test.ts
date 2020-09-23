@@ -22,7 +22,7 @@ test('It invokes the property function with a value from each gens', () => {
   );
 });
 
-test('For a fallible property, the property function is invoked with the outcome of the tree returned in the result', () => {
+test('For a fallible property, the arguments of the property function are the same as the counterexample returned in the result', () => {
   fc.assert(
     fc.property(domainGen.runParams(), domainGen.gens(), (runParams, gens) => {
       const spyF = spies.spyOn(() => false);
@@ -33,7 +33,7 @@ test('For a fallible property, the property function is invoked with the outcome
         iterations: 1,
       });
 
-      const returnedOutcomes = falsification.trees.map(dev.Tree.outcome);
+      const returnedOutcomes = falsification.counterexample.map(dev.Tree.outcome);
       const spiedOutcomes = spyF.mock.calls[0];
       expect(returnedOutcomes).toEqual(spiedOutcomes);
     }),

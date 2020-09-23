@@ -38,7 +38,7 @@ const exploreThenShrink = function* <Values extends AnyValues>(
 
   if (falsification !== null) {
     const realizedFalsification = falsification as InternalProperty.PropertyIteration.Falsification<Values>;
-    yield* InternalProperty.shrinkCounterexample(realizedFalsification.trees, f);
+    yield* InternalProperty.shrinkCounterexample(realizedFalsification.counterexample, f);
   }
 };
 

@@ -6,14 +6,13 @@ export type AnyValues = any[];
 export type Trees<Values extends AnyValues> = { [P in keyof Values]: Tree<Values[P]> };
 
 export type PropertyIterationFactory = {
-  success: (size: Size) => PropertyIteration.Success;
+  success: () => PropertyIteration.Success;
   falsification: <Values extends AnyValues>(
-    size: Size,
-    trees: Trees<Values>,
+    counterexample: Trees<Values>,
     reason: PropertyFunctionFailureReason,
   ) => PropertyIteration.Falsification<Values>;
-  discard: (size: Size) => PropertyIteration.Discard;
-  exhaustion: (size: Size) => PropertyIteration.Exhaustion;
+  discard: () => PropertyIteration.Discard;
+  exhaustion: () => PropertyIteration.Exhaustion;
 };
 
 export namespace PropertyIteration {
@@ -28,7 +27,7 @@ export namespace PropertyIteration {
   export type Falsification<Values extends AnyValues> = BasePropertyIterationResult<
     'falsification',
     {
-      trees: Trees<Values>;
+      counterexample: Trees<Values>;
       reason: PropertyFunctionFailureReason;
     }
   >;
@@ -37,24 +36,23 @@ export namespace PropertyIteration {
 
   export type Exhaustion = BasePropertyIterationResult<'exhaustion', {}>;
 
-  export const factory = (seed: Seed): PropertyIterationFactory => ({
-    success: (size: Size): Success => ({ kind: 'success', seed, size }),
+  export const factory = (seed: Seed, size: Size): PropertyIterationFactory => ({
+    success: (): Success => ({ kind: 'success', seed, size }),
 
     falsification: <Values extends AnyValues>(
-      size: Size,
-      trees: Trees<Values>,
+      counterexample: Trees<Values>,
       reason: PropertyFunctionFailureReason,
     ): Falsification<Values> => ({
       kind: 'falsification',
       seed,
       size,
-      trees,
+      counterexample,
       reason,
     }),
 
-    discard: (size: Size): Discard => ({ kind: 'discard', seed, size }),
+    discard: (): Discard => ({ kind: 'discard', seed, size }),
 
-    exhaustion: (size: Size): Exhaustion => ({ kind: 'exhaustion', seed, size }),
+    exhaustion: (): Exhaustion => ({ kind: 'exhaustion', seed, size }),
   });
 }
 
