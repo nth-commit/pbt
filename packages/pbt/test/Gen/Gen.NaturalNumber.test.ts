@@ -35,7 +35,7 @@ test.each(Object.keys(genFactories))('When max < 0, it exhausts (%s)', (genLabel
 
       const genIterations = iterate(gen, { ...runParams });
 
-      expect(genIterations).toEqual([{ kind: 'exhausted' }]);
+      expect(genIterations).toEqual([{ kind: 'exhaustion' }]);
     }),
   );
 });

@@ -1,15 +1,14 @@
 import { concat, empty, of, pipe } from 'ix/iterable';
 import { map as mapIterable, filter as filterIterable, flatMap as flatMapIterable } from 'ix/iterable/operators';
-import { Tree, takeWhileInclusive as takeWhileInclusiveIterable } from './Imports';
+import { Tree, takeWhileInclusive as takeWhileInclusiveIterable, Seed } from './Imports';
 import { Gen, GenIteration } from './Gen';
-import * as SeedExtensions from './SeedExtensions';
 import { Shrinker } from './Shrink';
 
 const repeat = <T>(gen: Gen<T>): Gen<T> => (seed, size) => {
   return pipe(
-    SeedExtensions.stream(seed),
+    Seed.stream(seed),
     flatMapIterable((seed0) => gen(seed0, size)),
-    takeWhileInclusiveIterable((genIteration) => genIteration.kind !== 'exhausted'),
+    takeWhileInclusiveIterable((genIteration) => genIteration.kind !== 'exhaustion'),
   );
 };
 
@@ -118,7 +117,7 @@ const reduceOnce = <T, U>(gen: Gen<T>, length: number, f: (acc: U, x: T, i: numb
           };
           break;
         case 'discard':
-        case 'exhausted':
+        case 'exhaustion':
           yield result;
       }
 
