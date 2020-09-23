@@ -52,7 +52,7 @@ test.each(Object.keys(gens))('It exhausts when the input gen exhausts (%s)', (ge
 
       const genIterations = iterate(gen, runParams);
 
-      expect(genIterations).toEqual([{ kind: 'exhausted' }]);
+      expect(genIterations).toEqual([{ kind: 'exhaustion' }]);
     }),
   );
 });

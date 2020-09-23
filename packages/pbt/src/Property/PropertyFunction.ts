@@ -4,10 +4,6 @@ export namespace PropertyFunctionFailureReason {
   export type ReturnedFalse = { kind: 'returnedFalse' };
 
   export type ThrewError = { kind: 'threwError'; error: unknown };
-
-  export const returnedFalse = (): ReturnedFalse => ({ kind: 'returnedFalse' });
-
-  export const threwError = (error: unknown): ThrewError => ({ kind: 'threwError', error });
 }
 
 export type PropertyFunctionFailureReason =

@@ -4,7 +4,6 @@ import { RandomStream } from './RandomStream';
 import { Gen, GenFunction } from './Gen';
 import { pipe } from 'ix/iterable';
 import { tap } from 'ix/iterable/operators';
-import { takeWhileInclusive } from '../Gen';
 
 export type PropertyConfig = {
   shrinkPath?: number[];
@@ -30,7 +29,6 @@ const exploreThenShrink = function* <Values extends AnyValues>(
 
   yield* pipe(
     InternalProperty.explore(genFunctions, f)(seed, size),
-    takeWhileInclusive((propertyIteration) => propertyIteration.kind !== 'falsification'), // And not exhausted
     tap((propertyIteration) => {
       if (propertyIteration.kind === 'falsification') {
         falsification = propertyIteration;

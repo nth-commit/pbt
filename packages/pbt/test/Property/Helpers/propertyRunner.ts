@@ -13,24 +13,16 @@ export const iterate = <Values extends dev.AnyValues>(
   { seed, size, iterations }: domainGen.PropertyRunParams,
 ): Array<dev.PropertyIteration<Values>> => toArray(pipe(property(seed, size), take(iterations)));
 
-// export const iterateAsInstances = <T>(
-//   gen: dev.Gen<T>,
-//   runParams: domainGen.GenRunParams,
-// ): dev.GenIteration.Instance<T>[] => iterate(gen, runParams).map(castToInstance);
+export const findFalsification = <Values extends dev.AnyValues>(
+  property: dev.Property<Values>,
+  runParams: domainGen.PropertyRunParams,
+): dev.PropertyIteration.Falsification<Values> => {
+  const iterations = iterate(property, runParams);
 
-// export const iterateAsTrees = <T>(gen: dev.Gen<T>, runParams: domainGen.GenRunParams): devCore.Tree<T>[] =>
-//   iterateAsInstances(gen, runParams).map((instance) => instance.tree);
+  const falsification = iterations.find((iteration) => iteration.kind === 'falsification');
+  if (!falsification) {
+    throw new Error('Fatal: Could not find a falsification');
+  }
 
-// export const iterateAsOutcomes = <T>(gen: dev.Gen<T>, runParams: domainGen.GenRunParams): T[] =>
-//   iterateAsTrees(gen, runParams).map(devCore.Tree.outcome);
-
-// export const iterateInstances = <T>(
-//   gen: dev.Gen<T>,
-//   runParams: domainGen.GenRunParams,
-// ): dev.GenIteration.Instance<T>[] => iterate(gen, runParams).filter(GenIteration.isInstance);
-
-// export const iterateTrees = <T>(gen: dev.Gen<T>, runParams: domainGen.GenRunParams): devCore.Tree<T>[] =>
-//   iterateInstances(gen, runParams).map((instance) => instance.tree);
-
-// export const iterateOutcomes = <T>(gen: dev.Gen<T>, runParams: domainGen.GenRunParams): T[] =>
-//   iterateTrees(gen, runParams).map(devCore.Tree.outcome);
+  return falsification as dev.PropertyIteration.Falsification<Values>;
+};

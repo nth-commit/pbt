@@ -1,44 +1,86 @@
-import { empty, pipe, repeatValue, first } from 'ix/iterable';
-import { map } from 'ix/iterable/operators';
+import { pipe, from, zip } from 'ix/iterable';
 import { Gen, GenIteration, Seed, Size, Tree } from './Imports';
-import { PropertyFunction, PropertyFunctionInvocation } from './PropertyFunction';
-import { PropertyIteration, AnyValues, Trees } from './PropertyIteration';
+import { PropertyFunction } from './PropertyFunction';
+import { PropertyIteration, PropertyIterationFactory, AnyValues, Trees } from './PropertyIteration';
 import { Property } from './Property';
+import { filter, flatMap, map, tap } from 'ix/iterable/operators';
+import { takeWhileInclusive } from '../Gen';
 
 type Gens<Values extends AnyValues> = { [P in keyof Values]: Gen<Values[P]> };
 
-const runGens = <Values extends AnyValues>(gens: Gens<Values>, seed: Seed): Values => {
-  const trees = gens.map((gen) =>
-    first(
-      pipe(
-        gen(seed, 0),
-        map((genIteration) => (genIteration as GenIteration.Instance<any>).tree),
-      ),
-    ),
-  ) as Trees<Values>;
-  return trees.map(Tree.outcome) as Values;
+const runGenUntilFirstInstance = (gen: Gen<unknown>, seed: Seed): Iterable<GenIteration<unknown>> =>
+  pipe(
+    Seed.stream(seed),
+    flatMap((seed0) => gen(seed0, 0)),
+    takeWhileInclusive((iteration) => iteration.kind !== 'instance'),
+  );
+
+const collectInstancesWithReference = (treesRef: Tree<unknown>[]) => (iteration: GenIteration<unknown>): void => {
+  if (iteration.kind === 'instance') {
+    treesRef.push(iteration.tree);
+  }
 };
 
-export const explore = <Values extends AnyValues>(gens: Gens<Values>, f: PropertyFunction<Values>): Property<Values> =>
-  function* (seed: Seed, size: Size) {
-    let currentSeed = seed;
+const runGens = function* <Values extends AnyValues>(
+  gens: Gens<Values>,
+  seed: Seed,
+): Iterable<Trees<Values> | 'discard' | 'exhaustion'> {
+  const trees: Tree<unknown>[] = [];
 
-    while (true) {
-      const propertyIterationFactory = PropertyIteration.factory(currentSeed);
-      const [leftSeed, rightSeed] = currentSeed.split();
+  yield* pipe(
+    zip(from(gens), Seed.stream(seed)),
+    flatMap(([gen, seed0]) => runGenUntilFirstInstance(gen, seed0)),
+    tap(collectInstancesWithReference(trees)),
+    filter(GenIteration.isNotInstance),
+    map((instance) => instance.kind),
+  );
 
-      const values = runGens(gens, rightSeed);
+  yield (trees as unknown) as Trees<Values>;
+};
 
-      const invocation = PropertyFunction.invoke(f, values);
-      switch (invocation.kind) {
-        case 'success':
-          yield propertyIterationFactory.success(size);
-          break;
-        case 'failure':
-          yield propertyIterationFactory.falsification(size, null as any, invocation.reason);
-          return;
+const checkIfFalsifiable = <Values extends AnyValues>(
+  f: PropertyFunction<Values>,
+  trees: Trees<Values>,
+  propertyIterationFactory: PropertyIterationFactory,
+  size: Size,
+) => {
+  const invocation = PropertyFunction.invoke(f, trees.map(Tree.outcome) as Values);
+  return invocation.kind === 'success'
+    ? propertyIterationFactory.success(size)
+    : propertyIterationFactory.falsification(size, trees, invocation.reason);
+};
+
+const exploreUnbounded = function* <Values extends AnyValues>(
+  gens: Gens<Values>,
+  f: PropertyFunction<Values>,
+  seed: Seed,
+  size: Size,
+) {
+  let currentSeed = seed;
+
+  while (true) {
+    const propertyIterationFactory = PropertyIteration.factory(currentSeed);
+    const [leftSeed, rightSeed] = currentSeed.split();
+
+    for (const treesOrFailStatus of runGens(gens, rightSeed)) {
+      if (treesOrFailStatus === 'exhaustion') {
+        yield propertyIterationFactory.exhaustion(size);
+      } else if (treesOrFailStatus === 'discard') {
+        yield propertyIterationFactory.discard(size);
+      } else {
+        yield checkIfFalsifiable(f, treesOrFailStatus, propertyIterationFactory, size);
       }
-
-      currentSeed = leftSeed;
     }
-  };
+
+    currentSeed = leftSeed;
+  }
+};
+
+export const explore = <Values extends AnyValues>(
+  gens: Gens<Values>,
+  f: PropertyFunction<Values>,
+): Property<Values> => (seed, size) =>
+  pipe(
+    exploreUnbounded(gens, f, seed, size),
+    takeWhileInclusive((iteration) => iteration.kind !== 'exhaustion' && iteration.kind !== 'falsification'),
+  );

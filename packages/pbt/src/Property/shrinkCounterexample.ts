@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { empty } from 'ix/iterable';
 import { Tree } from './Imports';
 import { PropertyFunction } from './PropertyFunction';

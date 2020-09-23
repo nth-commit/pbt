@@ -24,7 +24,7 @@ test('It exhausts when the bound gen exhausts', () => {
 
       const genIterations = iterate(gen, runParams);
 
-      expect(genIterations).toEqual([{ kind: 'exhausted' }]);
+      expect(genIterations).toEqual([{ kind: 'exhaustion' }]);
     }),
   );
 });

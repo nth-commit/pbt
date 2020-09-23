@@ -5,6 +5,17 @@ export type AnyValues = any[];
 
 export type Trees<Values extends AnyValues> = { [P in keyof Values]: Tree<Values[P]> };
 
+export type PropertyIterationFactory = {
+  success: (size: Size) => PropertyIteration.Success;
+  falsification: <Values extends AnyValues>(
+    size: Size,
+    trees: Trees<Values>,
+    reason: PropertyFunctionFailureReason,
+  ) => PropertyIteration.Falsification<Values>;
+  discard: (size: Size) => PropertyIteration.Discard;
+  exhaustion: (size: Size) => PropertyIteration.Exhaustion;
+};
+
 export namespace PropertyIteration {
   type BasePropertyIterationResult<Kind extends string, Props> = {
     kind: Kind;
@@ -22,7 +33,11 @@ export namespace PropertyIteration {
     }
   >;
 
-  export const factory = (seed: Seed) => ({
+  export type Discard = BasePropertyIterationResult<'discard', {}>;
+
+  export type Exhaustion = BasePropertyIterationResult<'exhaustion', {}>;
+
+  export const factory = (seed: Seed): PropertyIterationFactory => ({
     success: (size: Size): Success => ({ kind: 'success', seed, size }),
 
     falsification: <Values extends AnyValues>(
@@ -36,9 +51,15 @@ export namespace PropertyIteration {
       trees,
       reason,
     }),
+
+    discard: (size: Size): Discard => ({ kind: 'discard', seed, size }),
+
+    exhaustion: (size: Size): Exhaustion => ({ kind: 'exhaustion', seed, size }),
   });
 }
 
 export type PropertyIteration<Values extends AnyValues> =
   | PropertyIteration.Success
-  | PropertyIteration.Falsification<Values>;
+  | PropertyIteration.Falsification<Values>
+  | PropertyIteration.Discard
+  | PropertyIteration.Exhaustion;

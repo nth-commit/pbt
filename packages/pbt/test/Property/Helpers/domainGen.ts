@@ -1,7 +1,10 @@
 import fc from 'fast-check';
+import { mersenne } from 'pure-rand';
+import { empty, pipe } from 'ix/iterable';
 import * as dev from '../../../src/Property';
 import * as devGen from '../../../src/Gen';
 import * as sharedDomainGen from '../../helpers/domainGen';
+import { map } from 'ix/iterable/operators';
 
 export type PropertyRunParams = {
   seed: dev.Seed;
@@ -18,8 +21,11 @@ export const iterations = (): fc.Arbitrary<number> => fc.integer(1, 100);
 export const runParams = (): fc.Arbitrary<PropertyRunParams> =>
   fc.tuple(seed(), size(), iterations()).map(([seed, size, iterations]) => ({ seed, size, iterations }));
 
-export const gens = (): fc.Arbitrary<dev.Gen<unknown>[]> =>
-  fc.array(fc.constant(devGen.naturalNumber.unscaled(10)), 0, 10);
+export const gen = (): fc.Arbitrary<dev.Gen<unknown>> => fc.constant(devGen.naturalNumber.unscaled(10));
+
+export const discardingGen = (): fc.Arbitrary<dev.Gen<unknown>> => gen().map((gen) => devGen.filter(gen, () => false));
+
+export const gens = (): fc.Arbitrary<dev.Gen<unknown>[]> => fc.array(gen(), 0, 10);
 
 export const infallibleFunc = (): fc.Arbitrary<dev.PropertyFunction<unknown[]>> =>
   fc.constantFrom(
@@ -39,4 +45,12 @@ export const fallibleFunc = (): fc.Arbitrary<dev.PropertyFunction<unknown[]>> =>
         arbitrary: fc.constant(false),
       },
     ),
+  );
+
+export const shuffle = <T>(arr: T[]): fc.Arbitrary<T[]> =>
+  fc.array(fc.nat(), arr.length, arr.length).map((orders) =>
+    arr
+      .map((value, i) => ({ value: value, order: orders[i] }))
+      .sort((a, b) => a.order - b.order)
+      .map((x) => x.value),
   );
