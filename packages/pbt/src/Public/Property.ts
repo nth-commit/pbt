@@ -25,21 +25,21 @@ const exploreThenShrink = function* <Values extends AnyValues>(
   seed: Core.Seed,
   size: Core.Size,
 ): Iterable<PropertyIteration<Values>> {
-  let falsification: InternalProperty.PropertyIteration.Falsification<Values> | null = null;
+  // let falsification: InternalProperty.PropertyIteration.Falsification<Values> | null = null;
 
   yield* pipe(
     InternalProperty.explore(genFunctions, f)(seed, size),
-    tap((propertyIteration) => {
-      if (propertyIteration.kind === 'falsification') {
-        falsification = propertyIteration;
-      }
-    }),
+    // tap((propertyIteration) => {
+    //   if (propertyIteration.kind === 'falsification') {
+    //     falsification = propertyIteration;
+    //   }
+    // }),
   );
 
-  if (falsification !== null) {
-    const realizedFalsification = falsification as InternalProperty.PropertyIteration.Falsification<Values>;
-    yield* InternalProperty.shrinkCounterexample(realizedFalsification.counterexample, f);
-  }
+  // if (falsification !== null) {
+  //   const realizedFalsification = falsification as InternalProperty.PropertyIteration.Falsification<Values>;
+  //   yield* InternalProperty.shrinkCounterexample(realizedFalsification.counterexample, f);
+  // }
 };
 
 export class Property<Values extends AnyValues> implements RandomStream<PropertyIteration<Values>> {

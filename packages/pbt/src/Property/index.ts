@@ -4,3 +4,4 @@ export * from './PropertyIteration';
 export * from './PropertyFunction';
 export * from './explore';
 export * from './shrinkCounterexample';
+export * from './reproduceFailure';
