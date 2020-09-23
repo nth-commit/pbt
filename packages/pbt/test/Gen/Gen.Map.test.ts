@@ -1,7 +1,6 @@
 import fc from 'fast-check';
 import { take } from 'ix/iterable/operators';
 import * as dev from '../../src/Gen';
-import * as devCore from '../../src/Core';
 import * as domainGen from './Helpers/domainGen';
 import { iterateOutcomes, iterateTrees } from './Helpers/genRunner';
 
@@ -35,7 +34,7 @@ test('It also applies the mapping to the shrinks', () => {
         const mappedTrees = iterateTrees(mappedGen, runParams);
 
         for (const tree of mappedTrees) {
-          for (const outcome of take(10)(devCore.Tree.traverse(tree))) {
+          for (const outcome of take(10)(dev.Tree.traverse(tree))) {
             expect(outcome).toEqual(mappedSymbol);
           }
         }

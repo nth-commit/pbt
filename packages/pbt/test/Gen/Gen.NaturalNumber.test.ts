@@ -1,5 +1,4 @@
 import fc from 'fast-check';
-import * as devCore from '../../src/Core';
 import * as dev from '../../src/Gen';
 import * as domainGen from './Helpers/domainGen';
 import { iterate, iterateAsOutcomes, iterateAsTrees } from './Helpers/genRunner';
@@ -71,7 +70,7 @@ test('Regression tests', () => {
       const gen = genFactories[genLabel as Gens_NaturalNumber](10);
 
       const formattedIterations = iterateAsTrees(gen, { seed, size, iterations }).map((tree) =>
-        devCore.Tree.format(devCore.Tree.map(tree, (x) => x.toString())),
+        dev.Tree.format(dev.Tree.map(tree, (x) => x.toString())),
       );
 
       formattedIterations.forEach((result, i) =>
