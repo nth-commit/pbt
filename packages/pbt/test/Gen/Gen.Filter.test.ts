@@ -1,7 +1,6 @@
 import fc from 'fast-check';
 import { take } from 'ix/iterable/operators';
 import * as dev from '../../src/Gen';
-import * as devCore from '../../src/Core';
 import * as domainGen from './Helpers/domainGen';
 import { iterate, iterateOutcomes, iterateTrees } from './Helpers/genRunner';
 
@@ -71,7 +70,7 @@ test('It also applies the filter to the shrinks', () => {
         const filteredTrees = iterateTrees(filteredGen, runParams);
 
         for (const tree of filteredTrees) {
-          for (const outcome of take(10)(devCore.Tree.traverse(tree))) {
+          for (const outcome of take(10)(dev.Tree.traverse(tree))) {
             expect(predicate(outcome)).toEqual(true);
           }
         }

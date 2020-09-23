@@ -1,7 +1,6 @@
 import { concat, empty, of, pipe } from 'ix/iterable';
 import { map as mapIterable, filter as filterIterable, flatMap as flatMapIterable } from 'ix/iterable/operators';
-import { Tree } from '../Core';
-import { takeWhileInclusive as takeWhileInclusiveIterable } from '../Core/iterableOperators';
+import { Tree, takeWhileInclusive as takeWhileInclusiveIterable } from './Imports';
 import { Gen, GenIteration } from './Gen';
 import * as SeedExtensions from './SeedExtensions';
 import { Shrinker } from './Shrink';

@@ -1,5 +1,4 @@
 import fc from 'fast-check';
-import * as devCore from '../../src/Core';
 import * as dev from '../../src/Gen';
 import * as domainGen from './Helpers/domainGen';
 import { iterate, iterateTrees } from './Helpers/genRunner';
@@ -46,7 +45,7 @@ test('Snapshot', () => {
 
   for (const [size, iterations] of iterationsBySize.entries()) {
     iterateTrees(flatMappedGen, { seed, size, iterations })
-      .map(devCore.Tree.format)
+      .map(dev.Tree.format)
       .forEach((result, i) => expect(result).toMatchSnapshot(`size=${size} iteration=${i + 1}`));
   }
 });

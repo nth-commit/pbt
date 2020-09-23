@@ -63,13 +63,6 @@ export const set = <Value>(
   maxLength: number,
 ): fc.Arbitrary<Set<Value>> => fc.set(elementGen, minLength, maxLength).map((s) => new Set(s));
 
-export const iterable = (minLength: number, maxLength: number) =>
-  fc.oneof(
-    fc.array(fc.anything(), minLength, maxLength),
-    fc.set(fc.anything(), minLength, maxLength).map((x) => new Set(x)),
-    fc.array(fc.tuple(fc.anything(), fc.anything()), minLength, maxLength).map((entries) => new Map(entries)),
-  );
-
 export const collection = (minLength: number, maxLength: number) =>
   fc.oneof(
     fc.array(fc.anything(), minLength, maxLength),

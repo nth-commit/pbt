@@ -1,6 +1,6 @@
 import { concat, empty, generate, of, pipe } from 'ix/iterable';
 import { flatMap, map, skip } from 'ix/iterable/operators';
-import { iterableExtn } from './Imports';
+import { indexed } from './Imports';
 
 export type Shrinker<T> = (value: T) => Iterable<T>;
 
@@ -90,7 +90,7 @@ export namespace Shrink {
 
     return pipe(
       arr,
-      iterableExtn.indexed(),
+      indexed(),
       flatMap(({ value, index }) =>
         pipe(
           shrinker(value),

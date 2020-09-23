@@ -1,7 +1,6 @@
 import { of, pipe, empty, repeatValue } from 'ix/iterable';
 import { map } from 'ix/iterable/operators';
-import { Tree } from '../Core';
-import { Seed, Size } from './Imports';
+import { Seed, Size, Tree } from './Imports';
 import { Shrinker } from './Shrink';
 import * as SeedExtensions from './SeedExtensions';
 

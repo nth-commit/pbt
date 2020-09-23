@@ -1,8 +1,5 @@
-import fc from 'fast-check';
-import * as devCore from '../../src/Core';
 import * as dev from '../../src/Gen';
-import * as domainGen from './Helpers/domainGen';
-import { iterateAsOutcomes, iterateAsTrees, iterateOutcomes, iterateTrees } from './Helpers/genRunner';
+import { iterateAsTrees } from './Helpers/genRunner';
 
 type Gens_Array = 'array.unscaled' | 'array.scaleLinearly';
 
@@ -25,7 +22,7 @@ test('Regression tests', () => {
       const gen = genFactories[genLabel as Gens_Array](1, 4, dev.integer.unscaled(0, 2));
 
       iterateAsTrees(gen, { seed, size, iterations })
-        .map((tree) => devCore.Tree.format(devCore.Tree.map(tree, (xs) => `[${xs.join(',')}]`)))
+        .map((tree) => dev.Tree.format(dev.Tree.map(tree, (xs) => `[${xs.join(',')}]`)))
         .forEach((result, i) =>
           expect(result).toMatchSnapshot(`scaleMode=${genLabel} size=${size} iteration=${i + 1}`),
         );

@@ -1,5 +1,4 @@
 import fc from 'fast-check';
-import * as devCore from '../../src/Core';
 import * as dev from '../../src/Gen';
 import { Gens_Ranged, Gens_Ranged_Constant, Gens_Ranged_Linear } from './Gen.Spec';
 import { iterateAsOutcomes, iterateTrees } from './Helpers/genRunner';
@@ -114,10 +113,10 @@ test.each(Object.keys(rangeFixtures))('It is also generates shrinks in range (%s
 
   fc.assert(
     fc.property(domainGen.runParams(), metaGen, (runParams, { gen, min, max }) => {
-      const trees = iterateTrees(gen, runParams).map((tree) => devCore.Tree.map(tree, getOrder));
+      const trees = iterateTrees(gen, runParams).map((tree) => dev.Tree.map(tree, getOrder));
 
       for (const tree of trees) {
-        for (const x of take(10)(devCore.Tree.traverse(tree))) {
+        for (const x of take(10)(dev.Tree.traverse(tree))) {
           expect(x).toBeGreaterThanOrEqual(min);
           expect(x).toBeLessThanOrEqual(max);
         }
