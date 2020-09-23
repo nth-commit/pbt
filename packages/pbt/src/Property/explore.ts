@@ -8,10 +8,10 @@ import { takeWhileInclusive } from '../Gen';
 
 type Gens<Values extends AnyValues> = { [P in keyof Values]: Gen<Values[P]> };
 
-const runGenUntilFirstInstance = (gen: Gen<unknown>, seed: Seed): Iterable<GenIteration<unknown>> =>
+const runGenUntilFirstInstance = (gen: Gen<unknown>, seed: Seed, size: Size): Iterable<GenIteration<unknown>> =>
   pipe(
     Seed.stream(seed),
-    flatMap((seed0) => gen(seed0, 0)),
+    flatMap((seed0) => gen(seed0, size)),
     takeWhileInclusive((iteration) => iteration.kind !== 'instance'),
   );
 
@@ -24,12 +24,13 @@ const collectInstancesWithReference = (treesRef: Tree<unknown>[]) => (iteration:
 const runGens = function* <Values extends AnyValues>(
   gens: Gens<Values>,
   seed: Seed,
+  size: Size,
 ): Iterable<Trees<Values> | 'discard' | 'exhaustion'> {
   const trees: Tree<unknown>[] = [];
 
   yield* pipe(
     zip(from(gens), Seed.stream(seed)),
-    flatMap(([gen, seed0]) => runGenUntilFirstInstance(gen, seed0)),
+    flatMap(([gen, seed0]) => runGenUntilFirstInstance(gen, seed0, size)),
     tap(collectInstancesWithReference(trees)),
     filter(GenIteration.isNotInstance),
     map((instance) => instance.kind),
@@ -42,33 +43,37 @@ const checkIfFalsifiable = <Values extends AnyValues>(
   f: PropertyFunction<Values>,
   trees: Trees<Values>,
   propertyIterationFactory: PropertyIterationFactory,
-  size: Size,
 ) => {
   const invocation = PropertyFunction.invoke(f, trees.map(Tree.outcome) as Values);
   return invocation.kind === 'success'
-    ? propertyIterationFactory.success(size)
-    : propertyIterationFactory.falsification(size, trees, invocation.reason);
+    ? propertyIterationFactory.success()
+    : propertyIterationFactory.falsification(trees, invocation.reason);
 };
 
 const exploreUnbounded = function* <Values extends AnyValues>(
   gens: Gens<Values>,
   f: PropertyFunction<Values>,
-  seed: Seed,
-  size: Size,
+  initialSeed: Seed,
+  initialSize: Size,
 ) {
-  let currentSeed = seed;
+  let currentSeed = initialSeed;
 
-  while (true) {
-    const propertyIterationFactory = PropertyIteration.factory(currentSeed);
+  for (let iterationNumber = 1; iterationNumber <= Number.MAX_SAFE_INTEGER; iterationNumber++) {
+    const iterationSizeOffset = iterationNumber - 1;
+    const untruncatedSize = initialSize + iterationSizeOffset;
+    const currentSize = ((untruncatedSize - 1) % 100) + 1;
+
+    const propertyIterationFactory = PropertyIteration.factory(currentSeed, currentSize);
+
     const [leftSeed, rightSeed] = currentSeed.split();
 
-    for (const treesOrFailStatus of runGens(gens, rightSeed)) {
+    for (const treesOrFailStatus of runGens(gens, rightSeed, currentSize)) {
       if (treesOrFailStatus === 'exhaustion') {
-        yield propertyIterationFactory.exhaustion(size);
+        yield propertyIterationFactory.exhaustion();
       } else if (treesOrFailStatus === 'discard') {
-        yield propertyIterationFactory.discard(size);
+        yield propertyIterationFactory.discard();
       } else {
-        yield checkIfFalsifiable(f, treesOrFailStatus, propertyIterationFactory, size);
+        yield checkIfFalsifiable(f, treesOrFailStatus, propertyIterationFactory);
       }
     }
 
