@@ -1,5 +1,5 @@
 import { Gen, Seed, Size, Tree } from './Imports';
-import { AnyValues, Trees } from './PropertyIteration';
+import { AnyValues } from './PropertyIteration';
 import { PropertyFunction } from './PropertyFunction';
 import { runGensAsBatch } from './runGensAsBatch';
 import { first, last, pipe } from 'ix/iterable';
@@ -35,10 +35,12 @@ const traverseShrinkPath = <Values extends AnyValues>(
   if (shrinkPathComponent === undefined) return tree;
 
   const currentTree = first(pipe(Tree.shrinks(tree), skip(shrinkPathComponent)));
+  /* istanbul ignore next */
   if (currentTree === undefined) {
     return null;
   }
 
+  /* istanbul ignore next */
   return traverseShrinkPath(currentTree, shrinkPath.slice(1));
 };
 
@@ -52,8 +54,7 @@ export const reproduceFailure = <Values extends AnyValues>(
   const [, rightSeed] = seed.split(); // Reproduce the initial split of the exploration.
 
   // TODO: pipe out all the discards from the gens
-  const trees = last(runGensAsBatch<Values>(gens, rightSeed, size)) as Trees<Values>;
-  const tree = Tree.combine(trees) as Tree<Values>;
+  const tree = last(runGensAsBatch<Values>(gens, rightSeed, size)) as Tree<Values>;
 
   const shrunkenTree = traverseShrinkPath(tree, shrinkPath);
   if (shrunkenTree === null) {

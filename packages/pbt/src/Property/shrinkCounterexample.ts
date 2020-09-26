@@ -1,10 +1,10 @@
+import { pipe } from 'ix/iterable';
+import { map, tap } from 'ix/iterable/operators';
 import { Tree } from './Imports';
 import { PropertyFunction, PropertyFunctionFailureReason } from './PropertyFunction';
 import { AnyValues } from './PropertyIteration';
 
-type Trees<Values extends AnyValues> = { [P in keyof Values]: Tree<Values[P]> };
-
-type Counterexample<Values extends AnyValues> =
+export type CounterexampleIteration<Values extends AnyValues> =
   | {
       kind: 'confirmed';
       values: Values;
@@ -20,7 +20,7 @@ type Counterexample<Values extends AnyValues> =
 const findDeepestLeftmostCounterexample = function* <Values extends AnyValues>(
   f: PropertyFunction<Values>,
   counterexampleCandidate: Tree<Values>,
-): Iterable<Counterexample<Values>> {
+): Iterable<CounterexampleIteration<Values>> {
   const values = Tree.outcome(counterexampleCandidate);
   const invocation = PropertyFunction.invoke(f, values);
   if (invocation.kind === 'success') {
@@ -32,7 +32,7 @@ const findDeepestLeftmostCounterexample = function* <Values extends AnyValues>(
     return;
   }
 
-  const confirmedCounterexample: Counterexample<Values> = {
+  const confirmedCounterexample: CounterexampleIteration<Values> = {
     kind: 'confirmed',
     reason: invocation.reason,
     path: [],
@@ -43,25 +43,32 @@ const findDeepestLeftmostCounterexample = function* <Values extends AnyValues>(
   const childCounterexampleCandidates = Tree.shrinks(counterexampleCandidate);
   let i = 0;
   for (const childCounterexampleCandidate of childCounterexampleCandidates) {
-    for (const childCounterexample of findDeepestLeftmostCounterexample(f, childCounterexampleCandidate)) {
-      yield {
-        ...childCounterexample,
-        path: [i, ...childCounterexample.path],
-      };
+    let hasConfirmedCounterexample = false;
 
-      if (childCounterexample.kind === 'rejected') {
-        return;
-      }
+    yield* pipe(
+      findDeepestLeftmostCounterexample(f, childCounterexampleCandidate),
+      map((x) => ({
+        ...x,
+        path: [i, ...x.path],
+      })),
+      tap((x) => {
+        if (x.kind === 'confirmed') {
+          hasConfirmedCounterexample = true;
+        }
+      }),
+    );
+
+    if (hasConfirmedCounterexample) {
+      break;
     }
+
     i++;
   }
 };
 
 export const shrinkCounterexample = <Values extends AnyValues>(
   f: PropertyFunction<Values>,
-  counterexample: Trees<Values>,
-): Iterable<Counterexample<Values>> => {
-  const counterexampleCandidate = Tree.combine(counterexample) as Tree<Values>;
-
-  return findDeepestLeftmostCounterexample(f, counterexampleCandidate);
+  counterexample: Tree<Values>,
+): Iterable<CounterexampleIteration<Values>> => {
+  return findDeepestLeftmostCounterexample(f, counterexample);
 };

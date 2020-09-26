@@ -33,7 +33,7 @@ test('For a fallible property, the arguments of the property function are the sa
         iterations: 1,
       });
 
-      const returnedOutcomes = falsification.counterexample.map(dev.Tree.outcome);
+      const returnedOutcomes = dev.Tree.outcome(falsification.counterexample);
       const spiedOutcomes = spyF.mock.calls[0];
       expect(returnedOutcomes).toEqual(spiedOutcomes);
     }),

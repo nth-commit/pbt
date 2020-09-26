@@ -52,7 +52,7 @@ test('Given a fallible property, after an exploration, it can reproduce the non-
           [],
         ) as dev.ReproductionResult.Reproducible<unknown[]>;
 
-        expect(reproduction.counterexample).toEqual(falsification.counterexample.map(dev.Tree.outcome));
+        expect(reproduction.counterexample).toEqual(dev.Tree.outcome(falsification.counterexample));
       },
     ),
   );

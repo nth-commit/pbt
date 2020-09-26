@@ -3,12 +3,10 @@ import { PropertyFunctionFailureReason } from './PropertyFunction';
 
 export type AnyValues = any[];
 
-export type Trees<Values extends AnyValues> = { [P in keyof Values]: Tree<Values[P]> };
-
 export type PropertyIterationFactory = {
   success: () => PropertyIteration.Success;
   falsification: <Values extends AnyValues>(
-    counterexample: Trees<Values>,
+    counterexample: Tree<Values>,
     reason: PropertyFunctionFailureReason,
   ) => PropertyIteration.Falsification<Values>;
   discard: () => PropertyIteration.Discard;
@@ -27,7 +25,7 @@ export namespace PropertyIteration {
   export type Falsification<Values extends AnyValues> = BasePropertyIterationResult<
     'falsification',
     {
-      counterexample: Trees<Values>;
+      counterexample: Tree<Values>;
       reason: PropertyFunctionFailureReason;
     }
   >;
@@ -40,7 +38,7 @@ export namespace PropertyIteration {
     success: (): Success => ({ kind: 'success', seed, size }),
 
     falsification: <Values extends AnyValues>(
-      counterexample: Trees<Values>,
+      counterexample: Tree<Values>,
       reason: PropertyFunctionFailureReason,
     ): Falsification<Values> => ({
       kind: 'falsification',

@@ -1,7 +1,7 @@
 import { pipe } from 'ix/iterable';
 import { Gen, Seed, Size, Tree } from './Imports';
 import { PropertyFunction } from './PropertyFunction';
-import { PropertyIteration, PropertyIterationFactory, AnyValues, Trees } from './PropertyIteration';
+import { PropertyIteration, PropertyIterationFactory, AnyValues } from './PropertyIteration';
 import { Property } from './Property';
 import { takeWhileInclusive } from '../Gen';
 import { runGensAsBatch } from './runGensAsBatch';
@@ -10,13 +10,13 @@ type Gens<Values extends AnyValues> = { [P in keyof Values]: Gen<Values[P]> };
 
 const checkIfFalsifiable = <Values extends AnyValues>(
   f: PropertyFunction<Values>,
-  trees: Trees<Values>,
+  tree: Tree<Values>,
   propertyIterationFactory: PropertyIterationFactory,
 ) => {
-  const invocation = PropertyFunction.invoke(f, trees.map(Tree.outcome) as Values);
+  const invocation = PropertyFunction.invoke(f, Tree.outcome(tree) as Values);
   return invocation.kind === 'success'
     ? propertyIterationFactory.success()
-    : propertyIterationFactory.falsification(trees, invocation.reason);
+    : propertyIterationFactory.falsification(tree, invocation.reason);
 };
 
 const exploreUnbounded = function* <Values extends AnyValues>(

@@ -1,10 +1,12 @@
 import { pipe, from, zip } from 'ix/iterable';
 import { Gen, GenIteration, Seed, Size, Tree } from './Imports';
-import { AnyValues, Trees } from './PropertyIteration';
+import { AnyValues } from './PropertyIteration';
 import { filter, flatMap, map, tap } from 'ix/iterable/operators';
 import { takeWhileInclusive } from '../Gen';
 
 type Gens<Values extends AnyValues> = { [P in keyof Values]: Gen<Values[P]> };
+
+type Trees<Values extends AnyValues> = { [P in keyof Values]: Tree<Values[P]> };
 
 const runGenUntilFirstInstance = (gen: Gen<unknown>, seed: Seed, size: Size): Iterable<GenIteration<unknown>> =>
   pipe(
@@ -23,7 +25,7 @@ export const runGensAsBatch = function* <Values extends AnyValues>(
   gens: Gens<Values>,
   seed: Seed,
   size: Size,
-): Iterable<Trees<Values> | 'discard' | 'exhaustion'> {
+): Iterable<Tree<Values> | 'discard' | 'exhaustion'> {
   const trees: Tree<unknown>[] = [];
 
   yield* pipe(
@@ -34,5 +36,5 @@ export const runGensAsBatch = function* <Values extends AnyValues>(
     map((instance) => instance.kind),
   );
 
-  yield (trees as unknown) as Trees<Values>;
+  yield Tree.combine((trees as unknown) as Trees<Values>) as Tree<Values>;
 };

@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import { createHash } from 'crypto';
 import { mersenne } from 'pure-rand';
-import { empty } from 'ix/iterable';
+import * as dev from '../../src/Core';
 
 export type FunctionConstraints = {
   arity?: number;
@@ -26,7 +26,7 @@ export const func = <T, TArgs extends any[] = unknown[]>(
     .map((n) => {
       const f = (...args: TArgs): T => {
         const hashArgs = constraints.arity === undefined ? args : args.slice(0, constraints.arity);
-        const m = Number(getHexRepresentation(hashArgs).replace(/[a-f]/gi, '').slice(0, 10));
+        const m = parseInt(getHexRepresentation(hashArgs), 16);
         const seed = n + m;
         return genReturn.generate(new fc.Random(mersenne(seed))).value;
       };
