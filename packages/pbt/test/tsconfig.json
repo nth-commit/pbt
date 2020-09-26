@@ -1,6 +1,7 @@
 {
-  "extends": "../tsconfig.cjs.json",
+  "extends": "../tsconfig.esm.json",
   "compilerOptions": {
-    "types": ["node", "jest"]
+    "types": ["node", "jest"],
+    "esModuleInterop": true
   }
 }

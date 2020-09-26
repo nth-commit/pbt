@@ -35,16 +35,18 @@ export const infallibleFunc = (): fc.Arbitrary<dev.PropertyFunction<unknown[]>> 
 
 export const fallibleFunc = (): fc.Arbitrary<dev.PropertyFunction<unknown[]>> =>
   sharedDomainGen.func(
-    fc.frequency(
-      {
-        weight: 2,
-        arbitrary: fc.constant(true),
-      },
-      {
-        weight: 1,
-        arbitrary: fc.constant(false),
-      },
-    ),
+    fc
+      .frequency(
+        {
+          weight: 2,
+          arbitrary: fc.constant(true),
+        },
+        {
+          weight: 1,
+          arbitrary: fc.constant(false),
+        },
+      )
+      .noBias(),
   );
 
 export const shuffle = <T>(arr: T[]): fc.Arbitrary<T[]> =>
