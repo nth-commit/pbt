@@ -1,5 +1,5 @@
 import { Seed, Size, Tree } from './Imports';
-import { PropertyFunctionFailureReason } from './PropertyFunction';
+import { PropertyFailureReason } from './PropertyFunction';
 
 export type AnyValues = any[];
 
@@ -7,7 +7,7 @@ export type PropertyIterationFactory = {
   unfalsified: () => PropertyExplorationIteration.Unfalsified;
   falsified: <Values extends AnyValues>(
     counterexample: Tree<Values>,
-    reason: PropertyFunctionFailureReason,
+    reason: PropertyFailureReason,
   ) => PropertyExplorationIteration.Falsified<Values>;
   discarded: () => PropertyExplorationIteration.Discarded;
   exhausted: () => PropertyExplorationIteration.Exhausted;
@@ -26,7 +26,7 @@ export namespace PropertyExplorationIteration {
     'falsified',
     {
       counterexample: Tree<Values>;
-      reason: PropertyFunctionFailureReason;
+      reason: PropertyFailureReason;
     }
   >;
 
@@ -39,7 +39,7 @@ export namespace PropertyExplorationIteration {
 
     falsified: <Values extends AnyValues>(
       counterexample: Tree<Values>,
-      reason: PropertyFunctionFailureReason,
+      reason: PropertyFailureReason,
     ): Falsified<Values> => ({
       kind: 'falsified',
       seed,

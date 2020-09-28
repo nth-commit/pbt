@@ -15,7 +15,7 @@ type Gens<Values extends AnyValues> = { [P in keyof Values]: Gen<Values[P]> };
 namespace PropertyPreResult {
   export type PreFalsification<Values extends AnyValues> = Omit<
     PropertyResult.Falsified<Values>,
-    'kind' | 'counterexample' | 'shrinkIteration'
+    'kind' | 'counterexample' | 'shrinkIterations'
   > & {
     kind: 'preFalsified';
     counterexampleTree: Tree<Values>;
@@ -40,7 +40,7 @@ const generateResults = <Values extends AnyValues>(
 ): Iterable<PropertyResult<Values>> => {
   const result0: PropertyPreResult<Values> = {
     kind: 'unfalsified',
-    iteration: 0,
+    iterations: 0,
     discards: 0,
     seed,
     size,
@@ -86,7 +86,7 @@ const consumePropertyExploration = <Values extends AnyValues>(
     case 'unfalsified':
       return {
         kind: iteration.kind,
-        iteration: previousResult.iteration + 1,
+        iterations: previousResult.iterations + 1,
         discards: previousResult.discards,
         seed: iteration.seed,
         size: iteration.size,
@@ -94,7 +94,7 @@ const consumePropertyExploration = <Values extends AnyValues>(
     case 'falsified':
       return {
         kind: 'preFalsified',
-        iteration: previousResult.iteration + 1,
+        iterations: previousResult.iterations + 1,
         discards: previousResult.discards,
         seed: iteration.seed,
         size: iteration.size,
@@ -112,28 +112,28 @@ const consumeShrunkenExample = <Values extends AnyValues>(
   iteration.kind === 'counterexample'
     ? {
         ...previousResult,
-        shrinkIteration: previousResult.shrinkIteration + 1,
+        shrinkIterations: previousResult.shrinkIterations + 1,
         counterexamplePath: iteration.path,
         counterexample: iteration.values,
         reason: iteration.reason,
       }
     : {
         ...previousResult,
-        shrinkIteration: previousResult.shrinkIteration + 1,
+        shrinkIterations: previousResult.shrinkIterations + 1,
       };
 
 const mapPreFalsificationToFalsification = <Values extends AnyValues>(
   preFalsification: PropertyPreResult.PreFalsification<Values>,
 ): PropertyResult.Falsified<Values> => ({
   kind: 'falsified',
-  iteration: preFalsification.iteration,
+  iterations: preFalsification.iterations,
   discards: preFalsification.discards,
   seed: preFalsification.seed,
   size: preFalsification.size,
   counterexample: Tree.outcome(preFalsification.counterexampleTree),
   counterexamplePath: preFalsification.counterexamplePath,
   reason: preFalsification.reason,
-  shrinkIteration: 0,
+  shrinkIterations: 0,
 });
 
 const mapPreResultToResult = <Values extends AnyValues>(

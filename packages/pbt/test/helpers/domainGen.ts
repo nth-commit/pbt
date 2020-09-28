@@ -1,7 +1,8 @@
 import fc from 'fast-check';
 import { createHash } from 'crypto';
 import { mersenne } from 'pure-rand';
-import * as dev from '../../src/Core';
+import * as dev from '../../src/Public';
+import * as devCore from '../../src/Core';
 
 export type FunctionConstraints = {
   arity?: number;
@@ -36,3 +37,29 @@ export const func = <T, TArgs extends any[] = unknown[]>(
       return f;
     });
 };
+
+export const gen = (): fc.Arbitrary<dev.Gen<unknown>> => fc.constant(dev.gen.naturalNumber.unscaled(10));
+
+export const gens = (): fc.Arbitrary<dev.Gen<unknown>[]> => fc.array(gen(), 0, 10);
+
+export const infallibleFunc = (): fc.Arbitrary<dev.PropertyFunction<unknown[]>> =>
+  fc.constantFrom(
+    () => true,
+    () => {},
+  );
+
+export const fallibleFunc = (): fc.Arbitrary<dev.PropertyFunction<unknown[]>> =>
+  func(
+    fc
+      .frequency(
+        {
+          weight: 2,
+          arbitrary: fc.constant(true),
+        },
+        {
+          weight: 1,
+          arbitrary: fc.constant(false),
+        },
+      )
+      .noBias(),
+  );

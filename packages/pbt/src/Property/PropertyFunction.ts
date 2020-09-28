@@ -1,19 +1,17 @@
 import { AnyValues } from './PropertyIteration';
 
-export namespace PropertyFunctionFailureReason {
+export namespace PropertyFailureReason {
   export type ReturnedFalse = { kind: 'returnedFalse' };
 
   export type ThrewError = { kind: 'threwError'; error: unknown };
 }
 
-export type PropertyFunctionFailureReason =
-  | PropertyFunctionFailureReason.ReturnedFalse
-  | PropertyFunctionFailureReason.ThrewError;
+export type PropertyFailureReason = PropertyFailureReason.ReturnedFalse | PropertyFailureReason.ThrewError;
 
 export namespace PropertyFunctionInvocation {
   export type Success = { kind: 'success' };
 
-  export type Failure = { kind: 'failure'; reason: PropertyFunctionFailureReason };
+  export type Failure = { kind: 'failure'; reason: PropertyFailureReason };
 
   export const success = (): Success => ({ kind: 'success' });
 

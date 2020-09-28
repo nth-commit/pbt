@@ -10,7 +10,7 @@ test("It's results are repeatible", () => {
 
       const results = propertyRunner
         .iterate(property, runParams)
-        .filter((result) => result.kind !== 'falsified' || result.shrinkIteration === 0);
+        .filter((result) => result.kind !== 'falsified' || result.shrinkIterations === 0);
 
       for (const result of results) {
         const resultRepeated = propertyRunner.single(property, {
