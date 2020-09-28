@@ -14,7 +14,7 @@ test('Given an invalid shrink path, it returns a validation error', () => {
       (runParams, gens, f, shrinkPath) => {
         const unshrinkingGens = gens.map(devGen.noShrink); // No non-empty shrink path will be valid
 
-        const reproduction = dev.reproduceFailure(unshrinkingGens, f, runParams.seed, runParams.size, shrinkPath);
+        const reproduction = dev.reproduce(unshrinkingGens, f, runParams.seed, runParams.size, shrinkPath);
 
         expect(reproduction.kind).toEqual('validationError');
       },
@@ -22,17 +22,24 @@ test('Given an invalid shrink path, it returns a validation error', () => {
   );
 });
 
-test('Given an infallible property, it returns non-reproducible', () => {
+test('Given an infallible property function, it is unfalsified', () => {
   fc.assert(
     fc.property(domainGen.runParams(), domainGen.gens(), domainGen.infallibleFunc(), (runParams, gens, f) => {
-      const reproduction = dev.reproduceFailure(gens, f, runParams.seed, runParams.size, []);
+      const result = dev.reproduce(gens, f, runParams.seed, runParams.size, []);
 
-      expect(reproduction.kind).toEqual('unreproducible');
+      const expectedResult: dev.PropertyResult<unknown[]> = {
+        kind: 'unfalsified',
+        iterations: 1,
+        discards: 0,
+        seed: runParams.seed,
+        size: runParams.size,
+      };
+      expect(result).toEqual(expectedResult);
     }),
   );
 });
 
-test('Given a fallible property, after an exploration, it can reproduce the non-shrunk result', () => {
+test('Given a fallible property function, after an exploration, it can reproduce the non-shrunk result', () => {
   fc.assert(
     fc.property(
       domainGen.runParams(),
@@ -41,25 +48,25 @@ test('Given a fallible property, after an exploration, it can reproduce the non-
       (runParams, gens, f) => {
         const property = dev.property<unknown[]>(gens, f);
 
-        const falsification = propertyRunner
+        const initialFalsification = propertyRunner
           .iterate(property, { ...runParams, iterations: 100 })
           .find((result) => result.kind === 'falsified') as dev.PropertyResult.Falsified<unknown[]>;
 
-        const reproduction = dev.reproduceFailure(
+        const reproducedFalsification = dev.reproduce(
           gens,
           f,
-          falsification.seed,
-          falsification.size,
+          initialFalsification.seed,
+          initialFalsification.size,
           [],
-        ) as dev.ReproductionResult.Reproducible<unknown[]>;
+        );
 
-        expect(reproduction.counterexample).toEqual(falsification.counterexample);
+        expect(initialFalsification).toEqual(reproducedFalsification);
       },
     ),
   );
 });
 
-test('Given a fallible property, after an exploration and a shrink, it can reproduce the shrunk result', () => {
+test('Given a fallible property function, after an exploration and a shrink, it can reproduce the shrunk result', () => {
   fc.assert(
     fc.property(
       domainGen.runParams(),
@@ -68,20 +75,24 @@ test('Given a fallible property, after an exploration and a shrink, it can repro
       (runParams, gens, f) => {
         const property = dev.property<unknown[]>(gens, f);
 
-        const falsification = propertyRunner.last(property, {
+        const initialFalsification = propertyRunner.last(property, {
           ...runParams,
           iterations: 100,
         }) as dev.PropertyResult.Falsified<unknown[]>;
 
-        const reproduction = dev.reproduceFailure(
+        const reproducedFalsification = dev.reproduce(
           gens,
           f,
-          falsification.seed,
-          falsification.size,
-          falsification.counterexamplePath,
-        ) as dev.ReproductionResult.Reproducible<unknown[]>;
+          initialFalsification.seed,
+          initialFalsification.size,
+          initialFalsification.counterexamplePath,
+        );
 
-        expect(reproduction.counterexample).toEqual(falsification.counterexample);
+        const expectedFalsification: dev.PropertyResult.Falsified<unknown[]> = {
+          ...initialFalsification,
+          shrinkIterations: expect.anything(),
+        };
+        expect(expectedFalsification).toEqual(reproducedFalsification);
       },
     ),
   );

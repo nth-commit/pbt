@@ -99,7 +99,7 @@ export class Property<Values extends AnyValues> implements RandomStream<Property
         ? this.config.counterexamplePath.split(':').map((n) => parseInt(n))
         : [];
 
-      const internalResult = InternalProperty.reproduceFailure(
+      const internalResult = InternalProperty.reproduce(
         internalGens,
         this.f,
         internalSeed,
@@ -109,20 +109,10 @@ export class Property<Values extends AnyValues> implements RandomStream<Property
 
       switch (internalResult.kind) {
         case 'validationError':
-        case 'unreproducible':
           throw new Error(`Fatal: Unhandled - ${JSON.stringify(internalResult)}`);
-        case 'reproducible':
-          return of<PropertyResult<Values>>({
-            kind: 'falsified',
-            iterations: 1,
-            discards: 0,
-            shrinkIterations: 1,
-            reason: null as any,
-            counterexample: internalResult.counterexample,
-            counterexamplePath: this.config.counterexamplePath,
-            seed: seed,
-            size: size,
-          });
+        case 'unfalsified':
+        case 'falsified':
+          return of<PropertyResult<Values>>(mapInternalResultToPublic(internalResult));
       }
     }
   }
