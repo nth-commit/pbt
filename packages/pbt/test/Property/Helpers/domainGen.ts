@@ -1,10 +1,7 @@
 import fc from 'fast-check';
-import { mersenne } from 'pure-rand';
-import { empty, pipe } from 'ix/iterable';
 import * as dev from '../../../src/Property';
 import * as devGen from '../../../src/Gen';
 import * as sharedDomainGen from '../../helpers/domainGen';
-import { map } from 'ix/iterable/operators';
 
 export type PropertyRunParams = {
   seed: dev.Seed;

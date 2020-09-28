@@ -16,7 +16,7 @@ export type PropertyIterationComparison<T> =
   | {
       kind: 'falsified';
       counterexample: TreeComparison<T>;
-      reason: dev.PropertyFunctionFailureReason;
+      reason: dev.PropertyFailureReason;
       seed: number;
       size: number;
     };

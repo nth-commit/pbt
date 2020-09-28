@@ -31,7 +31,7 @@ test('It invokes the property function for each iteration and shrink', () => {
       const lastIteration = propertyRunner.last(property, runParams);
 
       const expectedIterations =
-        lastIteration.iteration + (lastIteration.kind === 'falsified' ? lastIteration.shrinkIteration : 0);
+        lastIteration.iterations + (lastIteration.kind === 'falsified' ? lastIteration.shrinkIterations : 0);
       expect(spyF).toBeCalledTimes(expectedIterations);
     }),
   );

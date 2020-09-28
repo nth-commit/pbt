@@ -1,32 +1,19 @@
-import { assert, property, gen } from 'pbt-0.0.1';
+import * as fc from 'fast-check';
 import * as dev from '../../src/Public';
-import * as domainGen from './Helpers/domainGenV2';
+import * as domainGen from './Helpers/domainGen';
+import * as spies from '../helpers/spies';
+import * as PropertyResultHelpers from './Helpers/PropertyResultHelpers';
 
-const asFailure = <Values extends dev.AnyValues>(propertyResult: any): any => propertyResult as any;
-
-const expectCounterexample = <Values extends dev.AnyValues>(propertyResult: any, counterexample: Values): void => {
-  try {
-    expect(asFailure(propertyResult).counterexample).toEqual(counterexample);
-  } catch (e) {
-    console.log({
-      seed: propertyResult.seed.valueOf(),
-      size: propertyResult.size,
-      iteration: propertyResult.iteration,
-    });
-    throw e;
-  }
-};
-
-test('A true predicate property returns a success result', () => {
-  assert(
-    property(domainGen.seed(), (seed) => {
+test('A property formed by a true predicate returns an unfalsified result', () => {
+  fc.assert(
+    fc.property(domainGen.seed(), (seed) => {
       const p = dev.property(() => true);
 
       const result = dev.check(p, { seed });
 
       const expectedResult: dev.PropertyResult<[]> = {
         kind: 'unfalsified',
-        iteration: 100,
+        iterations: 100,
         discards: 0,
         seed: expect.anything(),
         size: expect.anything(),
@@ -36,45 +23,44 @@ test('A true predicate property returns a success result', () => {
   );
 });
 
-test('A false predicate property returns a success result', () => {
-  assert(
-    property(domainGen.seed(), (seed) => {
+test('A property formed by a false predicate returns a falsified result', () => {
+  fc.assert(
+    fc.property(domainGen.seed(), (seed) => {
       const p = dev.property(() => false);
 
       const result = dev.check(p, { seed });
 
       const expectedResult: dev.PropertyResult<[]> = {
         kind: 'falsified',
-        iteration: 1,
+        iterations: 1,
         discards: 0,
         seed: expect.anything(),
         size: expect.anything(),
         counterexample: [],
-        counterexamplePath: [],
+        counterexamplePath: '',
         reason: { kind: 'returnedFalse' },
-        shrinkIteration: expect.anything(),
+        shrinkIterations: expect.anything(),
       };
       expect(result).toEqual(expectedResult);
     }),
   );
 });
 
-test('It finds the minimal shrink: a list that is expected to be in reverse order', () => {
-  // https://github.com/jlink/shrinking-challenge/blob/main/challenges/reverse.md
-  assert(
-    property(domainGen.seed(), (seed) => {
-      const integer = dev.gen.naturalNumber.scaleLinearly(100);
-      const arr = dev.gen.array.scaleLinearly(2, 10, integer);
+test('A property failure can be reproduced in a single iteration', () => {
+  fc.assert(
+    fc.property(domainGen.seed(), domainGen.gens(), domainGen.fallibleFunc(), (seed, gens, f) => {
+      const spiedF = spies.spyOn(f);
+      const p0 = dev.property(...gens, spiedF);
+      const result0 = PropertyResultHelpers.asFalsified(dev.check(p0, { seed }));
 
-      const p = dev.property(arr, (xs) => {
-        const xs0 = [...xs].sort((a, b) => b - a);
+      spiedF.mockClear();
+      const p1 = p0.configure({ counterexamplePath: result0.counterexamplePath });
+      const result1 = PropertyResultHelpers.asFalsified(
+        dev.check(p1, { seed: result0.seed, size: result0.size, counterexamplePath: result0.counterexamplePath }),
+      );
 
-        expect(xs).toEqual(xs0);
-      });
-
-      const result = dev.check(p, { seed });
-
-      expectCounterexample(result, [[0, 1]]);
+      expect(result1.counterexample).toEqual(result0.counterexample);
+      expect(spiedF).toBeCalledTimes(1);
     }),
   );
 });

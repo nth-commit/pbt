@@ -2,7 +2,7 @@ import { pipe } from 'ix/iterable';
 import { map, skip, tap } from 'ix/iterable/operators';
 import { indexed } from '../Gen';
 import { Tree } from './Imports';
-import { PropertyFunction, PropertyFunctionFailureReason } from './PropertyFunction';
+import { PropertyFunction, PropertyFailureReason } from './PropertyFunction';
 import { AnyValues } from './PropertyIteration';
 
 export type ShrunkenExampleIteration<Values extends AnyValues> =
@@ -10,7 +10,7 @@ export type ShrunkenExampleIteration<Values extends AnyValues> =
       kind: 'counterexample';
       values: Values;
       path: number[];
-      reason: PropertyFunctionFailureReason;
+      reason: PropertyFailureReason;
     }
   | {
       kind: 'nonCounterexample';

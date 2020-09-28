@@ -1,4 +1,4 @@
-import { Seed, Size } from '../Core';
+import * as Core from '../Core';
 import * as InternalGen from '../Gen';
 import { RandomStream } from './RandomStream';
 
@@ -35,13 +35,18 @@ export class Gen<T> implements RandomStream<InternalGen.GenIteration<T>> {
     return new Gen<T>(InternalGen.postShrink(this.genFunction, shrinker));
   }
 
-  run(seed: Seed, size: Size): Iterable<InternalGen.GenIteration<T>> {
-    return this.genFunction(seed, size);
+  run(seed: number, size: number): Iterable<InternalGen.GenIteration<T>> {
+    const internalGen = this.genFunction;
+
+    const internalSeed = Core.Seed.create(seed);
+    const internalIterations = internalGen(internalSeed, size);
+
+    return internalIterations;
   }
 }
 
 export const gen = {
-  create: <T>(f: (seed: Seed, size: Size) => T, shrinker: InternalGen.Shrinker<T>): Gen<T> =>
+  create: <T>(f: (seed: Core.Seed, size: Core.Size) => T, shrinker: InternalGen.Shrinker<T>): Gen<T> =>
     new Gen(InternalGen.create(f, shrinker)),
 
   integer: {

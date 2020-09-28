@@ -119,7 +119,7 @@ test('Given gens that discard at a rate of 50%, it is feasible for the property 
 
       const lastIteration = propertyRunner.last(property, { ...runParams, iterations: 100 });
 
-      expect(lastIteration.iteration).toBeGreaterThanOrEqual(0);
+      expect(lastIteration.iterations).toBeGreaterThanOrEqual(0);
     }),
   );
 });
