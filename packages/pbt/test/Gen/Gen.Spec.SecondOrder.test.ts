@@ -33,10 +33,11 @@ test.each(Object.keys(gens))('It discards when the input gen discards (%s)', (ge
     fc.property(domainGen.runParams(), domainGen.gen(), genSecondOrderGen, (runParams, baseGen, secondOrderGen) => {
       const gen = secondOrderGen(dev.filter(baseGen, () => false));
 
-      const genIterations = iterate(gen, runParams);
+      const iterations = iterate(gen, runParams);
 
-      genIterations.forEach((genIteration) => {
-        expect(genIteration.kind).toEqual('discard');
+      iterations.forEach((iteration) => {
+        const expectedKind: dev.GenIteration<unknown>['kind'] = 'discarded';
+        expect(iteration.kind).toEqual(expectedKind);
       });
     }),
   );
@@ -50,9 +51,12 @@ test.each(Object.keys(gens))('It exhausts when the input gen exhausts (%s)', (ge
       const baseGen = dev.exhausted();
       const gen = secondOrderGen(baseGen);
 
-      const genIterations = iterate(gen, runParams);
+      const iterations = iterate(gen, runParams);
 
-      expect(genIterations).toEqual([{ kind: 'exhaustion' }]);
+      const expectedIteration: dev.GenIteration<unknown> = {
+        kind: 'exhausted',
+      };
+      expect(iterations).toEqual([expectedIteration]);
     }),
   );
 });

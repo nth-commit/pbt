@@ -4,58 +4,58 @@ import { PropertyFunctionFailureReason } from './PropertyFunction';
 export type AnyValues = any[];
 
 export type PropertyIterationFactory = {
-  success: () => PropertyIteration.Success;
-  falsification: <Values extends AnyValues>(
+  unfalsified: () => PropertyExplorationIteration.Unfalsified;
+  falsified: <Values extends AnyValues>(
     counterexample: Tree<Values>,
     reason: PropertyFunctionFailureReason,
-  ) => PropertyIteration.Falsification<Values>;
-  discard: () => PropertyIteration.Discard;
-  exhaustion: () => PropertyIteration.Exhaustion;
+  ) => PropertyExplorationIteration.Falsified<Values>;
+  discarded: () => PropertyExplorationIteration.Discarded;
+  exhausted: () => PropertyExplorationIteration.Exhausted;
 };
 
-export namespace PropertyIteration {
+export namespace PropertyExplorationIteration {
   type BasePropertyIterationResult<Kind extends string, Props> = {
     kind: Kind;
     seed: Seed;
     size: Size;
   } & Props;
 
-  export type Success = BasePropertyIterationResult<'success', {}>;
+  export type Unfalsified = BasePropertyIterationResult<'unfalsified', {}>;
 
-  export type Falsification<Values extends AnyValues> = BasePropertyIterationResult<
-    'falsification',
+  export type Falsified<Values extends AnyValues> = BasePropertyIterationResult<
+    'falsified',
     {
       counterexample: Tree<Values>;
       reason: PropertyFunctionFailureReason;
     }
   >;
 
-  export type Discard = BasePropertyIterationResult<'discard', {}>;
+  export type Discarded = BasePropertyIterationResult<'discarded', {}>;
 
-  export type Exhaustion = BasePropertyIterationResult<'exhaustion', {}>;
+  export type Exhausted = BasePropertyIterationResult<'exhausted', {}>;
 
   export const factory = (seed: Seed, size: Size): PropertyIterationFactory => ({
-    success: (): Success => ({ kind: 'success', seed, size }),
+    unfalsified: (): Unfalsified => ({ kind: 'unfalsified', seed, size }),
 
-    falsification: <Values extends AnyValues>(
+    falsified: <Values extends AnyValues>(
       counterexample: Tree<Values>,
       reason: PropertyFunctionFailureReason,
-    ): Falsification<Values> => ({
-      kind: 'falsification',
+    ): Falsified<Values> => ({
+      kind: 'falsified',
       seed,
       size,
       counterexample,
       reason,
     }),
 
-    discard: (): Discard => ({ kind: 'discard', seed, size }),
+    discarded: (): Discarded => ({ kind: 'discarded', seed, size }),
 
-    exhaustion: (): Exhaustion => ({ kind: 'exhaustion', seed, size }),
+    exhausted: (): Exhausted => ({ kind: 'exhausted', seed, size }),
   });
 }
 
-export type PropertyIteration<Values extends AnyValues> =
-  | PropertyIteration.Success
-  | PropertyIteration.Falsification<Values>
-  | PropertyIteration.Discard
-  | PropertyIteration.Exhaustion;
+export type PropertyExplorationIteration<Values extends AnyValues> =
+  | PropertyExplorationIteration.Unfalsified
+  | PropertyExplorationIteration.Falsified<Values>
+  | PropertyExplorationIteration.Discarded
+  | PropertyExplorationIteration.Exhausted;

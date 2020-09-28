@@ -2,25 +2,25 @@ import fc from 'fast-check';
 import * as dev from '../../src/Property';
 import * as domainGen from './Helpers/domainGen';
 import * as propertyRunner from './Helpers/propertyRunner';
-import * as compare from './Helpers/compare';
 
-test("It's iterations are repeatible", () => {
+test("It's results are repeatible", () => {
   fc.assert(
     fc.property(domainGen.runParams(), domainGen.gens(), domainGen.fallibleFunc(), (runParams, gens, f) => {
-      const property = dev.explore<unknown[]>(gens, f);
+      const property = dev.property<unknown[]>(gens, f);
 
-      runParams.iterations = 1;
-      const iterations = propertyRunner.iterate(property, runParams);
+      const results = propertyRunner
+        .iterate(property, runParams)
+        .filter((result) => result.kind !== 'falsified' || result.shrinkIteration === 0);
 
-      for (const iteration of iterations) {
-        const iterationRepeated = propertyRunner.iterate(property, {
+      for (const result of results) {
+        const resultRepeated = propertyRunner.single(property, {
           ...runParams,
-          seed: iteration.seed,
-          size: iteration.size,
+          seed: result.seed,
+          size: result.size,
           iterations: 1,
-        })[0];
+        });
 
-        expect(compare.propertyIteration(iterationRepeated)).toEqual(compare.propertyIteration(iteration));
+        expect(resultRepeated).toEqual(result);
       }
     }),
   );

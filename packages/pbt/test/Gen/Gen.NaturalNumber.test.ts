@@ -33,9 +33,12 @@ test.each(Object.keys(genFactories))('When max < 0, it exhausts (%s)', (genLabel
     fc.property(domainGen.runParams(), domainGen.negativeInteger(), (runParams, max) => {
       const gen = genFactory(max);
 
-      const genIterations = iterate(gen, { ...runParams });
+      const iterations = iterate(gen, { ...runParams });
 
-      expect(genIterations).toEqual([{ kind: 'exhaustion' }]);
+      const expectedIteration: dev.GenIteration<unknown> = {
+        kind: 'exhausted',
+      };
+      expect(iterations).toEqual([expectedIteration]);
     }),
   );
 });
@@ -47,10 +50,14 @@ test.each(Object.keys(genFactories))('When max is not supplie, it is aiiiiight (
     fc.property(domainGen.runParams(), (runParams) => {
       const gen = genFactory();
 
-      const genIterations = iterate(gen, { ...runParams });
+      const iterations = iterate(gen, { ...runParams });
 
-      for (const genIteration of genIterations) {
-        expect(genIteration.kind).toEqual('instance');
+      for (const iteration of iterations) {
+        const expectedIteration: dev.GenIteration<unknown> = {
+          kind: 'instance',
+          tree: expect.anything(),
+        };
+        expect(iteration).toEqual(expectedIteration);
       }
     }),
   );

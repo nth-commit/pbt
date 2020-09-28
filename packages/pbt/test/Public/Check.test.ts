@@ -2,16 +2,11 @@ import { assert, property, gen } from 'pbt-0.0.1';
 import * as dev from '../../src/Public';
 import * as domainGen from './Helpers/domainGenV2';
 
-const asFailure = <Values extends dev.AnyValues>(
-  propertyResult: dev.PropertyResult<Values>,
-): dev.PropertyResult.Falsification<Values> => propertyResult as dev.PropertyResult.Falsification<Values>;
+const asFailure = <Values extends dev.AnyValues>(propertyResult: any): any => propertyResult as any;
 
-const expectCounterexample = <Values extends dev.AnyValues>(
-  propertyResult: dev.PropertyResult<Values>,
-  counterexample: Values,
-): void => {
+const expectCounterexample = <Values extends dev.AnyValues>(propertyResult: any, counterexample: Values): void => {
   try {
-    expect(asFailure(propertyResult).counterexample.values).toEqual(counterexample);
+    expect(asFailure(propertyResult).counterexample).toEqual(counterexample);
   } catch (e) {
     console.log({
       seed: propertyResult.seed.valueOf(),
@@ -30,8 +25,9 @@ test('A true predicate property returns a success result', () => {
       const result = dev.check(p, { seed });
 
       const expectedResult: dev.PropertyResult<[]> = {
-        kind: 'success',
+        kind: 'unfalsified',
         iteration: 100,
+        discards: 0,
         seed: expect.anything(),
         size: expect.anything(),
       };
@@ -48,14 +44,15 @@ test('A false predicate property returns a success result', () => {
       const result = dev.check(p, { seed });
 
       const expectedResult: dev.PropertyResult<[]> = {
-        kind: 'falsification',
+        kind: 'falsified',
         iteration: 1,
+        discards: 0,
         seed: expect.anything(),
         size: expect.anything(),
-        counterexample: {
-          path: [],
-          values: [],
-        },
+        counterexample: [],
+        counterexamplePath: [],
+        reason: { kind: 'returnedFalse' },
+        shrinkIteration: expect.anything(),
       };
       expect(result).toEqual(expectedResult);
     }),

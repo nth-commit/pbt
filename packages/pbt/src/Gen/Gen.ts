@@ -9,22 +9,22 @@ export namespace GenIteration {
     tree: Tree<T>;
   };
 
-  export type Discard = {
-    kind: 'discard';
+  export type Discarded = {
+    kind: 'discarded';
     value: unknown;
   };
 
-  export type Exhaustion = {
-    kind: 'exhaustion';
+  export type Exhausted = {
+    kind: 'exhausted';
   };
 
   export const isInstance = <T>(iteration: GenIteration<T>): iteration is Instance<T> => iteration.kind === 'instance';
 
-  export const isNotInstance = <T>(iteration: GenIteration<T>): iteration is Discard | Exhaustion =>
+  export const isNotInstance = <T>(iteration: GenIteration<T>): iteration is Discarded | Exhausted =>
     !isInstance(iteration);
 }
 
-export type GenIteration<T> = GenIteration.Instance<T> | GenIteration.Discard | GenIteration.Exhaustion;
+export type GenIteration<T> = GenIteration.Instance<T> | GenIteration.Discarded | GenIteration.Exhausted;
 
 export type Gen<T> = (seed: Seed, size: Size) => Iterable<GenIteration<T>>;
 
@@ -40,7 +40,7 @@ const generateInstance = <T>(f: (seed: Seed, size: Size) => T, shrink: Shrinker<
 export const create = <T>(f: (seed: Seed, size: Size) => T, shrink: Shrinker<T>): Gen<T> => (seed: Seed, size: Size) =>
   pipe(Seed.stream(seed), map(generateInstance(f, shrink, size)));
 
-export const exhausted = <T>(): Gen<T> => () => of({ kind: 'exhaustion' });
+export const exhausted = <T>(): Gen<T> => () => of<GenIteration.Exhausted>({ kind: 'exhausted' });
 
 export const constant = <T>(x: T): Gen<T> => () => {
   const instance: GenIteration.Instance<T> = {

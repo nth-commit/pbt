@@ -25,7 +25,7 @@ export const runGensAsBatch = function* <Values extends AnyValues>(
   gens: Gens<Values>,
   seed: Seed,
   size: Size,
-): Iterable<Tree<Values> | 'discard' | 'exhaustion'> {
+): Iterable<Tree<Values> | 'discarded' | 'exhausted'> {
   const trees: Tree<unknown>[] = [];
 
   yield* pipe(

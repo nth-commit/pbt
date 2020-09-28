@@ -35,12 +35,10 @@ const traverseShrinkPath = <Values extends AnyValues>(
   if (shrinkPathComponent === undefined) return tree;
 
   const currentTree = first(pipe(Tree.shrinks(tree), skip(shrinkPathComponent)));
-  /* istanbul ignore next */
   if (currentTree === undefined) {
     return null;
   }
 
-  /* istanbul ignore next */
   return traverseShrinkPath(currentTree, shrinkPath.slice(1));
 };
 

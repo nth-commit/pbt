@@ -1,22 +1,26 @@
 import { pipe } from 'ix/iterable';
 import { Gen, Seed, Size, Tree } from './Imports';
 import { PropertyFunction } from './PropertyFunction';
-import { PropertyIteration, PropertyIterationFactory, AnyValues } from './PropertyIteration';
-import { Property } from './Property';
+import { PropertyExplorationIteration, PropertyIterationFactory, AnyValues } from './PropertyIteration';
 import { takeWhileInclusive } from '../Gen';
 import { runGensAsBatch } from './runGensAsBatch';
+
+export type PropertyExploration<Values extends AnyValues> = (
+  seed: Seed,
+  size: Size,
+) => Iterable<PropertyExplorationIteration<Values>>;
 
 type Gens<Values extends AnyValues> = { [P in keyof Values]: Gen<Values[P]> };
 
 const checkIfFalsifiable = <Values extends AnyValues>(
   f: PropertyFunction<Values>,
   tree: Tree<Values>,
-  propertyIterationFactory: PropertyIterationFactory,
+  iterationFactory: PropertyIterationFactory,
 ) => {
   const invocation = PropertyFunction.invoke(f, Tree.outcome(tree) as Values);
   return invocation.kind === 'success'
-    ? propertyIterationFactory.success()
-    : propertyIterationFactory.falsification(tree, invocation.reason);
+    ? iterationFactory.unfalsified()
+    : iterationFactory.falsified(tree, invocation.reason);
 };
 
 const exploreUnbounded = function* <Values extends AnyValues>(
@@ -32,17 +36,17 @@ const exploreUnbounded = function* <Values extends AnyValues>(
     const untruncatedSize = initialSize + iterationSizeOffset;
     const currentSize = ((untruncatedSize - 1) % 100) + 1;
 
-    const propertyIterationFactory = PropertyIteration.factory(currentSeed, currentSize);
+    const iterationFactory = PropertyExplorationIteration.factory(currentSeed, currentSize);
 
     const [leftSeed, rightSeed] = currentSeed.split();
 
     for (const treesOrFailStatus of runGensAsBatch<Values>(gens, rightSeed, currentSize)) {
-      if (treesOrFailStatus === 'exhaustion') {
-        yield propertyIterationFactory.exhaustion();
-      } else if (treesOrFailStatus === 'discard') {
-        yield propertyIterationFactory.discard();
+      if (treesOrFailStatus === 'exhausted') {
+        yield iterationFactory.exhausted();
+      } else if (treesOrFailStatus === 'discarded') {
+        yield iterationFactory.discarded();
       } else {
-        yield checkIfFalsifiable(f, treesOrFailStatus, propertyIterationFactory);
+        yield checkIfFalsifiable(f, treesOrFailStatus, iterationFactory);
       }
     }
 
@@ -50,11 +54,11 @@ const exploreUnbounded = function* <Values extends AnyValues>(
   }
 };
 
-export const explore = <Values extends AnyValues>(
-  gens: Gens<Values>,
-  f: PropertyFunction<Values>,
-): Property<Values> => (seed, size) =>
+export const explore = <Values extends AnyValues>(gens: Gens<Values>, f: PropertyFunction<Values>) => (
+  seed: Seed,
+  size: Size,
+): Iterable<PropertyExplorationIteration<Values>> =>
   pipe(
     exploreUnbounded(gens, f, seed, size),
-    takeWhileInclusive((iteration) => iteration.kind !== 'exhaustion' && iteration.kind !== 'falsification'),
+    takeWhileInclusive((iteration) => iteration.kind !== 'exhausted' && iteration.kind !== 'falsified'),
   );

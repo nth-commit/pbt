@@ -18,7 +18,7 @@ export const possiblyDiscardingGen = (discardPercentage: '50%'): dev.Gen<unknown
                       tree: dev.Tree.create(value, empty()),
                     }
                   : {
-                      kind: 'discard',
+                      kind: 'discarded',
                       value,
                     };
               default:

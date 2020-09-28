@@ -9,12 +9,12 @@ export const treeComparer = <T>(tree: dev.Tree<T>): TreeComparison<T> =>
 
 export type PropertyIterationComparison<T> =
   | {
-      kind: 'success' | 'discard' | 'exhaustion';
+      kind: 'unfalsified' | 'discarded' | 'exhausted';
       seed: number;
       size: number;
     }
   | {
-      kind: 'falsification';
+      kind: 'falsified';
       counterexample: TreeComparison<T>;
       reason: dev.PropertyFunctionFailureReason;
       seed: number;
@@ -22,7 +22,7 @@ export type PropertyIterationComparison<T> =
     };
 
 export const propertyIteration = <Values extends dev.AnyValues>(
-  iteration: dev.PropertyIteration<Values>,
+  iteration: dev.PropertyExplorationIteration<Values>,
 ): PropertyIterationComparison<Values> => {
   const seedAndSize = {
     seed: iteration.seed.valueOf(),
@@ -30,16 +30,16 @@ export const propertyIteration = <Values extends dev.AnyValues>(
   };
 
   switch (iteration.kind) {
-    case 'success':
-    case 'discard':
-    case 'exhaustion':
+    case 'unfalsified':
+    case 'discarded':
+    case 'exhausted':
       return {
         kind: iteration.kind,
         ...seedAndSize,
       };
-    case 'falsification':
+    case 'falsified':
       return {
-        kind: 'falsification',
+        kind: 'falsified',
         ...seedAndSize,
         counterexample: treeComparer(iteration.counterexample),
         reason: iteration.reason,

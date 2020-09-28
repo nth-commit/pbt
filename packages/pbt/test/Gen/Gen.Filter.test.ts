@@ -9,15 +9,13 @@ test('When given a true predicate, it returns a gen which is equivalent to the b
     fc.property(domainGen.runParams(), domainGen.firstOrderGen(), (runParams, unfilteredGen) => {
       const filteredGen = dev.filter(unfilteredGen, () => true);
 
-      const filteredGenIterations = iterate(filteredGen, runParams);
-      const unfilteredGenIterations = iterate(unfilteredGen, runParams);
+      const filteredIterations = iterate(filteredGen, runParams);
+      const unfilteredIterations = iterate(unfilteredGen, runParams);
 
       const normalizeForComparison = <T>(iteration: dev.GenIteration<T>) =>
         iteration.kind === 'instance' ? { outcome: iteration.tree[0] } : iteration;
 
-      expect(filteredGenIterations.map(normalizeForComparison)).toEqual(
-        unfilteredGenIterations.map(normalizeForComparison),
-      );
+      expect(filteredIterations.map(normalizeForComparison)).toEqual(unfilteredIterations.map(normalizeForComparison));
     }),
   );
 });
@@ -27,14 +25,15 @@ test('When given a false predicate, it returns a gen which only generates discar
     fc.property(domainGen.runParams(), domainGen.firstOrderGen(), (runParams, unfilteredGen) => {
       const filteredGen = dev.filter(unfilteredGen, () => false);
 
-      const filteredGenIterations = iterate(filteredGen, runParams);
-      const unfilteredGenIterations = iterate(unfilteredGen, runParams);
+      const filteredIterations = iterate(filteredGen, runParams);
+      const unfilteredIterations = iterate(unfilteredGen, runParams);
 
-      filteredGenIterations.forEach((genIteration, i) => {
-        expect(genIteration.kind).toEqual('discard');
-        expect((genIteration as dev.GenIteration.Discard).value).toEqual(
-          (unfilteredGenIterations[i] as dev.GenIteration.Instance<unknown>).tree[0],
-        );
+      filteredIterations.forEach((iteration, i) => {
+        const expectedIteration: dev.GenIteration<unknown> = {
+          kind: 'discarded',
+          value: (unfilteredIterations[i] as dev.GenIteration.Instance<unknown>).tree[0],
+        };
+        expect(iteration).toEqual(expectedIteration);
       });
     }),
   );

@@ -33,6 +33,7 @@
   },
   "scripts": {
     "build": "tsc --project tsconfig.esm.json && tsc --project tsconfig.cjs.json",
+    "build:test": "tsc --project ./test/tsconfig.json",
     "build:watch": "tsc --project tsconfig.json --watch --preserveWatchOutput",
     "build:clean": "rimraf lib",
     "test": "cross-env fastCheckRuns=50 jest --coverage --no-cache",
