@@ -1,6 +1,6 @@
 export * from './Imports';
 export * from './PropertyIteration';
 export * from './PropertyFunction';
-export * from './reproduceFailure';
+export * from './reproduce';
 export * from './Property';
 export * from './PropertyResult';

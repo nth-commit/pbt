@@ -4,6 +4,7 @@ import { PropertyFunction } from './PropertyFunction';
 import { runGensAsBatch } from './runGensAsBatch';
 import { first, last, pipe } from 'ix/iterable';
 import { skip } from 'ix/iterable/operators';
+import { PropertyResult } from './PropertyResult';
 
 type Gens<Values extends AnyValues> = { [P in keyof Values]: Gen<Values[P]> };
 
@@ -11,27 +12,18 @@ export namespace ReproductionResult {
   export type ValidationError = {
     kind: 'validationError';
   };
-
-  export type Reproducible<Values extends AnyValues> = {
-    kind: 'reproducible';
-    counterexample: Values;
-  };
-
-  export type Unreproducible = {
-    kind: 'unreproducible';
-  };
 }
 
 export type ReproductionResult<Values extends AnyValues> =
   | ReproductionResult.ValidationError
-  | ReproductionResult.Reproducible<Values>
-  | ReproductionResult.Unreproducible;
+  | PropertyResult.Falsified<Values>
+  | PropertyResult.Unfalsified;
 
 const traverseShrinkPath = <Values extends AnyValues>(
   tree: Tree<Values>,
-  shrinkPath: number[],
+  counterexamplePath: number[],
 ): Tree<Values> | null => {
-  const shrinkPathComponent: number | undefined = shrinkPath[0];
+  const shrinkPathComponent: number | undefined = counterexamplePath[0];
   if (shrinkPathComponent === undefined) return tree;
 
   const currentTree = first(pipe(Tree.shrinks(tree), skip(shrinkPathComponent)));
@@ -39,22 +31,22 @@ const traverseShrinkPath = <Values extends AnyValues>(
     return null;
   }
 
-  return traverseShrinkPath(currentTree, shrinkPath.slice(1));
+  return traverseShrinkPath(currentTree, counterexamplePath.slice(1));
 };
 
-export const reproduceFailure = <Values extends AnyValues>(
+export const reproduce = <Values extends AnyValues>(
   gens: Gens<Values>,
   f: PropertyFunction<Values>,
   seed: Seed,
   size: Size,
-  shrinkPath: number[],
+  counterexamplePath: number[],
 ): ReproductionResult<Values> => {
   const [, rightSeed] = seed.split(); // Reproduce the initial split of the exploration.
 
   // TODO: pipe out all the discards from the gens
   const tree = last(runGensAsBatch<Values>(gens, rightSeed, size)) as Tree<Values>;
 
-  const shrunkenTree = traverseShrinkPath(tree, shrinkPath);
+  const shrunkenTree = traverseShrinkPath(tree, counterexamplePath);
   if (shrunkenTree === null) {
     return {
       kind: 'validationError',
@@ -64,10 +56,21 @@ export const reproduceFailure = <Values extends AnyValues>(
   const invocation = PropertyFunction.invoke(f, Tree.outcome(shrunkenTree));
   return invocation.kind === 'success'
     ? {
-        kind: 'unreproducible',
+        kind: 'unfalsified',
+        iterations: 1,
+        discards: 0,
+        seed,
+        size,
       }
     : {
-        kind: 'reproducible',
+        kind: 'falsified',
+        iterations: 1,
+        discards: 0,
+        seed,
+        size,
         counterexample: Tree.outcome(shrunkenTree),
+        counterexamplePath: counterexamplePath,
+        reason: invocation.reason,
+        shrinkIterations: 0,
       };
 };
