@@ -19,10 +19,14 @@ test.each(Object.keys(gens))(
 
     fc.assert(
       fc.property(domainGen.runParams(), metaGen, (runParams, gen) => {
-        const genIterations = iterate(gen, runParams);
+        const iterations = iterate(gen, runParams);
 
-        genIterations.forEach((genIteration) => {
-          expect(genIteration.kind).toEqual('instance');
+        iterations.forEach((iteration) => {
+          const expectedIteration: dev.GenIteration<unknown> = {
+            kind: 'instance',
+            tree: expect.anything(),
+          };
+          expect(iteration).toEqual(expectedIteration);
         });
       }),
     );

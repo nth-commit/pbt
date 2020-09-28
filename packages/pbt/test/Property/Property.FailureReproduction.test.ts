@@ -3,8 +3,6 @@ import * as dev from '../../src/Property';
 import * as devGen from '../../src/Gen';
 import * as domainGen from './Helpers/domainGen';
 import * as propertyRunner from './Helpers/propertyRunner';
-import { last, pipe } from 'ix/iterable';
-import { filter } from 'ix/iterable/operators';
 
 test('Given an invalid shrink path, it returns a validation error', () => {
   fc.assert(
@@ -41,8 +39,11 @@ test('Given a fallible property, after an exploration, it can reproduce the non-
       domainGen.gens().filter((gens) => gens.length > 0),
       domainGen.fallibleFunc(),
       (runParams, gens, f) => {
-        const property = dev.explore<unknown[]>(gens, f);
-        const falsification = propertyRunner.findFalsification(property, { ...runParams, iterations: 100 });
+        const property = dev.property<unknown[]>(gens, f);
+
+        const falsification = propertyRunner
+          .iterate(property, { ...runParams, iterations: 100 })
+          .find((result) => result.kind === 'falsified') as dev.PropertyResult.Falsified<unknown[]>;
 
         const reproduction = dev.reproduceFailure(
           gens,
@@ -52,7 +53,7 @@ test('Given a fallible property, after an exploration, it can reproduce the non-
           [],
         ) as dev.ReproductionResult.Reproducible<unknown[]>;
 
-        expect(reproduction.counterexample).toEqual(dev.Tree.outcome(falsification.counterexample));
+        expect(reproduction.counterexample).toEqual(falsification.counterexample);
       },
     ),
   );
@@ -65,24 +66,22 @@ test('Given a fallible property, after an exploration and a shrink, it can repro
       domainGen.gens().filter((gens) => gens.length > 0),
       domainGen.fallibleFunc(),
       (runParams, gens, f) => {
-        const property = dev.explore<unknown[]>(gens, f);
-        const falsification = propertyRunner.findFalsification(property, { ...runParams, iterations: 100 });
-        const smallestCounterexample = last(
-          pipe(
-            dev.shrinkCounterexample(f, falsification.counterexample),
-            filter((x) => x.kind === 'confirmed'),
-          ),
-        )!;
+        const property = dev.property<unknown[]>(gens, f);
+
+        const falsification = propertyRunner.last(property, {
+          ...runParams,
+          iterations: 100,
+        }) as dev.PropertyResult.Falsified<unknown[]>;
 
         const reproduction = dev.reproduceFailure(
           gens,
           f,
           falsification.seed,
           falsification.size,
-          smallestCounterexample.path,
+          falsification.counterexamplePath,
         ) as dev.ReproductionResult.Reproducible<unknown[]>;
 
-        expect(reproduction.counterexample).toEqual(smallestCounterexample.values);
+        expect(reproduction.counterexample).toEqual(falsification.counterexample);
       },
     ),
   );

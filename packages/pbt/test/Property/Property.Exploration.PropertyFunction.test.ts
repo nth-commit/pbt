@@ -10,7 +10,7 @@ test('It invokes the property function with a value from each gens', () => {
     fc.property(domainGen.runParams(), fc.array(fc.anything()), domainGen.fallibleFunc(), (runParams, genValues, f) => {
       const gens = genValues.map(devGen.constant);
       const spyF = spies.spyOn(f);
-      const property = dev.explore<unknown[]>(gens, spyF);
+      const property = dev.property<unknown[]>(gens, spyF);
 
       propertyRunner.iterate(property, {
         ...runParams,
@@ -22,18 +22,35 @@ test('It invokes the property function with a value from each gens', () => {
   );
 });
 
+test('It invokes the property function for each iteration and shrink', () => {
+  fc.assert(
+    fc.property(domainGen.runParams(), domainGen.gens(), domainGen.fallibleFunc(), (runParams, gens, f) => {
+      const spyF = spies.spyOn(f);
+      const property = dev.property<unknown[]>(gens, spyF);
+
+      const lastIteration = propertyRunner.last(property, runParams);
+
+      const expectedIterations =
+        lastIteration.iteration + (lastIteration.kind === 'falsified' ? lastIteration.shrinkIteration : 0);
+      expect(spyF).toBeCalledTimes(expectedIterations);
+    }),
+  );
+});
+
 test('For a fallible property, the arguments of the property function are the same as the counterexample returned in the result', () => {
   fc.assert(
     fc.property(domainGen.runParams(), domainGen.gens(), (runParams, gens) => {
       const spyF = spies.spyOn(() => false);
-      const property = dev.explore<unknown[]>(gens, spyF);
+      const property = dev.property<unknown[]>(gens, spyF);
 
-      const falsification = propertyRunner.findFalsification(property, {
-        ...runParams,
-        iterations: 1,
-      });
+      const falsification = propertyRunner
+        .iterate(property, {
+          ...runParams,
+          iterations: 1,
+        })
+        .find((r) => r.kind === 'falsified') as dev.PropertyResult.Falsified<unknown[]>;
 
-      const returnedOutcomes = dev.Tree.outcome(falsification.counterexample);
+      const returnedOutcomes = falsification.counterexample;
       const spiedOutcomes = spyF.mock.calls[0];
       expect(returnedOutcomes).toEqual(spiedOutcomes);
     }),

@@ -8,10 +8,11 @@ test('It discards when the bound gen discards', () => {
     fc.property(domainGen.runParams(), domainGen.firstOrderGen(), (runParams, baseGen) => {
       const gen = dev.flatMap(baseGen, () => dev.filter(baseGen, () => false));
 
-      const genIterations = iterate(gen, runParams);
+      const iterations = iterate(gen, runParams);
 
-      genIterations.forEach((genIteration) => {
-        expect(genIteration.kind).toEqual('discard');
+      iterations.forEach((iteration) => {
+        const expectedIterationKind: dev.GenIteration<unknown>['kind'] = 'discarded';
+        expect(iteration.kind).toEqual(expectedIterationKind);
       });
     }),
   );
@@ -22,9 +23,12 @@ test('It exhausts when the bound gen exhausts', () => {
     fc.property(domainGen.runParams(), domainGen.firstOrderGen(), (runParams, baseGen) => {
       const gen = dev.flatMap(baseGen, () => dev.exhausted());
 
-      const genIterations = iterate(gen, runParams);
+      const iterations = iterate(gen, runParams);
 
-      expect(genIterations).toEqual([{ kind: 'exhaustion' }]);
+      const expectedIteration: dev.GenIteration<unknown> = {
+        kind: 'exhausted',
+      };
+      expect(iterations).toEqual([expectedIteration]);
     }),
   );
 });

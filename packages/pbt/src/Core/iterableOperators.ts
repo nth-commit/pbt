@@ -55,3 +55,25 @@ export function filterIndexed<TSourceValue>(
 ): OperatorFunction<Indexed<TSourceValue>, Indexed<TSourceValue>> {
   return filter(({ value }) => predicate(value));
 }
+
+export class ConcatWithLastIterable<TSource, TNextSource> extends IterableX<TSource | TNextSource> {
+  constructor(private source: Iterable<TSource>, private nextGenerator: (value: TSource) => Iterable<TNextSource>) {
+    super();
+  }
+
+  *[Symbol.iterator]() {
+    let last: TSource | undefined = undefined;
+    for (const item of this.source) {
+      yield item;
+      last = item;
+    }
+
+    if (last !== undefined) {
+      yield* this.nextGenerator(last);
+    }
+  }
+}
+
+export const concatWithLast = <T, T2>(nextGenerator: (last: T) => Iterable<T2>): OperatorFunction<T, T | T2> => (
+  source: Iterable<T>,
+): IterableX<T | T2> => new ConcatWithLastIterable(source, nextGenerator);

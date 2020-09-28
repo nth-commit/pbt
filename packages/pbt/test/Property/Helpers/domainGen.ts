@@ -27,6 +27,8 @@ export const discardingGen = (): fc.Arbitrary<dev.Gen<unknown>> => gen().map((ge
 
 export const gens = (): fc.Arbitrary<dev.Gen<unknown>[]> => fc.array(gen(), 0, 10);
 
+export const unshrinkingGens = (): fc.Arbitrary<dev.Gen<unknown>[]> => gens().map((gens) => gens.map(devGen.noShrink));
+
 export const infallibleFunc = (): fc.Arbitrary<dev.PropertyFunction<unknown[]>> =>
   fc.constantFrom(
     () => true,

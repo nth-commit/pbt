@@ -10,7 +10,10 @@ test('When given an empty collection, it exhausts', () => {
 
       const iterations = iterate(gen, runParams);
 
-      expect(iterations).toEqual([{ kind: 'exhaustion' }]);
+      const expectedIteration: dev.GenIteration<unknown[]> = {
+        kind: 'exhausted',
+      };
+      expect(iterations).toEqual([expectedIteration]);
     }),
   );
 });

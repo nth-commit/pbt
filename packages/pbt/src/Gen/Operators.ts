@@ -4,13 +4,12 @@ import { Tree, takeWhileInclusive as takeWhileInclusiveIterable, Seed } from './
 import { Gen, GenIteration } from './Gen';
 import { Shrinker } from './Shrink';
 
-const repeat = <T>(gen: Gen<T>): Gen<T> => (seed, size) => {
-  return pipe(
+const repeat = <T>(gen: Gen<T>): Gen<T> => (seed, size) =>
+  pipe(
     Seed.stream(seed),
     flatMapIterable((seed0) => gen(seed0, size)),
-    takeWhileInclusiveIterable((genIteration) => genIteration.kind !== 'exhaustion'),
+    takeWhileInclusiveIterable((genIteration) => genIteration.kind !== 'exhausted'),
   );
-};
 
 const mapIterations = <T, U>(gen: Gen<T>, f: (genIteration: GenIteration<T>) => GenIteration<U>): Gen<U> => (
   seed,
@@ -92,7 +91,7 @@ export const flatMap = <T, U>(gen: Gen<T>, k: (x: T) => Gen<U>): Gen<U> => repea
 export const filter = <T>(gen: Gen<T>, f: (x: T) => boolean): Gen<T> =>
   mapInstances(gen, (genInstance) => {
     const [outcome, shrinks] = genInstance.tree;
-    if (f(outcome) === false) return { kind: 'discard', value: outcome };
+    if (f(outcome) === false) return { kind: 'discarded', value: outcome };
 
     return {
       kind: 'instance',
@@ -116,8 +115,8 @@ const reduceOnce = <T, U>(gen: Gen<T>, length: number, f: (acc: U, x: T, i: numb
             trees: [...reduction.trees, tree],
           };
           break;
-        case 'discard':
-        case 'exhaustion':
+        case 'discarded':
+        case 'exhausted':
           yield result;
       }
 
