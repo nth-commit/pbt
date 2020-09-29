@@ -27,7 +27,7 @@ type PropertyPreResult<Values extends AnyValues> =
   | PropertyPreResult.PreFalsification<Values>
   | PropertyResult.Exhausted;
 
-export const property = <Values extends AnyValues>(
+export const explore = <Values extends AnyValues>(
   gens: Gens<Values>,
   f: PropertyFunction<Values>,
 ): Property<Values> => (seed, size) => generateResults(gens, f, seed, size);

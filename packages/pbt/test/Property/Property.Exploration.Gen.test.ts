@@ -8,7 +8,7 @@ test('A generator receives the initial size', () => {
   fc.assert(
     fc.property(domainGen.runParams(), domainGen.gen(), domainGen.fallibleFunc(), (runParams, gen, f) => {
       const genSpy = spies.spyOn(gen);
-      const property = dev.property([genSpy], f);
+      const property = dev.explore([genSpy], f);
 
       propertyRunner.iterate(property, { ...runParams, iterations: 1 });
 
@@ -26,7 +26,7 @@ test('A generator always receives a size, where 0 <= size <= 100', () => {
       domainGen.fallibleFunc(),
       (runParams, gens, f) => {
         const genSpies = spies.spyOnAll(gens);
-        const property = dev.property(genSpies, f);
+        const property = dev.explore(genSpies, f);
 
         propertyRunner.iterate(property, runParams);
 
@@ -49,7 +49,7 @@ test('Given initial size = 0, then each generator is ultimately invoked with a s
       domainGen.infallibleFunc(),
       (runParams, gens, f) => {
         const genSpies = spies.spyOnAll(gens);
-        const property = dev.property(genSpies, f);
+        const property = dev.explore(genSpies, f);
 
         propertyRunner.iterate(property, { ...runParams, size: 0 });
 
