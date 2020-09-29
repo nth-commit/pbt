@@ -30,9 +30,18 @@ export namespace PropertyResult {
     seed: Seed;
     size: Size;
   };
+
+  export type Error = {
+    kind: 'error';
+    iterations: number;
+    discards: number;
+    seed: Seed;
+    size: Size;
+  };
 }
 
 export type PropertyResult<Values extends AnyValues> =
   | PropertyResult.Unfalsified
   | PropertyResult.Falsified<Values>
-  | PropertyResult.Exhausted;
+  | PropertyResult.Exhausted
+  | PropertyResult.Error;

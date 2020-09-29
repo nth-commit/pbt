@@ -6,7 +6,7 @@ import * as propertyRunner from './Helpers/propertyRunner';
 test("It's results are repeatible", () => {
   fc.assert(
     fc.property(domainGen.runParams(), domainGen.gens(), domainGen.fallibleFunc(), (runParams, gens, f) => {
-      const property = dev.property<unknown[]>(gens, f);
+      const property = dev.explore<unknown[]>(gens, f);
 
       const results = propertyRunner
         .iterate(property, runParams)

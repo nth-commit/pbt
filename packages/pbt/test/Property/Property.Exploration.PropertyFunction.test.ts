@@ -10,7 +10,7 @@ test('It invokes the property function with a value from each gens', () => {
     fc.property(domainGen.runParams(), fc.array(fc.anything()), domainGen.fallibleFunc(), (runParams, genValues, f) => {
       const gens = genValues.map(devGen.constant);
       const spyF = spies.spyOn(f);
-      const property = dev.property<unknown[]>(gens, spyF);
+      const property = dev.explore<unknown[]>(gens, spyF);
 
       propertyRunner.iterate(property, {
         ...runParams,
@@ -26,7 +26,7 @@ test('It invokes the property function for each iteration and shrink', () => {
   fc.assert(
     fc.property(domainGen.runParams(), domainGen.gens(), domainGen.fallibleFunc(), (runParams, gens, f) => {
       const spyF = spies.spyOn(f);
-      const property = dev.property<unknown[]>(gens, spyF);
+      const property = dev.explore<unknown[]>(gens, spyF);
 
       const lastIteration = propertyRunner.last(property, runParams);
 
@@ -41,7 +41,7 @@ test('For a fallible property, the arguments of the property function are the sa
   fc.assert(
     fc.property(domainGen.runParams(), domainGen.gens(), (runParams, gens) => {
       const spyF = spies.spyOn(() => false);
-      const property = dev.property<unknown[]>(gens, spyF);
+      const property = dev.explore<unknown[]>(gens, spyF);
 
       const falsification = propertyRunner
         .iterate(property, {

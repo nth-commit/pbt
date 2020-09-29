@@ -8,7 +8,7 @@ import * as gens from './Helpers/gens';
 test('Given an infallible property function, it returns a success for each iteration', () => {
   fc.assert(
     fc.property(domainGen.runParams(), domainGen.gens(), domainGen.infallibleFunc(), (runParams, gens, f) => {
-      const property = dev.property<unknown[]>(gens, f);
+      const property = dev.explore<unknown[]>(gens, f);
 
       const results = propertyRunner.iterate(property, runParams);
 
@@ -23,7 +23,7 @@ test('Given an infallible property function, it returns a success for each itera
 test('Given a false property predicate, it is immediately falsified because of the false predicate', () => {
   fc.assert(
     fc.property(domainGen.runParams(), domainGen.gens(), (runParams, gens) => {
-      const property = dev.property<unknown[]>(gens, () => false);
+      const property = dev.explore<unknown[]>(gens, () => false);
 
       const results = propertyRunner.iterate(property, runParams);
 
@@ -43,7 +43,7 @@ test('Given a false property predicate, it is immediately falsified because of t
 test('Given a throwing property function, it is immediately falsified because of the thrown error', () => {
   fc.assert(
     fc.property(domainGen.runParams(), domainGen.gens(), fc.anything(), (runParams, gens, error) => {
-      const property = dev.property<unknown[]>(gens, () => {
+      const property = dev.explore<unknown[]>(gens, () => {
         throw error;
       });
 
@@ -70,15 +70,15 @@ test('Given the gens are poisoned with an exhausted gen, the property is exhaust
       domainGen.gens().chain((gens) => domainGen.shuffle([...gens, devGen.exhausted()])),
       domainGen.fallibleFunc(),
       (runParams, gens, f) => {
-        const property = dev.property<unknown[]>(gens, f);
+        const property = dev.explore<unknown[]>(gens, f);
 
-        const iterations = propertyRunner.iterate(property, runParams);
+        const results = propertyRunner.iterate(property, runParams);
 
-        const expectedIteration: Partial<dev.PropertyExplorationIteration<unknown[]>> = {
+        const expectedResult: Partial<dev.PropertyExplorationIteration<unknown[]>> = {
           kind: 'exhausted',
         };
-        expect(iterations.length).toEqual(1);
-        expect(iterations[0]).toMatchObject(expectedIteration);
+        expect(results.length).toEqual(1);
+        expect(results[0]).toMatchObject(expectedResult);
       },
     ),
   );
@@ -91,7 +91,7 @@ test('Given the gens are poisoned with a discarding gen, the property is unfalsi
       fc.tuple(domainGen.gens(), domainGen.discardingGen()).chain(([gens, gen]) => domainGen.shuffle([...gens, gen])),
       domainGen.fallibleFunc(),
       (runParams, gens, f) => {
-        const property = dev.property<unknown[]>(gens, f);
+        const property = dev.explore<unknown[]>(gens, f);
 
         const lastResult = propertyRunner.last(property, runParams);
 
@@ -115,11 +115,11 @@ test('Given gens that discard at a rate of 50%, it is feasible for the property 
 
   fc.assert(
     fc.property(domainGen.runParams(), genPossiblyDiscardingGens, domainGen.infallibleFunc(), (runParams, gens, f) => {
-      const property = dev.property<unknown[]>(gens, f);
+      const property = dev.explore<unknown[]>(gens, f);
 
-      const lastIteration = propertyRunner.last(property, { ...runParams, iterations: 100 });
+      const lastResult = propertyRunner.last(property, { ...runParams, iterations: 100 });
 
-      expect(lastIteration.iterations).toBeGreaterThanOrEqual(0);
+      expect(lastResult.iterations).toBeGreaterThanOrEqual(0);
     }),
   );
 });
