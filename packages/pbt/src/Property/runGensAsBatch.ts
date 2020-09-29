@@ -1,8 +1,8 @@
 import { pipe, from, zip } from 'ix/iterable';
 import { Gen, GenIteration, Seed, Size, Tree } from './Imports';
-import { AnyValues } from './PropertyIteration';
 import { filter, flatMap, map, tap } from 'ix/iterable/operators';
 import { takeWhileInclusive } from '../Gen';
+import { AnyValues } from './Property';
 
 type Gens<Values extends AnyValues> = { [P in keyof Values]: Gen<Values[P]> };
 
