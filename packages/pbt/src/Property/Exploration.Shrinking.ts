@@ -1,11 +1,10 @@
 import { pipe } from 'ix/iterable';
-import { map, skip, tap } from 'ix/iterable/operators';
+import { map, tap } from 'ix/iterable/operators';
 import { indexed } from '../Gen';
 import { Tree } from './Imports';
-import { PropertyFunction, PropertyFailureReason } from './PropertyFunction';
-import { AnyValues } from './PropertyIteration';
+import { AnyValues, PropertyFailureReason, PropertyFunction } from './Property';
 
-export type ShrunkenExampleIteration<Values extends AnyValues> =
+export type ShrinkingExplorationIteration<Values extends AnyValues> =
   | {
       kind: 'counterexample';
       values: Values;
@@ -21,7 +20,7 @@ export type ShrunkenExampleIteration<Values extends AnyValues> =
 const exploreTree = function* <Values extends AnyValues>(
   f: PropertyFunction<Values>,
   counterexampleTree: Tree<Values>,
-): Iterable<ShrunkenExampleIteration<Values>> {
+): Iterable<ShrinkingExplorationIteration<Values>> {
   const values = Tree.outcome(counterexampleTree);
   const invocation = PropertyFunction.invoke(f, values);
   if (invocation.kind === 'success') {
@@ -33,7 +32,7 @@ const exploreTree = function* <Values extends AnyValues>(
     return;
   }
 
-  const confirmedCounterexample: ShrunkenExampleIteration<Values> = {
+  const confirmedCounterexample: ShrinkingExplorationIteration<Values> = {
     kind: 'counterexample',
     reason: invocation.reason,
     path: [],
@@ -47,7 +46,7 @@ const exploreTree = function* <Values extends AnyValues>(
 const exploreForest = function* <Values extends AnyValues>(
   f: PropertyFunction<Values>,
   counterexampleForest: Iterable<Tree<Values>>,
-): Iterable<ShrunkenExampleIteration<Values>> {
+): Iterable<ShrinkingExplorationIteration<Values>> {
   for (const { value: counterexampleTree, index } of pipe(counterexampleForest, indexed())) {
     let hasConfirmedCounterexample = false;
 
@@ -73,9 +72,7 @@ const exploreForest = function* <Values extends AnyValues>(
   }
 };
 
-export const shrinkCounterexample = <Values extends AnyValues>(
+export const exploreShrinking = <Values extends AnyValues>(
   f: PropertyFunction<Values>,
   counterexample: Tree<Values>,
-): Iterable<ShrunkenExampleIteration<Values>> => {
-  return exploreForest(f, Tree.shrinks(counterexample));
-};
+): Iterable<ShrinkingExplorationIteration<Values>> => exploreForest(f, Tree.shrinks(counterexample));

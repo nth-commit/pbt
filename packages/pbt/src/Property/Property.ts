@@ -1,148 +1,94 @@
-import { empty, pipe } from 'ix/iterable';
-import { map, scan } from 'ix/iterable/operators';
-import { concatWithLast } from '../Gen';
-import { explore as takeUntilFalsified } from './explore';
-import { Gen, Seed, Size, Tree } from './Imports';
-import { PropertyFunction } from './PropertyFunction';
-import { AnyValues, PropertyExplorationIteration } from './PropertyIteration';
-import { PropertyResult } from './PropertyResult';
-import { ShrunkenExampleIteration, shrinkCounterexample } from './shrinkCounterexample';
+import { Gen, Seed, Size } from './Imports';
+
+export type AnyValues = any[];
+
+export type Gens<Values extends AnyValues> = { [P in keyof Values]: Gen<Values[P]> };
 
 export type Property<Values extends AnyValues> = (seed: Seed, size: Size) => Iterable<PropertyResult<Values>>;
 
-type Gens<Values extends AnyValues> = { [P in keyof Values]: Gen<Values[P]> };
+export namespace PropertyResult {
+  export type Unfalsified = {
+    kind: 'unfalsified';
+    iterations: number;
+    discards: number;
+    seed: Seed;
+    size: Size;
+  };
 
-namespace PropertyPreResult {
-  export type PreFalsification<Values extends AnyValues> = Omit<
-    PropertyResult.Falsified<Values>,
-    'kind' | 'counterexample' | 'shrinkIterations'
-  > & {
-    kind: 'preFalsified';
-    counterexampleTree: Tree<Values>;
+  export type Falsified<Values extends AnyValues> = {
+    kind: 'falsified';
+    iterations: number;
+    discards: number;
+    seed: Seed;
+    size: Size;
+    counterexample: Values;
+    counterexamplePath: number[];
+    shrinkIterations: number;
+    reason: PropertyFailureReason;
+  };
+
+  export type Exhausted = {
+    kind: 'exhausted';
+    iterations: number;
+    discards: number;
+    seed: Seed;
+    size: Size;
+  };
+
+  export type Error = {
+    kind: 'error';
+    iterations: number;
+    discards: number;
+    seed: Seed;
+    size: Size;
   };
 }
 
-type PropertyPreResult<Values extends AnyValues> =
+export type PropertyResult<Values extends AnyValues> =
   | PropertyResult.Unfalsified
-  | PropertyPreResult.PreFalsification<Values>
-  | PropertyResult.Exhausted;
+  | PropertyResult.Falsified<Values>
+  | PropertyResult.Exhausted
+  | PropertyResult.Error;
 
-export const explore = <Values extends AnyValues>(
-  gens: Gens<Values>,
-  f: PropertyFunction<Values>,
-): Property<Values> => (seed, size) => generateResults(gens, f, seed, size);
+export namespace PropertyFailureReason {
+  export type ReturnedFalse = { kind: 'returnedFalse' };
 
-const generateResults = <Values extends AnyValues>(
-  gens: Gens<Values>,
-  f: PropertyFunction<Values>,
-  seed: Seed,
-  size: Size,
-): Iterable<PropertyResult<Values>> => {
-  const result0: PropertyPreResult<Values> = {
-    kind: 'unfalsified',
-    iterations: 0,
-    discards: 0,
-    seed,
-    size,
+  export type ThrewError = { kind: 'threwError'; error: unknown };
+}
+
+export type PropertyFailureReason = PropertyFailureReason.ReturnedFalse | PropertyFailureReason.ThrewError;
+
+export namespace PropertyFunctionInvocation {
+  export type Success = { kind: 'success' };
+
+  export type Failure = { kind: 'failure'; reason: PropertyFailureReason };
+
+  export const success = (): Success => ({ kind: 'success' });
+
+  export const returnedFalse = (): Failure => ({
+    kind: 'failure',
+    reason: { kind: 'returnedFalse' },
+  });
+
+  export const threwError = (error: unknown): Failure => ({
+    kind: 'failure',
+    reason: { kind: 'threwError', error },
+  });
+}
+
+export type PropertyFunctionInvocation = PropertyFunctionInvocation.Failure | PropertyFunctionInvocation.Success;
+
+export type PropertyFunction<Values extends AnyValues> = (...args: Values) => boolean | void;
+
+export namespace PropertyFunction {
+  export const invoke = <Values extends AnyValues>(
+    f: PropertyFunction<Values>,
+    values: Values,
+  ): PropertyFunctionInvocation => {
+    try {
+      return f(...values) === false ? PropertyFunctionInvocation.returnedFalse() : PropertyFunctionInvocation.success();
+    } catch (error) {
+      return PropertyFunctionInvocation.threwError(error);
+    }
   };
-
-  return pipe(
-    takeUntilFalsified(gens, f)(seed, size),
-    scan<PropertyExplorationIteration<Values>, PropertyPreResult<Values>>({
-      seed: result0,
-      callback: consumePropertyExploration,
-    }),
-    concatWithLast((last) => {
-      if (last.kind === 'preFalsified') {
-        return pipe(
-          shrinkCounterexample(f, last.counterexampleTree),
-          scan<ShrunkenExampleIteration<Values>, PropertyResult.Falsified<Values>>({
-            seed: mapPreFalsificationToFalsification(last),
-            callback: consumeShrunkenExample,
-          }),
-        );
-      }
-
-      return empty();
-    }),
-    map(
-      (preResultOrResult): PropertyResult<Values> =>
-        preResultOrResult.kind === 'falsified' ? preResultOrResult : mapPreResultToResult(preResultOrResult),
-    ),
-  );
-};
-
-const consumePropertyExploration = <Values extends AnyValues>(
-  previousResult: PropertyPreResult<Values>,
-  iteration: PropertyExplorationIteration<Values>,
-): PropertyPreResult<Values> => {
-  switch (iteration.kind) {
-    case 'discarded':
-      return {
-        ...previousResult,
-        discards: previousResult.discards + 1,
-      };
-    case 'exhausted':
-    case 'unfalsified':
-      return {
-        kind: iteration.kind,
-        iterations: previousResult.iterations + 1,
-        discards: previousResult.discards,
-        seed: iteration.seed,
-        size: iteration.size,
-      };
-    case 'falsified':
-      return {
-        kind: 'preFalsified',
-        iterations: previousResult.iterations + 1,
-        discards: previousResult.discards,
-        seed: iteration.seed,
-        size: iteration.size,
-        counterexampleTree: iteration.counterexample,
-        counterexamplePath: [],
-        reason: iteration.reason,
-      };
-  }
-};
-
-const consumeShrunkenExample = <Values extends AnyValues>(
-  previousResult: PropertyResult.Falsified<Values>,
-  iteration: ShrunkenExampleIteration<Values>,
-): PropertyResult.Falsified<Values> =>
-  iteration.kind === 'counterexample'
-    ? {
-        ...previousResult,
-        shrinkIterations: previousResult.shrinkIterations + 1,
-        counterexamplePath: iteration.path,
-        counterexample: iteration.values,
-        reason: iteration.reason,
-      }
-    : {
-        ...previousResult,
-        shrinkIterations: previousResult.shrinkIterations + 1,
-      };
-
-const mapPreFalsificationToFalsification = <Values extends AnyValues>(
-  preFalsification: PropertyPreResult.PreFalsification<Values>,
-): PropertyResult.Falsified<Values> => ({
-  kind: 'falsified',
-  iterations: preFalsification.iterations,
-  discards: preFalsification.discards,
-  seed: preFalsification.seed,
-  size: preFalsification.size,
-  counterexample: Tree.outcome(preFalsification.counterexampleTree),
-  counterexamplePath: preFalsification.counterexamplePath,
-  reason: preFalsification.reason,
-  shrinkIterations: 0,
-});
-
-const mapPreResultToResult = <Values extends AnyValues>(
-  preResult: PropertyPreResult<Values>,
-): PropertyResult<Values> => {
-  switch (preResult.kind) {
-    case 'preFalsified':
-      return mapPreFalsificationToFalsification(preResult);
-    default:
-      return preResult;
-  }
-};
+}

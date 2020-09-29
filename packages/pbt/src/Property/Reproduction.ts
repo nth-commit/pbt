@@ -1,11 +1,8 @@
 import { Gen, Seed, Size, Tree } from './Imports';
-import { AnyValues } from './PropertyIteration';
-import { PropertyFunction } from './PropertyFunction';
 import { runGensAsBatch } from './runGensAsBatch';
 import { first, last, pipe, of } from 'ix/iterable';
 import { skip } from 'ix/iterable/operators';
-import { PropertyResult } from './PropertyResult';
-import { Property } from './Property';
+import { AnyValues, Property, PropertyFunction, PropertyResult } from './Property';
 
 type Gens<Values extends AnyValues> = { [P in keyof Values]: Gen<Values[P]> };
 
@@ -28,7 +25,7 @@ export const reproduce = <Values extends AnyValues>(
   gens: Gens<Values>,
   f: PropertyFunction<Values>,
   counterexamplePath: number[],
-): Property<Values> => (seed: Seed, size: Size): Iterable<PropertyResult<Values>> => {
+): Property<Values> => (seed, size) => {
   const [, rightSeed] = seed.split(); // Reproduce the initial split of the exploration.
 
   // TODO: pipe out all the discards from the gens

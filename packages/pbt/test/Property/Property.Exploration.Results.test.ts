@@ -74,7 +74,7 @@ test('Given the gens are poisoned with an exhausted gen, the property is exhaust
 
         const results = propertyRunner.iterate(property, runParams);
 
-        const expectedResult: Partial<dev.PropertyExplorationIteration<unknown[]>> = {
+        const expectedResult: Partial<dev.PropertyResult<unknown[]>> = {
           kind: 'exhausted',
         };
         expect(results.length).toEqual(1);
