@@ -211,7 +211,7 @@ test.each(Object.keys(linearRangeFixtures))(
         const xs = iterateAsOutcomes(gen, runParams).map(getOrder);
 
         const { pValue } = analyzeUniformDistribution(min, max, xs);
-        expect(pValue).toBeGreaterThanOrEqual(0.001);
+        expect(pValue).toBeGreaterThanOrEqual(0.0001);
       }),
       {
         numRuns: 1,

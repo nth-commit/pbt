@@ -49,6 +49,8 @@ export const gen = {
   create: <T>(f: (seed: Core.Seed, size: Core.Size) => T, shrinker: InternalGen.Shrinker<T>): Gen<T> =>
     new Gen(InternalGen.create(f, shrinker)),
 
+  constant: <T>(x: T): Gen<T> => new Gen(InternalGen.constant(x)),
+
   integer: {
     unscaled: (min: number, max: number): Gen<number> => new Gen(InternalGen.integer.unscaled(min, max)),
     scaleLinearly: (min: number, max: number): Gen<number> => new Gen(InternalGen.integer.scaleLinearly(min, max)),
@@ -69,3 +71,5 @@ export const gen = {
   element: <T>(collection: Array<T> | Record<any, T> | Set<T> | Map<any, T>): Gen<T> =>
     new Gen(InternalGen.element(collection)),
 };
+
+export const shrink = InternalGen.Shrink;

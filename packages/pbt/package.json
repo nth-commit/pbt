@@ -14,10 +14,7 @@
     "lib/"
   ],
   "dependencies": {
-    "ix": "^4.0.0",
-    "pbt-core": "0.0.0",
-    "pbt-gen": "0.0.0",
-    "pbt-properties": "0.0.0"
+    "ix": "^4.0.0"
   },
   "devDependencies": {
     "@types/jest": "^26.0.10",
