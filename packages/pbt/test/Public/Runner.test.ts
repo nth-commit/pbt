@@ -2,22 +2,19 @@ import fc from 'fast-check';
 import * as domainGen from './Helpers/domainGen';
 import * as spies from '../helpers/spies';
 import * as dev from '../../src/Public';
-import * as devProperty from '../../src/Public/Property';
-import * as devPropertyInternal from '../../src/Property';
+import * as devProperty from '../../src/Property';
 
 type SpiedProperty = {
-  p: devProperty.Property<[]>;
-  exploreSpy: spies.InferMock<typeof devPropertyInternal.explore>;
-  reproduceSpy: spies.InferMock<typeof devPropertyInternal.reproduce>;
-  getPropertySpy: () => spies.InferMock<devPropertyInternal.Property<[]>> | null;
+  p: dev.Property<[]>;
+  exploreSpy: spies.InferMock<typeof devProperty.explore>;
+  reproduceSpy: spies.InferMock<typeof devProperty.reproduce>;
+  getPropertySpy: () => spies.InferMock<devProperty.Property<[]>> | null;
 };
 
 const makeSpiedProperty = (): SpiedProperty => {
-  let propertySpy: spies.InferMock<devPropertyInternal.Property<[]>> | null = null;
+  let propertySpy: spies.InferMock<devProperty.Property<[]>> | null = null;
 
-  const spyAndCaptureProperty = <F extends (...args: any[]) => devPropertyInternal.Property<[]>>(
-    f: F,
-  ): spies.InferMock<F> => {
+  const spyAndCaptureProperty = <F extends (...args: any[]) => devProperty.Property<[]>>(f: F): spies.InferMock<F> => {
     return spies.spyOn((...args: any[]) => {
       const property = f(...args);
       propertySpy = spies.spyOn(property);
@@ -25,11 +22,11 @@ const makeSpiedProperty = (): SpiedProperty => {
     }) as any;
   };
 
-  const exploreSpy = spyAndCaptureProperty(devPropertyInternal.explore);
-  const reproduceSpy = spyAndCaptureProperty(devPropertyInternal.reproduce);
+  const exploreSpy = spyAndCaptureProperty(devProperty.explore);
+  const reproduceSpy = spyAndCaptureProperty(devProperty.reproduce);
 
   return {
-    p: new devProperty.Property<[]>([], () => true, undefined, exploreSpy as any, reproduceSpy as any),
+    p: new dev.Property<[]>([], () => true, undefined, exploreSpy as any, reproduceSpy as any),
     exploreSpy,
     reproduceSpy,
     getPropertySpy: () => propertySpy,
@@ -42,7 +39,7 @@ type RunConfig = {
   counterexamplePath: string | undefined;
 };
 
-type Runner = (property: devProperty.Property<[]>, config: Partial<RunConfig>) => void;
+type Runner = (property: dev.Property<[]>, config: Partial<RunConfig>) => void;
 
 type RunnerName = 'check' | 'assert';
 

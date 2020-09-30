@@ -11,6 +11,8 @@ export type PropertyConfig = {
 
 export type AnyValues = InternalProperty.AnyValues;
 
+export type UnknownValues = unknown[];
+
 export namespace PropertyResult {
   export type Unfalsified = {
     kind: 'unfalsified';

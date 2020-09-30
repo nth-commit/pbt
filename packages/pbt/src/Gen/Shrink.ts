@@ -99,4 +99,6 @@ export namespace Shrink {
       ),
     );
   };
+
+  export const none = <T>(): Shrinker<T> => empty;
 }
