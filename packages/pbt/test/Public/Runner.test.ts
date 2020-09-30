@@ -44,35 +44,60 @@ type RunConfig = {
 
 type Runner = (property: devProperty.Property<[]>, config: Partial<RunConfig>) => void;
 
-const runners: Runner[] = [dev.check];
+type RunnerName = 'check' | 'assert';
 
-test.each(runners)('When it runs without a counterexamplePath, it creates an exploration property', (runner) => {
-  fc.assert(
-    fc.property(domainGen.seed(), (seed) => {
-      const { p, exploreSpy, reproduceSpy } = makeSpiedProperty();
+const runnersByName: { [Name in RunnerName]: Runner } = {
+  check: dev.check,
+  assert: (property, config) => {
+    try {
+      dev.assert(property, config);
+    } catch {
+      // Assert might throw, but we test this behaviour elsewhere
+    }
+  },
+};
 
-      runner(p, { seed });
+const runnerNames = Object.keys(runnersByName) as RunnerName[];
 
-      expect(exploreSpy).toBeCalledTimes(1);
-      expect(reproduceSpy).toBeCalledTimes(0);
-    }),
-  );
-});
+test.each(runnerNames)(
+  'When it runs without a counterexamplePath, it creates an exploration property (%s)',
+  (runnerName) => {
+    const runner = runnersByName[runnerName];
 
-test.each(runners)('When it runs with a counterexamplePath, it creates an reproduction property', (runner) => {
-  fc.assert(
-    fc.property(domainGen.seed(), domainGen.counterexamplePath(), (seed, counterexamplePath) => {
-      const { p, exploreSpy, reproduceSpy } = makeSpiedProperty();
+    fc.assert(
+      fc.property(domainGen.seed(), (seed) => {
+        const { p, exploreSpy, reproduceSpy } = makeSpiedProperty();
 
-      runner(p, { seed, counterexamplePath });
+        runner(p, { seed });
 
-      expect(exploreSpy).toBeCalledTimes(0);
-      expect(reproduceSpy).toBeCalledTimes(1);
-    }),
-  );
-});
+        expect(exploreSpy).toBeCalledTimes(1);
+        expect(reproduceSpy).toBeCalledTimes(0);
+      }),
+    );
+  },
+);
 
-test.each(runners)('It marshalls the input seed correctly', (runner) => {
+test.each(runnerNames)(
+  'When it runs with a counterexamplePath, it creates an reproduction property (%s)',
+  (runnerName) => {
+    const runner = runnersByName[runnerName];
+
+    fc.assert(
+      fc.property(domainGen.seed(), domainGen.counterexamplePath(), (seed, counterexamplePath) => {
+        const { p, exploreSpy, reproduceSpy } = makeSpiedProperty();
+
+        runner(p, { seed, counterexamplePath });
+
+        expect(exploreSpy).toBeCalledTimes(0);
+        expect(reproduceSpy).toBeCalledTimes(1);
+      }),
+    );
+  },
+);
+
+test.each(runnerNames)('It marshalls the input seed correctly (%s)', (runnerName) => {
+  const runner = runnersByName[runnerName];
+
   fc.assert(
     fc.property(domainGen.seed(), domainGen.maybe(domainGen.counterexamplePath()), (seed, counterexamplePath) => {
       const { p, getPropertySpy } = makeSpiedProperty();
@@ -87,7 +112,9 @@ test.each(runners)('It marshalls the input seed correctly', (runner) => {
   );
 });
 
-test.each(runners)('It passes the input size through, verbatim', (runner) => {
+test.each(runnerNames)('It passes the input size through, verbatim (%s)', (runnerName) => {
+  const runner = runnersByName[runnerName];
+
   fc.assert(
     fc.property(domainGen.size(), domainGen.maybe(domainGen.counterexamplePath()), (size, counterexamplePath) => {
       const { p, getPropertySpy } = makeSpiedProperty();
@@ -102,7 +129,9 @@ test.each(runners)('It passes the input size through, verbatim', (runner) => {
   );
 });
 
-test.each(runners)('It passes through the defaults', (runner) => {
+test.each(runnerNames)('It passes through the defaults (%s)', (runnerName) => {
+  const runner = runnersByName[runnerName];
+
   fc.assert(
     fc.property(domainGen.maybe(domainGen.counterexamplePath()), (counterexamplePath) => {
       const { p, getPropertySpy } = makeSpiedProperty();
