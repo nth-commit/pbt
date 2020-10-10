@@ -14,6 +14,11 @@ export type GenTree<Value> = {
 };
 
 export namespace GenTree {
+  export const traverse = function* <Value>(tree: GenTree<Value>): Iterable<GenTreeNode<Value>> {
+    yield tree.node;
+    yield* pipe(tree.shrinks, flatMapIter(traverse));
+  };
+
   export const unfold = <Value, Accumulator>(
     acc: Accumulator,
     accToValue: (acc: Accumulator) => Value,
@@ -39,17 +44,6 @@ export namespace GenTree {
       mapIter((acc0) => unfold(acc0, accToValue, accExpander, calculateComplexity)),
     );
 
-  export const mapNodes = <SourceValue, DestinationValue>(
-    tree: GenTree<SourceValue>,
-    f: (node: GenTreeNode<SourceValue>) => GenTreeNode<DestinationValue>,
-  ): GenTree<DestinationValue> => ({
-    node: f(tree.node),
-    shrinks: pipe(
-      tree.shrinks,
-      mapIter((shrink) => mapNodes(shrink, f)),
-    ),
-  });
-
   export const map = <SourceValue, DestinationValue>(
     tree: GenTree<SourceValue>,
     f: (value: SourceValue) => DestinationValue,
@@ -68,7 +62,7 @@ export namespace GenTree {
     forest: GenTree<ElementValue>[],
     fMerge: (values: ElementValue[]) => MergedValue,
     fMergeComplexity: (nodes: GenTreeNode<ElementValue>[]) => Complexity,
-    shrink: (forest: GenTree<ElementValue>[]) => Iterable<GenTree<ElementValue>[]>,
+    shrinkArray: <T>(arr: T[]) => Iterable<T[]>,
   ): GenTree<MergedValue> => {
     const node = mergeNode(
       forest.map((tree) => tree.node),
@@ -76,7 +70,7 @@ export namespace GenTree {
       fMergeComplexity,
     );
 
-    const treeCullingShrinks = shrink(forest);
+    const treeCullingShrinks = shrinkArray(forest);
 
     const treeMergingShrinks = pipe(
       forest.map((tree) => tree.shrinks),
@@ -88,7 +82,7 @@ export namespace GenTree {
       node,
       shrinks: pipe(
         concatIter(treeCullingShrinks, treeMergingShrinks),
-        mapIter((forest0) => merge(forest0, fMerge, fMergeComplexity, shrink)),
+        mapIter((forest0) => merge(forest0, fMerge, fMergeComplexity, shrinkArray)),
       ),
     };
   };
@@ -122,7 +116,7 @@ export namespace GenTree {
   export const concat = <Value>(
     forest: GenTree<Value>[],
     calculateConcatComplexity: (length: number) => Complexity,
-    shrinkNodes: (forest: GenTree<Value>[]) => Iterable<GenTree<Value>[]>,
+    shrinkArray: <T>(arr: T[]) => Iterable<T[]>,
   ): GenTree<Value[]> =>
     merge<Value, Value[]>(
       forest,
@@ -131,7 +125,7 @@ export namespace GenTree {
         const mergeComplexity = calculateConcatComplexity(nodes.length);
         return nodes.map((node) => node.complexity).reduce((acc, curr) => acc + curr, mergeComplexity);
       },
-      shrinkNodes,
+      shrinkArray,
     );
 
   /* istanbul ignore next */
