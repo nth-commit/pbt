@@ -1,46 +1,28 @@
-import { last, pipe } from 'ix/iterable';
+import { writeFileSync } from 'fs';
+import { pipe } from 'ix/iterable';
 import { take } from 'ix/iterable/operators';
-import { Gen, GenTree, Seed, Shrink, takeWhileInclusive } from '../src/Gen2';
-import { Property, explore, PropertyResult } from '../src/Property2';
+import { Gen, GenIteration, Seed, Shrink } from '../src/Gen2';
+import { GenTree } from '../src/GenTree';
+import { explore } from '../src/Property2';
+import { check } from '../src/Runners';
 
-// const tree = GenTree.unfold(
-//   [3, 2, 1],
-//   (x) => x,
-//   Shrink.array(0),
-//   () => 0,
-// );
+const id = <T>(x: T) => x;
 
-// console.log(GenTree.format(tree));
+const tree0 = GenTree.unfold(2, id, Shrink.towardsNumber(0), id);
+const tree1 = GenTree.unfold(3, id, Shrink.towardsNumber(0), id);
+const tree2 = GenTree.unfold(2, id, Shrink.towardsNumber(0), id);
 
-export type CheckConfig = {
-  iterations: number;
-  seed: Seed | number;
-  size: number;
-  counterexamplePath: string | undefined;
-};
+const treeConcat = GenTree.concat([tree0, tree1, tree2], id, Shrink.array(0));
 
-const check = <Values extends any[]>(
-  property: Property<Values>,
-  config: Partial<CheckConfig> = {},
-): PropertyResult<Values> => {
-  const seed =
-    config.seed === undefined ? Seed.spawn() : typeof config.seed === 'number' ? Seed.create(config.seed) : config.seed;
-  const size = config.size === undefined ? 0 : config.size;
+// const path = [8, 11, 9];
+const path = [8, 11];
+const treeConcatNavigated = GenTree.navigate(treeConcat, path);
 
-  const iterable = property(seed, size);
+writeFileSync('./scripts/sandbox.txt', GenTree.format(treeConcatNavigated), { encoding: 'utf-8' });
 
-  const requestedIterations = config.iterations === undefined ? 100 : config.iterations;
-  const propertyResult = last(
-    pipe(
-      iterable,
-      takeWhileInclusive((x) => x.iterations < requestedIterations),
-    ),
-  )!;
+// console.log(GenTree.format(treeConcatNavigated));
 
-  return propertyResult;
-};
-
-const p = explore([Gen.array(Gen.array(Gen.naturalNumber(10)))], (xss) => {
+const p = explore([Gen.array(Gen.array(Gen.naturalNumber()))], (xss) => {
   const set = new Set<number>();
   for (const xs of xss) {
     for (const x of xs) {
@@ -50,4 +32,19 @@ const p = explore([Gen.array(Gen.array(Gen.naturalNumber(10)))], (xss) => {
   return set.size < 5;
 });
 
-console.log(JSON.stringify(check(p), (key, value) => (key === 'counterexamplePath' ? undefined : value), 2));
+// console.log(
+//   JSON.stringify(check(p), (key, value) => (key === 'counterexampleHistory' || key === 'path' ? undefined : value), 2),
+// );
+
+// const integer = Gen.naturalNumber(100);
+// const arr = Gen.array(integer);
+
+// const seed = Seed.create(278341638);
+
+// for (const result of pipe(arr.run(seed.split()[1].split()[1].split()[1].split()[1], 4), take(1))) {
+//   const instance = result as GenIteration.Instance<number[]>;
+//   console.log(instance.tree.node);
+// }
+
+// // "seed": 278341638,
+// //       "size": 4,

@@ -1,5 +1,5 @@
-import { pipe, concat as concatIter } from 'ix/iterable';
-import { map as mapIter, flatMap as flatMapIter, filter as filterIter } from 'ix/iterable/operators';
+import { pipe, concat as concatIter, first as firstIter } from 'ix/iterable';
+import { map as mapIter, flatMap as flatMapIter, filter as filterIter, skip as skipIter } from 'ix/iterable/operators';
 
 export type Complexity = number;
 
@@ -170,6 +170,19 @@ export namespace GenTree {
       },
       shrinkArray,
     );
+
+  export const navigate = <Value>(tree: GenTree<Value>, path: number[]): GenTree<Value> => {
+    if (path.length === 0) return tree;
+
+    const [x, ...xs] = path;
+    const nextTree = firstIter(pipe(tree.shrinks, skipIter(x - 1)));
+
+    if (!nextTree) {
+      throw 'Invalid path';
+    }
+
+    return navigate(nextTree, xs);
+  };
 
   /* istanbul ignore next */
   const formatInternal = <Value>(
