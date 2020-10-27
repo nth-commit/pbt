@@ -17,7 +17,7 @@ export const array = <T>(elementGen: Gen<T>, genFactory: GenFactory): ArrayGen<T
     constructor(private args: ArrayGenImplArgs<T>) {
       super((seed, size) => {
         const { gen, min, max, scale } = this.args;
-        const range = Range.createRange(min, max, null, scale);
+        const range = Range.createFrom(min, max, 0, scale);
         return arrayFunction(gen.genFunction, range)(seed, size);
       }, genFactory);
     }
@@ -61,7 +61,7 @@ export const array = <T>(elementGen: Gen<T>, genFactory: GenFactory): ArrayGen<T
 };
 
 const arrayFunction = <T>(elementGen: GenFunction<T>, range: Range): GenFunction<T[]> =>
-  GenFunction.collect(elementGen, range, sortAndShrinkForest(range.bounds.min));
+  GenFunction.collect(elementGen, range, sortAndShrinkForest(range.bounds[0]));
 
 // TODO: Move into standard array shrinker, it makes debugging easier if we can build the same tree that we get out of the Gen
 const sortAndShrinkForest = <T>(minLength: number) => {
