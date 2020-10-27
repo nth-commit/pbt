@@ -8,14 +8,17 @@ import { Shrink } from './Shrink';
 const MAX_INT_32 = Math.pow(2, 31) - 1;
 const MIN_INT_32 = -MAX_INT_32;
 
+type IntegerGenArgs = Readonly<{
+  min: number | null;
+  max: number | null;
+  origin: number | null;
+  scale: ScaleMode | null;
+}>;
+
 export const integer = (genFactory: GenFactory): IntegerGen => {
   class IntegerGenImpl extends BaseGen<number> implements IntegerGen {
-    constructor(private readonly args: Readonly<IntegerGenImplArgs>) {
-      super((seed, size) => {
-        const { min, max, scale, origin } = this.args;
-        const range = Range.createRange(min, max, origin, scale);
-        return integerFunction(range)(seed, size);
-      }, genFactory);
+    constructor(private readonly args: Readonly<IntegerGenArgs>) {
+      super(integerFunction(args), genFactory);
     }
 
     ofRange(min: number, max: number, origin: number | null = null): IntegerGen {
@@ -57,28 +60,26 @@ export const integer = (genFactory: GenFactory): IntegerGen => {
   }
 
   return new IntegerGenImpl({
-    min: MIN_INT_32,
-    max: MAX_INT_32,
+    min: null,
+    max: null,
     origin: null,
-    scale: 'linear',
+    scale: null,
   });
 };
 
-type IntegerGenImplArgs = Readonly<{
-  min: number;
-  max: number;
-  origin: number | null;
-  scale: ScaleMode;
-}>;
+const integerFunction = (args: IntegerGenArgs): GenFunction<number> => {
+  const min = args.min === null ? MIN_INT_32 : args.min;
+  const max = args.max === null ? MAX_INT_32 : args.max;
+  const origin = args.origin === null ? 0 : args.origin; // Make this smarter
+  const scale = args.scale === null ? 'linear' : args.scale;
 
-const integerFunction = (range: Range): GenFunction<number> =>
-  GenFunction.create(
+  const range = Range.createFrom(min, max, origin, scale);
+
+  return GenFunction.create(
     (seed, size) => nextNumber(seed, size, range),
     Shrink.towardsNumber(range.origin),
-    range.calculateComplexity,
+    range.getProportionalDistance,
   );
-
-const nextNumber = (seed: Seed, size: Size, range: Range): number => {
-  const { min, max } = range.getSizedBounds(size);
-  return seed.nextInt(min, max);
 };
+
+const nextNumber = (seed: Seed, size: Size, range: Range): number => seed.nextInt(...range.getSizedBounds(size));

@@ -175,8 +175,7 @@ export namespace GenFunction {
     function* (seed, size) {
       const [leftSeed, rightSeed] = seed.split();
 
-      const { min, max } = range.getSizedBounds(size);
-      const length = leftSeed.nextInt(min, max);
+      const length = leftSeed.nextInt(...range.getSizedBounds(size));
       if (length === 0) {
         yield {
           kind: 'instance',
@@ -201,7 +200,7 @@ export namespace GenFunction {
 
       yield {
         kind: 'instance',
-        tree: GenTree.concat(forest, range.calculateComplexity, shrinker),
+        tree: GenTree.concat(forest, range.getProportionalDistance, shrinker),
       };
     };
 
