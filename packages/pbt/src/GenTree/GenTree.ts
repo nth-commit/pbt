@@ -1,5 +1,11 @@
 import { pipe, concat as concatIter, first as firstIter } from 'ix/iterable';
-import { map as mapIter, flatMap as flatMapIter, filter as filterIter, skip as skipIter } from 'ix/iterable/operators';
+import {
+  map as mapIter,
+  flatMap as flatMapIter,
+  filter as filterIter,
+  skip as skipIter,
+  take as takeIter,
+} from 'ix/iterable/operators';
 
 export type Complexity = number;
 
@@ -184,26 +190,28 @@ export namespace GenTree {
     return navigate(nextTree, xs);
   };
 
-  /* istanbul ignore next */
-  const formatInternal = <Value>(
-    tree: GenTree<Value>,
-    nestCount: number,
-    formatValue?: (value: Value) => string,
-  ): string => {
-    const valueFormatted = formatValue ? formatValue(tree.node.value) : tree.node.value;
-    const nodeFormatted = `${'-'.repeat(nestCount * 3)}${valueFormatted} (c = ${tree.node.complexity})`;
-
-    const shrinksFormatted = Array.from(
-      pipe(
-        tree.shrinks,
-        mapIter((i) => formatInternal(i, nestCount + 1, formatValue)),
-      ),
-    );
-
-    return [nodeFormatted, ...shrinksFormatted].join('\n');
+  export type FormatConfig<Value> = {
+    formatValue?: (value: Value) => string;
+    maxNodes: number;
   };
 
   /* istanbul ignore next */
-  export const format = <Value>(tree: GenTree<Value>, formatValue?: (value: Value) => string): string =>
-    formatInternal(tree, 0, formatValue);
+  const formatLines = <Value>(
+    tree: GenTree<Value>,
+    nestCount: number,
+    config: FormatConfig<Value>,
+  ): Iterable<string> => {
+    const valueFormatted = config.formatValue ? config.formatValue(tree.node.value) : tree.node.value;
+    const nodeFormatted = `${'-'.repeat(nestCount * 2)}${valueFormatted} (c = ${tree.node.complexity})`;
+
+    const shrinksFormatted = pipe(
+      tree.shrinks,
+      flatMapIter((i) => formatLines(i, nestCount + 1, config)),
+    );
+
+    return [nodeFormatted, ...shrinksFormatted];
+  };
+
+  export const format = <Value>(tree: GenTree<Value>, config: Partial<FormatConfig<Value>> = {}): string =>
+    Array.from(pipe(formatLines(tree, 0, { maxNodes: 100, ...config }), takeIter(config.maxNodes || 100))).join('\n');
 }

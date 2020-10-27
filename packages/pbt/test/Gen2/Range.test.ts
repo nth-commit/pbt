@@ -15,22 +15,13 @@ type UnorderedRangeParams = {
 };
 
 const genRangeParams = (): fc.Arbitrary<RangeParams> =>
-  fc
-    .record(
-      {
-        minDiff: domainGen.naturalNumber(),
-        maxDiff: domainGen.naturalNumber(),
-        origin: domainGen.integer(),
-      },
-      { withDeletedKeys: false },
-    )
-    .map(
-      ({ minDiff, maxDiff, origin }): RangeParams => ({
-        min: origin - minDiff,
-        max: origin + maxDiff,
-        origin,
-      }),
-    );
+  fc.tuple(domainGen.naturalNumber(), domainGen.naturalNumber(), domainGen.integer()).map(
+    ([minDiff, maxDiff, origin]): RangeParams => ({
+      min: origin - minDiff,
+      max: origin + maxDiff,
+      origin,
+    }),
+  );
 
 const genShuffledRangeParams = (): fc.Arbitrary<{ ordered: RangeParams; unordered: UnorderedRangeParams }> => {
   const unorderRangeParams = (ordered: RangeParams): fc.Arbitrary<UnorderedRangeParams> =>
