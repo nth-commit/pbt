@@ -22,5 +22,8 @@ module.exports = {
     'src/index.ts',
     'src/Core',
     'src/Public',
+    'src/GenTree',
+    'src/Gen2',
+    'src/Runners',
   ]
 };

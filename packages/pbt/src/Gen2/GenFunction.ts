@@ -22,13 +22,25 @@ export namespace GenIteration {
     kind: 'exhausted';
   };
 
-  export const isInstance = <T>(iteration: GenIteration<T>): iteration is Instance<T> => iteration.kind === 'instance';
+  export type Error = {
+    kind: 'error';
+    message: string;
+  };
 
-  export const isNotInstance = <T>(iteration: GenIteration<T>): iteration is Discarded | Exhausted =>
+  export const isInstance = <T>(iteration: GenIteration<T>): iteration is Instance<T> => iteration.kind === 'instance';
+  export const isNotInstance = <T>(iteration: GenIteration<T>): iteration is Discarded | Exhausted | Error =>
     !isInstance(iteration);
+
+  export const isDiscarded = <T>(iteration: GenIteration<T>): iteration is Discarded => iteration.kind === 'discarded';
+  export const isNotDiscarded = <T>(iteration: GenIteration<T>): iteration is Instance<T> | Exhausted | Error =>
+    !isDiscarded(iteration);
 }
 
-export type GenIteration<T> = GenIteration.Instance<T> | GenIteration.Discarded | GenIteration.Exhausted;
+export type GenIteration<T> =
+  | GenIteration.Instance<T>
+  | GenIteration.Discarded
+  | GenIteration.Exhausted
+  | GenIteration.Error;
 
 export type GenFunction<T> = (seed: Seed, size: Size) => Iterable<GenIteration<T>>;
 
@@ -52,7 +64,9 @@ export namespace GenFunction {
   ): GenFunction<T> => (seed: Seed, size: Size) =>
     pipe(Seed.stream(seed), mapIter(generateInstance(f, shrink, calculateComplexity, size)));
 
-  export const exhausted = <T>(): GenFunction<T> => () => of<GenIteration.Exhausted>({ kind: 'exhausted' });
+  export const exhausted = <T>(): GenFunction<T> => () => [{ kind: 'exhausted' }];
+
+  export const error = <T>(message: string): GenFunction<T> => () => [{ kind: 'error', message }];
 
   export const constant = <T>(value: T): GenFunction<T> => () =>
     repeatValue<GenIteration.Instance<T>>({

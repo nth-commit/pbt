@@ -30,6 +30,10 @@ export const array = <T>(elementGen: Gen<T>, genFactory: GenFactory): ArrayGen<T
       });
     }
 
+    ofLength(): ArrayGen<T> {
+      return this;
+    }
+
     ofMinLength(min: number): ArrayGen<T> {
       return new ArrayGenImpl({
         ...this.args,

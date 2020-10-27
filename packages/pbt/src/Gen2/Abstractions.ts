@@ -20,15 +20,16 @@ export type ArrayGen<T> = Gen<T[]> & {
   ofRange(x: number, y: number, origin?: number): ArrayGen<T>;
   ofMinLength(min: number): ArrayGen<T>;
   ofMaxLength(max: number): ArrayGen<T>;
+  ofLength(length: number): ArrayGen<T>;
   growsBy(scale: ScaleMode): ArrayGen<T>;
 };
 
 export type IntegerGen = Gen<number> & {
-  ofRange(min: number, max: number, origin?: number): IntegerGen;
-  ofMin(min: number): IntegerGen;
-  ofMax(max: number): IntegerGen;
-  growBy(scale: ScaleMode): IntegerGen;
-  shrinksTowards(origin: number): IntegerGen;
+  between(min: number, max: number): IntegerGen;
+  greaterThanEqual(min: number): IntegerGen;
+  lessThanEqual(max: number): IntegerGen;
+  origin(origin: number): IntegerGen;
+  growsBy(scale: ScaleMode): IntegerGen;
 };
 
 export type GenFactory = {

@@ -5,7 +5,7 @@ import { ScaleMode, Range } from './Range';
 import { GenFunction } from './GenFunction';
 import { Shrink } from './Shrink';
 
-const MAX_INT_32 = Math.pow(2, 31) - 1;
+const MAX_INT_32 = Math.pow(2, 31);
 const MIN_INT_32 = -MAX_INT_32;
 
 type IntegerGenArgs = Readonly<{
@@ -18,40 +18,39 @@ type IntegerGenArgs = Readonly<{
 export const integer = (genFactory: GenFactory): IntegerGen => {
   class IntegerGenImpl extends BaseGen<number> implements IntegerGen {
     constructor(private readonly args: Readonly<IntegerGenArgs>) {
-      super(integerFunction(args), genFactory);
+      super((seed, size) => integerFunction(args)(seed, size), genFactory);
     }
 
-    ofRange(min: number, max: number, origin: number | null = null): IntegerGen {
-      return new IntegerGenImpl({
-        ...this.args,
-        min,
-        max,
-        origin,
-      });
-    }
-
-    ofMin(min: number): IntegerGen {
+    greaterThanEqual(min: number): IntegerGen {
       return new IntegerGenImpl({
         ...this.args,
         min,
       });
     }
 
-    ofMax(max: number): IntegerGen {
+    lessThanEqual(max: number): IntegerGen {
       return new IntegerGenImpl({
         ...this.args,
         max,
       });
     }
 
-    growBy(scale: ScaleMode): IntegerGen {
+    between(min: number, max: number): IntegerGen {
+      return new IntegerGenImpl({
+        ...this.args,
+        min,
+        max,
+      });
+    }
+
+    growsBy(scale: ScaleMode): IntegerGen {
       return new IntegerGenImpl({
         ...this.args,
         scale,
       });
     }
 
-    shrinksTowards(origin: number): IntegerGen {
+    origin(origin: number): IntegerGen {
       return new IntegerGenImpl({
         ...this.args,
         origin,
@@ -71,8 +70,12 @@ const integerFunction = (args: IntegerGenArgs): GenFunction<number> => {
   const min = args.min === null ? MIN_INT_32 : args.min;
   const max = args.max === null ? MAX_INT_32 : args.max;
   const origin = args.origin === null ? 0 : args.origin; // Make this smarter
-  const scale = args.scale === null ? 'linear' : args.scale;
+  if (!isBetween(min, max, origin)) {
+    const message = `Origin must be in range, origin = ${origin}, range = [${min}, ${max}]`;
+    return GenFunction.error(message);
+  }
 
+  const scale = args.scale === null ? 'linear' : args.scale;
   const range = Range.createFrom(min, max, origin, scale);
 
   return GenFunction.create(
@@ -83,3 +86,5 @@ const integerFunction = (args: IntegerGenArgs): GenFunction<number> => {
 };
 
 const nextNumber = (seed: Seed, size: Size, range: Range): number => seed.nextInt(...range.getSizedBounds(size));
+
+const isBetween = (x: number, y: number, n: number) => (x <= n && n <= y) || (y <= n && n <= x);
