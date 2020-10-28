@@ -1,4 +1,4 @@
-import fc, { integer } from 'fast-check';
+import fc from 'fast-check';
 import { mean } from 'simple-statistics';
 import * as dev from './srcShim';
 import * as domainGen from './Helpers/domainGen';
@@ -211,61 +211,49 @@ describe('equivalent APIs', () => {
 describe('errors', () => {
   test('Gen.integer().greaterThanEqual(x), x ∉ ℤ *produces* error; minimum must be an integer', () => {
     fc.assert(
-      fc.property(
-        domainGen.sampleConfig(),
-        domainGen.decimal().filter((x) => !Number.isInteger(x)),
-        (config, x) => {
-          const gen = dev.Gen.integer().greaterThanEqual(x);
+      fc.property(domainGen.sampleConfig(), domainGen.decimalWithAtLeastOneDp(), (config, x) => {
+        const gen = dev.Gen.integer().greaterThanEqual(x);
 
-          const sampleResult = dev.sample(gen, config);
+        const sampleResult = dev.sample(gen, config);
 
-          const expectedSampleResult: dev.SampleResult<number> = {
-            kind: 'error',
-            message: expect.stringMatching('Minimum must be an integer'),
-          };
-          expect(sampleResult).toEqual(expectedSampleResult);
-        },
-      ),
+        const expectedSampleResult: dev.SampleResult<number> = {
+          kind: 'error',
+          message: expect.stringMatching('Minimum must be an integer'),
+        };
+        expect(sampleResult).toEqual(expectedSampleResult);
+      }),
     );
   });
 
   test('Gen.integer().lessThanEqual(x), x ∉ ℤ *produces* error; maximum must be an integer', () => {
     fc.assert(
-      fc.property(
-        domainGen.sampleConfig(),
-        domainGen.decimal().filter((x) => !Number.isInteger(x)),
-        (config, x) => {
-          const gen = dev.Gen.integer().lessThanEqual(x);
+      fc.property(domainGen.sampleConfig(), domainGen.decimalWithAtLeastOneDp(), (config, x) => {
+        const gen = dev.Gen.integer().lessThanEqual(x);
 
-          const sampleResult = dev.sample(gen, config);
+        const sampleResult = dev.sample(gen, config);
 
-          const expectedSampleResult: dev.SampleResult<number> = {
-            kind: 'error',
-            message: expect.stringMatching('Maximum must be an integer'),
-          };
-          expect(sampleResult).toEqual(expectedSampleResult);
-        },
-      ),
+        const expectedSampleResult: dev.SampleResult<number> = {
+          kind: 'error',
+          message: expect.stringMatching('Maximum must be an integer'),
+        };
+        expect(sampleResult).toEqual(expectedSampleResult);
+      }),
     );
   });
 
   test('Gen.integer().origin(x), x ∉ ℤ *produces* error; origin must be an integer', () => {
     fc.assert(
-      fc.property(
-        domainGen.sampleConfig(),
-        domainGen.decimal().filter((x) => !Number.isInteger(x)),
-        (config, x) => {
-          const gen = dev.Gen.integer().origin(x);
+      fc.property(domainGen.sampleConfig(), domainGen.decimalWithAtLeastOneDp(), (config, x) => {
+        const gen = dev.Gen.integer().origin(x);
 
-          const sampleResult = dev.sample(gen, config);
+        const sampleResult = dev.sample(gen, config);
 
-          const expectedSampleResult: dev.SampleResult<number> = {
-            kind: 'error',
-            message: expect.stringMatching('Origin must be an integer'),
-          };
-          expect(sampleResult).toEqual(expectedSampleResult);
-        },
-      ),
+        const expectedSampleResult: dev.SampleResult<number> = {
+          kind: 'error',
+          message: expect.stringMatching('Origin must be an integer'),
+        };
+        expect(sampleResult).toEqual(expectedSampleResult);
+      }),
     );
   });
 

@@ -104,13 +104,9 @@ const tryDeriveOrigin = (min: number, max: number, origin: number | null): numbe
     return canOriginBeZero ? 0 : min;
   }
 
-  if (!Number.isInteger(origin)) {
-    return `Origin must be an integer, origin = ${origin}`;
-  }
+  if (!Number.isInteger(origin)) return `Origin must be an integer, origin = ${origin}`;
 
-  if (!isBetween(min, max, origin)) {
-    return `Origin must be in range, origin = ${origin}, range = [${min}, ${max}]`;
-  }
+  if (!isBetween(min, max, origin)) return `Origin must be in range, origin = ${origin}, range = [${min}, ${max}]`;
 
   return origin;
 };
