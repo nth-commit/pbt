@@ -1,4 +1,4 @@
-import fc from 'fast-check';
+import fc, { integer } from 'fast-check';
 import { mean } from 'simple-statistics';
 import * as dev from './srcShim';
 import * as domainGen from './Helpers/domainGen';
@@ -15,117 +15,6 @@ test('snapshot', () => {
     if (sampleResult.kind !== 'success') return failwith('Expected success');
     expect(dev.GenTree.format(sampleResult.trees[0])).toMatchSnapshot(i.toString());
   }
-});
-
-test('default(min) = -2,147,483,648 *because* we arbitrarily selected the default range to be int32', () => {
-  fc.assert(
-    fc.property(domainGen.sampleConfig(), (config) => {
-      const genDefault = dev.Gen.integer();
-      const genAlt = dev.Gen.integer().greaterThanEqual(-2_147_483_648);
-
-      expect(dev.sample(genDefault, config)).toEqual(dev.sample(genAlt, config));
-    }),
-  );
-});
-
-test('default(max) = 2,147,483,648 *because* we arbitrarily selected the default range to be int32', () => {
-  fc.assert(
-    fc.property(domainGen.sampleConfig(), (config) => {
-      const genDefault = dev.Gen.integer();
-      const genLinear = dev.Gen.integer().lessThanEqual(2_147_483_648);
-
-      expect(dev.sample(genDefault, config)).toEqual(dev.sample(genLinear, config));
-    }),
-  );
-});
-
-test('default(origin) = 0', () => {
-  fc.assert(
-    fc.property(domainGen.sampleConfig(), (config) => {
-      const genDefault = dev.Gen.integer();
-      const genLinear = dev.Gen.integer().origin(0);
-
-      expect(dev.sample(genDefault, config)).toEqual(dev.sample(genLinear, config));
-    }),
-  );
-});
-
-test('default(scale) = linear', () => {
-  fc.assert(
-    fc.property(domainGen.sampleConfig(), (config) => {
-      const genDefault = dev.Gen.integer();
-      const genLinear = dev.Gen.integer().growBy('linear');
-
-      expect(dev.sample(genDefault, config)).toEqual(dev.sample(genLinear, config));
-    }),
-  );
-});
-
-test('Gen.integer().between(x, y) = Gen.integer().greaterThanEqual(x).lessThanEqual(y)', () => {
-  fc.assert(
-    fc.property(domainGen.sampleConfig(), domainGen.integer(), domainGen.integer(), (config, x, y) => {
-      const genBetween = dev.Gen.integer().between(x, y);
-      const genBetweenAlt = dev.Gen.integer().greaterThanEqual(x).lessThanEqual(y);
-
-      expect(dev.sample(genBetween, config)).toEqual(dev.sample(genBetweenAlt, config));
-    }),
-  );
-});
-
-test('Gen.integer().between(x, y) = Gen.integer().between(y, x) *because* it is resilient to parameter order', () => {
-  fc.assert(
-    fc.property(domainGen.sampleConfig(), domainGen.setOfSize(domainGen.integer(), 3), (config, [a, b, c]) => {
-      const [x, z, y] = [a, b, c].sort((a, b) => a - b);
-      const gen = dev.Gen.integer().origin(z);
-      const genBetween = gen.between(x, y);
-      const genBetweenAlt = gen.between(y, x);
-
-      expect(dev.sample(genBetween, config)).toEqual(dev.sample(genBetweenAlt, config));
-    }),
-  );
-});
-
-test('Gen.integer().between(x, y).origin(z), z ∉ [x..y] *produces* error; origin must be in range', () => {
-  fc.assert(
-    fc.property(
-      domainGen.sampleConfig(),
-      domainGen.setOfSize(domainGen.integer(), 3),
-      domainGen.element([-1, 1]),
-      (config, [a, b, c], sortOrder) => {
-        const [x, y, z] = [a, b, c].sort((a, b) => (a - b) * sortOrder);
-        const gen = dev.Gen.integer().between(x, y).origin(z);
-
-        const sampleResult = dev.sample(gen, config);
-
-        const expectedSampleResult: dev.SampleResult<number> = {
-          kind: 'error',
-          message: expect.stringMatching('Origin must be in range'),
-        };
-        expect(sampleResult).toEqual(expectedSampleResult);
-      },
-    ),
-  );
-});
-
-// TODO: Return errors when min/max/origin are not integers
-
-test('Gen.integer().between(x, y), 0 ∉ [x..y] = Gen.integer().between(x, y).origin(x) *because* if the origin is not set, and the range is shifted, we adjust the origin to the minimum', () => {
-  fc.assert(
-    fc.property(
-      domainGen.sampleConfig(),
-      domainGen.choose(
-        domainGen.setOfSize(domainGen.integer({ min: 1 }), 2),
-        domainGen.setOfSize(domainGen.integer({ max: -1 }), 2),
-      ),
-      (config, [a, b]) => {
-        const [x, y] = [a, b].sort((a, b) => a - b);
-        const gen = dev.Gen.integer().between(x, y);
-        const genAlt = gen.origin(x);
-
-        expect(dev.sample(gen, config)).toEqual(dev.sample(genAlt, config));
-      },
-    ),
-  );
 });
 
 test('Gen.integer().between(x, y).growBy(s) *produces* integers in the range [x, y]', () => {
@@ -146,6 +35,25 @@ test('Gen.integer().between(x, y).growBy(s) *produces* integers in the range [x,
           expect(value).toBeGreaterThanOrEqual(x);
           expect(value).toBeLessThanOrEqual(y);
         }
+      },
+    ),
+  );
+});
+
+test('Gen.integer().between(x, y), 0 ∉ [x..y] = Gen.integer().between(x, y).origin(x) *because* if the origin is not set, and the range is shifted, we adjust the origin to the minimum', () => {
+  fc.assert(
+    fc.property(
+      domainGen.sampleConfig(),
+      domainGen.choose(
+        domainGen.setOfSize(domainGen.integer({ min: 1 }), 2),
+        domainGen.setOfSize(domainGen.integer({ max: -1 }), 2),
+      ),
+      (config, [a, b]) => {
+        const [x, y] = [a, b].sort((a, b) => a - b);
+        const gen = dev.Gen.integer().between(x, y);
+        const genAlt = gen.origin(x);
+
+        expect(dev.sample(gen, config)).toEqual(dev.sample(genAlt, config));
       },
     ),
   );
@@ -226,4 +134,160 @@ test('Gen.integer().between(x, y).growBy(linear), size = 100 *produces* integers
   const expectedMean = (y - x) / 2 + x;
   const ratioDifference = Math.abs(expectedMean / actualMean);
   expect(ratioDifference).toBeCloseTo(1, 0);
+});
+
+describe('defaults', () => {
+  test('default(min) = -2,147,483,648 *because* we arbitrarily selected the default range to be int32', () => {
+    fc.assert(
+      fc.property(domainGen.sampleConfig(), (config) => {
+        const genDefault = dev.Gen.integer();
+        const genAlt = dev.Gen.integer().greaterThanEqual(-2_147_483_648);
+
+        expect(dev.sample(genDefault, config)).toEqual(dev.sample(genAlt, config));
+      }),
+    );
+  });
+
+  test('default(max) = 2,147,483,648 *because* we arbitrarily selected the default range to be int32', () => {
+    fc.assert(
+      fc.property(domainGen.sampleConfig(), (config) => {
+        const genDefault = dev.Gen.integer();
+        const genLinear = dev.Gen.integer().lessThanEqual(2_147_483_648);
+
+        expect(dev.sample(genDefault, config)).toEqual(dev.sample(genLinear, config));
+      }),
+    );
+  });
+
+  test('default(origin) = 0', () => {
+    fc.assert(
+      fc.property(domainGen.sampleConfig(), (config) => {
+        const genDefault = dev.Gen.integer();
+        const genLinear = dev.Gen.integer().origin(0);
+
+        expect(dev.sample(genDefault, config)).toEqual(dev.sample(genLinear, config));
+      }),
+    );
+  });
+
+  test('default(scale) = linear', () => {
+    fc.assert(
+      fc.property(domainGen.sampleConfig(), (config) => {
+        const genDefault = dev.Gen.integer();
+        const genLinear = dev.Gen.integer().growBy('linear');
+
+        expect(dev.sample(genDefault, config)).toEqual(dev.sample(genLinear, config));
+      }),
+    );
+  });
+});
+
+describe('equivalent APIs', () => {
+  test('Gen.integer().between(x, y) = Gen.integer().greaterThanEqual(x).lessThanEqual(y)', () => {
+    fc.assert(
+      fc.property(domainGen.sampleConfig(), domainGen.integer(), domainGen.integer(), (config, x, y) => {
+        const genBetween = dev.Gen.integer().between(x, y);
+        const genBetweenAlt = dev.Gen.integer().greaterThanEqual(x).lessThanEqual(y);
+
+        expect(dev.sample(genBetween, config)).toEqual(dev.sample(genBetweenAlt, config));
+      }),
+    );
+  });
+
+  test('Gen.integer().between(x, y) = Gen.integer().between(y, x) *because* it is resilient to parameter order', () => {
+    fc.assert(
+      fc.property(domainGen.sampleConfig(), domainGen.setOfSize(domainGen.integer(), 3), (config, [a, b, c]) => {
+        const [x, z, y] = [a, b, c].sort((a, b) => a - b);
+        const gen = dev.Gen.integer().origin(z);
+        const genBetween = gen.between(x, y);
+        const genBetweenAlt = gen.between(y, x);
+
+        expect(dev.sample(genBetween, config)).toEqual(dev.sample(genBetweenAlt, config));
+      }),
+    );
+  });
+});
+
+describe('errors', () => {
+  test('Gen.integer().greaterThanEqual(x), x ∉ ℤ *produces* error; minimum must be an integer', () => {
+    fc.assert(
+      fc.property(
+        domainGen.sampleConfig(),
+        domainGen.decimal().filter((x) => !Number.isInteger(x)),
+        (config, x) => {
+          const gen = dev.Gen.integer().greaterThanEqual(x);
+
+          const sampleResult = dev.sample(gen, config);
+
+          const expectedSampleResult: dev.SampleResult<number> = {
+            kind: 'error',
+            message: expect.stringMatching('Minimum must be an integer'),
+          };
+          expect(sampleResult).toEqual(expectedSampleResult);
+        },
+      ),
+    );
+  });
+
+  test('Gen.integer().lessThanEqual(x), x ∉ ℤ *produces* error; maximum must be an integer', () => {
+    fc.assert(
+      fc.property(
+        domainGen.sampleConfig(),
+        domainGen.decimal().filter((x) => !Number.isInteger(x)),
+        (config, x) => {
+          const gen = dev.Gen.integer().lessThanEqual(x);
+
+          const sampleResult = dev.sample(gen, config);
+
+          const expectedSampleResult: dev.SampleResult<number> = {
+            kind: 'error',
+            message: expect.stringMatching('Maximum must be an integer'),
+          };
+          expect(sampleResult).toEqual(expectedSampleResult);
+        },
+      ),
+    );
+  });
+
+  test('Gen.integer().origin(x), x ∉ ℤ *produces* error; origin must be an integer', () => {
+    fc.assert(
+      fc.property(
+        domainGen.sampleConfig(),
+        domainGen.decimal().filter((x) => !Number.isInteger(x)),
+        (config, x) => {
+          const gen = dev.Gen.integer().origin(x);
+
+          const sampleResult = dev.sample(gen, config);
+
+          const expectedSampleResult: dev.SampleResult<number> = {
+            kind: 'error',
+            message: expect.stringMatching('Origin must be an integer'),
+          };
+          expect(sampleResult).toEqual(expectedSampleResult);
+        },
+      ),
+    );
+  });
+
+  test('Gen.integer().between(x, y).origin(z), z ∉ [x..y] *produces* error; origin must be in range', () => {
+    fc.assert(
+      fc.property(
+        domainGen.sampleConfig(),
+        domainGen.setOfSize(domainGen.integer(), 3),
+        domainGen.element([-1, 1]),
+        (config, [a, b, c], sortOrder) => {
+          const [x, y, z] = [a, b, c].sort((a, b) => (a - b) * sortOrder);
+          const gen = dev.Gen.integer().between(x, y).origin(z);
+
+          const sampleResult = dev.sample(gen, config);
+
+          const expectedSampleResult: dev.SampleResult<number> = {
+            kind: 'error',
+            message: expect.stringMatching('Origin must be in range'),
+          };
+          expect(sampleResult).toEqual(expectedSampleResult);
+        },
+      ),
+    );
+  });
 });
