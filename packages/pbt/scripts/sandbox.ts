@@ -1,40 +1,8 @@
-import { pipe, toArray } from 'ix/iterable';
-import { filter, map, take } from 'ix/iterable/operators';
-import { Seed, Size } from '../src/Core';
-import { Gen, GenIteration } from '../src/Gen2';
+import { Gen } from '../src/Gen2';
+import { GenTree } from '../src/GenTree';
+import { sample, sampleTrees } from '../src/Runners';
 
-type SampleConfig = {
-  seed: Seed | number;
-  size: Size;
-  iterations: number;
-};
+const result = sampleTrees(Gen.integer().between(-100, -1), { iterations: 1, size: 100, seed: 0 });
+if (result.kind === 'error') throw 'uh oh';
 
-type SampleResult<T> = {
-  values: T[];
-  discards: number;
-};
-
-const sample = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): SampleResult<T> => {
-  const { seed, size, iterations }: SampleConfig = {
-    seed: Seed.spawn(),
-    size: 30,
-    iterations: 100,
-    ...config,
-  };
-
-  const values = toArray(
-    pipe(
-      gen.run(seed, size),
-      filter(GenIteration.isInstance),
-      map((iteration) => iteration.tree.node.value),
-      take(iterations),
-    ),
-  );
-
-  return {
-    values,
-    discards: 0,
-  };
-};
-
-sample(Gen.integer(), { iterations: 5 }).values.forEach((x) => console.log(x));
+console.log(GenTree.format(result.trees[0], { indentation: '.' }));
