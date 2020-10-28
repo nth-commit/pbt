@@ -4,7 +4,7 @@ import { ScaleMode } from './Range';
 
 export interface Gen<T> extends RandomStream<GenIteration<T>> {
   /**
-   * @description The underlying function that is built up by all operations on the Gen2.
+   * @description The underlying function that is built up by all operations on a Gen.
    * @private
    */
   readonly genFunction: GenFunction<T>;
@@ -17,10 +17,10 @@ export interface Gen<T> extends RandomStream<GenIteration<T>> {
 }
 
 export type ArrayGen<T> = Gen<T[]> & {
-  ofRange(x: number, y: number, origin?: number): ArrayGen<T>;
+  betweenLengths(min: number, max: number): ArrayGen<T>;
+  ofLength(length: number): ArrayGen<T>;
   ofMinLength(min: number): ArrayGen<T>;
   ofMaxLength(max: number): ArrayGen<T>;
-  ofLength(length: number): ArrayGen<T>;
   growBy(scale: ScaleMode): ArrayGen<T>;
 };
 
