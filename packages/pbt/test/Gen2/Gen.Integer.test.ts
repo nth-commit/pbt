@@ -17,6 +17,26 @@ test('snapshot', () => {
   }
 });
 
+test('snapshot, positive range', () => {
+  const seed = mockSeed(10);
+  const gen = dev.Gen.integer().between(1, 10);
+
+  const sampleResult = dev.sampleTrees(gen, { seed, iterations: 1 });
+
+  if (sampleResult.kind !== 'success') return failwith('Expected success');
+  expect(dev.GenTree.format(sampleResult.trees[0])).toMatchSnapshot();
+});
+
+test('snapshot, negative range', () => {
+  const seed = mockSeed(-10);
+  const gen = dev.Gen.integer().between(-10, -1);
+
+  const sampleResult = dev.sampleTrees(gen, { seed, iterations: 1 });
+
+  if (sampleResult.kind !== 'success') return failwith('Expected success');
+  expect(dev.GenTree.format(sampleResult.trees[0])).toMatchSnapshot();
+});
+
 test('Gen.integer().between(x, y).growBy(s) *produces* integers in the range [x, y]', () => {
   fc.assert(
     fc.property(
@@ -40,18 +60,33 @@ test('Gen.integer().between(x, y).growBy(s) *produces* integers in the range [x,
   );
 });
 
-test('Gen.integer().between(x, y), 0 ∉ [x..y] = Gen.integer().between(x, y).origin(x) *because* if the origin is not set, and the range is shifted, we adjust the origin to the minimum', () => {
+test('Gen.integer().between(x, y), x > 0, y >= x = Gen.integer().between(x, y).origin(x) *because* the origin is clipped', () => {
   fc.assert(
     fc.property(
       domainGen.sampleConfig(),
-      domainGen.choose(
-        domainGen.setOfSize(domainGen.integer({ min: 1 }), 2),
-        domainGen.setOfSize(domainGen.integer({ max: -1 }), 2),
-      ),
-      (config, [a, b]) => {
+      domainGen.integer({ min: 1 }),
+      domainGen.integer({ min: 1 }),
+      (config, a, b) => {
         const [x, y] = [a, b].sort((a, b) => a - b);
         const gen = dev.Gen.integer().between(x, y);
-        const genAlt = gen.origin(x);
+        const genAlt = dev.Gen.integer().between(x, y).origin(x);
+
+        expect(dev.sample(gen, config)).toEqual(dev.sample(genAlt, config));
+      },
+    ),
+  );
+});
+
+test('Gen.integer().between(x, y), x < 0, y <= x = Gen.integer().between(x, y).origin(x) *because* the origin is clipped', () => {
+  fc.assert(
+    fc.property(
+      domainGen.sampleConfig(),
+      domainGen.integer({ max: -1 }),
+      domainGen.integer({ max: -1 }),
+      (config, a, b) => {
+        const [x, y] = [a, b].sort((a, b) => b - a);
+        const gen = dev.Gen.integer().between(x, y);
+        const genAlt = dev.Gen.integer().between(x, y).origin(x);
 
         expect(dev.sample(gen, config)).toEqual(dev.sample(genAlt, config));
       },

@@ -101,7 +101,11 @@ const tryDeriveMax = (max: number | null): number | string =>
 const tryDeriveOrigin = (min: number, max: number, origin: number | null): number | string => {
   if (origin === null) {
     const canOriginBeZero = isBetween(min, max, 0);
-    return canOriginBeZero ? 0 : min;
+    if (canOriginBeZero) return 0;
+
+    const minToZero = Math.abs(min - 0);
+    const maxToZero = Math.abs(max - 0);
+    return minToZero < maxToZero ? min : max;
   }
 
   if (!Number.isInteger(origin)) return `Origin must be an integer, origin = ${origin}`;

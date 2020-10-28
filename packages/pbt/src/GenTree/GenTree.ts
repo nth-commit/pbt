@@ -193,6 +193,7 @@ export namespace GenTree {
   export type FormatConfig<Value> = {
     formatValue?: (value: Value) => string;
     maxNodes: number;
+    indentation: string;
   };
 
   /* istanbul ignore next */
@@ -202,7 +203,7 @@ export namespace GenTree {
     config: FormatConfig<Value>,
   ): Iterable<string> => {
     const valueFormatted = config.formatValue ? config.formatValue(tree.node.value) : tree.node.value;
-    const nodeFormatted = `${'-'.repeat(nestCount * 2)}${valueFormatted} (c = ${tree.node.complexity})`;
+    const nodeFormatted = `${config.indentation.repeat(nestCount * 2)}${valueFormatted} (c = ${tree.node.complexity})`;
 
     const shrinksFormatted = pipe(
       tree.shrinks,
@@ -213,5 +214,7 @@ export namespace GenTree {
   };
 
   export const format = <Value>(tree: GenTree<Value>, config: Partial<FormatConfig<Value>> = {}): string =>
-    Array.from(pipe(formatLines(tree, 0, { maxNodes: 100, ...config }), takeIter(config.maxNodes || 100))).join('\n');
+    Array.from(
+      pipe(formatLines(tree, 0, { maxNodes: 100, indentation: '.', ...config }), takeIter(config.maxNodes || 100)),
+    ).join('\n');
 }
