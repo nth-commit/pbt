@@ -38,6 +38,8 @@ export const integer = fc.integer;
 export const naturalNumber = fc.nat;
 export const decimal = fc.float;
 
+export const decimalWithAtLeastOneDp = () => decimal().filter((x) => !Number.isInteger(x));
+
 export const zip = <Values extends [any, ...any[]]>(
   ...gens: { [Label in keyof Values]: fc.Arbitrary<Values[Label]> }
 ): fc.Arbitrary<Values> => (fc.tuple as any)(...gens);
