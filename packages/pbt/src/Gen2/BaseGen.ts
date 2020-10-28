@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 import { Seed } from '../Core';
 import { ArrayGen, Gen, GenFactory } from './Abstractions';
 import { GenFunction, GenIteration } from './GenFunction';

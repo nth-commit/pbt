@@ -43,7 +43,7 @@ export const integer = (genFactory: GenFactory): IntegerGen => {
       });
     }
 
-    growsBy(scale: ScaleMode): IntegerGen {
+    growBy(scale: ScaleMode): IntegerGen {
       return new IntegerGenImpl({
         ...this.args,
         scale,
@@ -69,7 +69,8 @@ export const integer = (genFactory: GenFactory): IntegerGen => {
 const integerFunction = (args: IntegerGenArgs): GenFunction<number> => {
   const min = args.min === null ? MIN_INT_32 : args.min;
   const max = args.max === null ? MAX_INT_32 : args.max;
-  const origin = args.origin === null ? 0 : args.origin; // Make this smarter
+  const origin = deriveOrigin(min, max, args.origin);
+
   if (!isBetween(min, max, origin)) {
     const message = `Origin must be in range, origin = ${origin}, range = [${min}, ${max}]`;
     return GenFunction.error(message);
@@ -83,6 +84,13 @@ const integerFunction = (args: IntegerGenArgs): GenFunction<number> => {
     Shrink.towardsNumber(range.origin),
     range.getProportionalDistance,
   );
+};
+
+const deriveOrigin = (min: number, max: number, origin: number | null): number => {
+  if (origin === null) {
+    return isBetween(min, max, 0) ? 0 : min;
+  }
+  return origin;
 };
 
 const nextNumber = (seed: Seed, size: Size, range: Range): number => seed.nextInt(...range.getSizedBounds(size));

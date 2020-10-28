@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 import { of, pipe, concat, repeatValue } from 'ix/iterable';
 import { map as mapIter, filter as filterIter, flatMap as flatMapIter } from 'ix/iterable/operators';
 import { takeWhileInclusive as takeWhileInclusiveIter } from '../Core/iterableOperators';

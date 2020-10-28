@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 import { Seed, Size } from '../Core';
 import { CalculateComplexity } from '../GenTree';
 import { GenFunction } from './GenFunction';

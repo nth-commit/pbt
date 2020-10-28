@@ -1,11 +1,15 @@
 import fc from 'fast-check';
 import * as devCore from '../../../src/Core';
 import * as devGenRange from '../../../src/Gen2/Range';
+import { SampleConfig } from '../../../src/Runners';
 import * as dev from '../srcShim';
 
 export const seed = (): fc.Arbitrary<devCore.Seed> => fc.nat().map(devCore.Seed.create).noShrink();
 
 export const size = (): fc.Arbitrary<devCore.Size> => fc.integer(0, 100);
+
+export const sampleConfig = (): fc.Arbitrary<SampleConfig> =>
+  fc.tuple(seed(), size(), integer(1, 100)).map(([seed, size, iterations]) => ({ seed, size, iterations }));
 
 export const sampleFunc = <T>(): fc.Arbitrary<(gen: dev.Gen<T>) => dev.SampleResult<T>> =>
   fc.tuple(seed(), size(), integer(1, 100)).map(([seed, size, iterations]) => {
@@ -33,9 +37,15 @@ export const shuffle = <T>(arr: T[]): fc.Arbitrary<T[]> =>
 export const integer = fc.integer;
 export const naturalNumber = fc.nat;
 
-export const zip = <Values extends any[]>(
+export const zip = <Values extends [any, ...any[]]>(
   ...gens: { [Label in keyof Values]: fc.Arbitrary<Values[Label]> }
 ): fc.Arbitrary<Values> => (fc.tuple as any)(...gens);
+
+type ArrayElement<A> = A extends readonly (infer T)[] ? T : never;
+
+export const choose = <Values extends [any, ...any[]]>(
+  ...gens: { [Label in keyof Values]: fc.Arbitrary<Values[Label]> }
+): fc.Arbitrary<ArrayElement<Values>> => (fc.oneof as any)(...gens);
 
 export const setOfSize = <T>(elementGen: fc.Arbitrary<T>, size: number) => fc.set(elementGen, size, size);
 

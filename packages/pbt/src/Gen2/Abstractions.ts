@@ -21,7 +21,7 @@ export type ArrayGen<T> = Gen<T[]> & {
   ofMinLength(min: number): ArrayGen<T>;
   ofMaxLength(max: number): ArrayGen<T>;
   ofLength(length: number): ArrayGen<T>;
-  growsBy(scale: ScaleMode): ArrayGen<T>;
+  growBy(scale: ScaleMode): ArrayGen<T>;
 };
 
 export type IntegerGen = Gen<number> & {
@@ -29,7 +29,7 @@ export type IntegerGen = Gen<number> & {
   greaterThanEqual(min: number): IntegerGen;
   lessThanEqual(max: number): IntegerGen;
   origin(origin: number): IntegerGen;
-  growsBy(scale: ScaleMode): IntegerGen;
+  growBy(scale: ScaleMode): IntegerGen;
 };
 
 export type GenFactory = {
