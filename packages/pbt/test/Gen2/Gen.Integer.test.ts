@@ -21,9 +21,9 @@ test('default(min) = -2,147,483,648 *because* we arbitrarily selected the defaul
   fc.assert(
     fc.property(domainGen.sampleConfig(), (config) => {
       const genDefault = dev.Gen.integer();
-      const genLinear = dev.Gen.integer().greaterThanEqual(-2_147_483_648);
+      const genAlt = dev.Gen.integer().greaterThanEqual(-2_147_483_648);
 
-      expect(dev.sample(genDefault, config)).toEqual(dev.sample(genLinear, config));
+      expect(dev.sample(genDefault, config)).toEqual(dev.sample(genAlt, config));
     }),
   );
 });
@@ -61,7 +61,7 @@ test('default(scale) = linear', () => {
   );
 });
 
-test('between(x, y) = greaterThanEqual(x).lessThanEqual(y)', () => {
+test('Gen.integer().between(x, y) = Gen.integer().greaterThanEqual(x).lessThanEqual(y)', () => {
   fc.assert(
     fc.property(domainGen.sampleConfig(), domainGen.integer(), domainGen.integer(), (config, x, y) => {
       const genBetween = dev.Gen.integer().between(x, y);
@@ -72,7 +72,7 @@ test('between(x, y) = greaterThanEqual(x).lessThanEqual(y)', () => {
   );
 });
 
-test('between(x, y) = between(y, x) *because* it is resilient to parameter order', () => {
+test('Gen.integer().between(x, y) = Gen.integer().between(y, x) *because* it is resilient to parameter order', () => {
   fc.assert(
     fc.property(domainGen.sampleConfig(), domainGen.setOfSize(domainGen.integer(), 3), (config, [a, b, c]) => {
       const [x, z, y] = [a, b, c].sort((a, b) => a - b);
@@ -85,7 +85,7 @@ test('between(x, y) = between(y, x) *because* it is resilient to parameter order
   );
 });
 
-test('between(x, y).origin(z), z ∉ [x..y] *produces* error; origin must be in range', () => {
+test('Gen.integer().between(x, y).origin(z), z ∉ [x..y] *produces* error; origin must be in range', () => {
   fc.assert(
     fc.property(
       domainGen.sampleConfig(),
@@ -109,7 +109,7 @@ test('between(x, y).origin(z), z ∉ [x..y] *produces* error; origin must be in 
 
 // TODO: Return errors when min/max/origin are not integers
 
-test('between(x, y), 0 ∉ [x..y] = between(x, y).origin(x) *because* if the origin is not set, and the range is shifted, we adjust the origin to the minimum', () => {
+test('Gen.integer().between(x, y), 0 ∉ [x..y] = Gen.integer().between(x, y).origin(x) *because* if the origin is not set, and the range is shifted, we adjust the origin to the minimum', () => {
   fc.assert(
     fc.property(
       domainGen.sampleConfig(),
@@ -128,7 +128,7 @@ test('between(x, y), 0 ∉ [x..y] = between(x, y).origin(x) *because* if the ori
   );
 });
 
-test('between(x, y).growBy(s) *produces* integers in the range [x, y]', () => {
+test('Gen.integer().between(x, y).growBy(s) *produces* integers in the range [x, y]', () => {
   fc.assert(
     fc.property(
       domainGen.sampleConfig(),
@@ -151,7 +151,7 @@ test('between(x, y).growBy(s) *produces* integers in the range [x, y]', () => {
   );
 });
 
-test('between(x, y).growBy(constant) *produces* integers that are uniformly distributed across the range [x, y]', () => {
+test('Gen.integer().between(x, y).growBy(constant) *produces* integers that are uniformly distributed across the range [x, y]', () => {
   const [config, [a, b]] = fc.sample(
     domainGen.zip(domainGen.sampleConfig(), domainGen.setOfSize(domainGen.integer({ min: -100, max: 100 }), 2)),
     {
@@ -170,7 +170,7 @@ test('between(x, y).growBy(constant) *produces* integers that are uniformly dist
   expect(ratioDifference).toBeCloseTo(1, 0);
 });
 
-test('between(x, y).origin(z).growBy(linear), size = 0 *produces* integers equal to z', () => {
+test('Gen.integer().between(x, y).origin(z).growBy(linear), size = 0 *produces* integers equal to z', () => {
   fc.assert(
     fc.property(domainGen.sampleConfig(), domainGen.setOfSize(domainGen.integer(), 3), (config, [a, b, c]) => {
       const [x, z, y] = [a, b, c].sort((a, b) => a - b);
@@ -186,7 +186,7 @@ test('between(x, y).origin(z).growBy(linear), size = 0 *produces* integers equal
   );
 });
 
-test('between(x, y).origin(z).growBy(linear), size = 50 *produces* integers in the lower half of the range', () => {
+test('Gen.integer().between(x, y).origin(z).growBy(linear), size = 50 *produces* integers in the lower half of the range', () => {
   fc.assert(
     fc.property(
       domainGen.sampleConfig(),
@@ -209,7 +209,7 @@ test('between(x, y).origin(z).growBy(linear), size = 50 *produces* integers in t
   );
 });
 
-test('between(x, y).growBy(linear), size = 100 *produces* integers that are uniformly distributed across the range [x, y]', () => {
+test('Gen.integer().between(x, y).growBy(linear), size = 100 *produces* integers that are uniformly distributed across the range [x, y]', () => {
   const [config, [a, b]] = fc.sample(
     domainGen.zip(domainGen.sampleConfig(), domainGen.setOfSize(domainGen.integer({ min: -100, max: 100 }), 3)),
     {

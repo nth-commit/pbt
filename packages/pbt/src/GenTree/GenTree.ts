@@ -209,7 +209,7 @@ export namespace GenTree {
       flatMapIter((i) => formatLines(i, nestCount + 1, config)),
     );
 
-    return [nodeFormatted, ...shrinksFormatted];
+    return concatIter([nodeFormatted], shrinksFormatted);
   };
 
   export const format = <Value>(tree: GenTree<Value>, config: Partial<FormatConfig<Value>> = {}): string =>

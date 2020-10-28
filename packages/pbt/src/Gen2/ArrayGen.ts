@@ -24,7 +24,7 @@ export const array = <T>(elementGen: Gen<T>, genFactory: GenFactory): ArrayGen<T
       }, genFactory);
     }
 
-    ofRange(min: number, max: number): ArrayGen<T> {
+    betweenLengths(min: number, max: number): ArrayGen<T> {
       return new ArrayGenImpl({
         ...this.args,
         min,
@@ -32,8 +32,8 @@ export const array = <T>(elementGen: Gen<T>, genFactory: GenFactory): ArrayGen<T
       });
     }
 
-    ofLength(): ArrayGen<T> {
-      return this;
+    ofLength(length: number): ArrayGen<T> {
+      return this.betweenLengths(length, length);
     }
 
     ofMinLength(min: number): ArrayGen<T> {
@@ -61,7 +61,7 @@ export const array = <T>(elementGen: Gen<T>, genFactory: GenFactory): ArrayGen<T
   return new ArrayGenImpl<T>({
     gen: elementGen,
     min: 0,
-    max: 10,
+    max: 25,
     scale: 'linear',
   });
 };

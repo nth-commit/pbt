@@ -43,10 +43,14 @@ export const zip = <Values extends [any, ...any[]]>(
 
 type ArrayElement<A> = A extends readonly (infer T)[] ? T : never;
 
-export const choose = <Values extends [any, ...any[]]>(
-  ...gens: { [Label in keyof Values]: fc.Arbitrary<Values[Label]> }
+export const choose = <Values extends [any, ...any[]] | any[]>(
+  ...gens: Values extends [any, ...any[]]
+    ? { [Label in keyof Values]: fc.Arbitrary<Values[Label]> }
+    : fc.Arbitrary<ArrayElement<Values>>[]
 ): fc.Arbitrary<ArrayElement<Values>> => (fc.oneof as any)(...gens);
 
 export const setOfSize = <T>(elementGen: fc.Arbitrary<T>, size: number) => fc.set(elementGen, size, size);
 
 export const element = <T>(arr: T[]): fc.Arbitrary<T> => fc.constantFrom(...arr);
+
+export const gen = (): fc.Arbitrary<dev.Gen<unknown>> => element([dev.Gen.integer()]);
