@@ -67,13 +67,19 @@ export const integer = (genFactory: GenFactory): IntegerGen => {
 };
 
 const integerFunction = (args: IntegerGenArgs): GenFunction<number> => {
-  const min = args.min === null ? MIN_INT_32 : args.min;
-  const max = args.max === null ? MAX_INT_32 : args.max;
-  const origin = deriveOrigin(min, max, args.origin);
+  const min = tryDeriveMin(args.min);
+  if (typeof min === 'string') {
+    return GenFunction.error(min);
+  }
 
-  if (!isBetween(min, max, origin)) {
-    const message = `Origin must be in range, origin = ${origin}, range = [${min}, ${max}]`;
-    return GenFunction.error(message);
+  const max = tryDeriveMax(args.max);
+  if (typeof max === 'string') {
+    return GenFunction.error(max);
+  }
+
+  const origin = tryDeriveOrigin(min, max, args.origin);
+  if (typeof origin === 'string') {
+    return GenFunction.error(origin);
   }
 
   const scale = args.scale === null ? 'linear' : args.scale;
@@ -86,10 +92,26 @@ const integerFunction = (args: IntegerGenArgs): GenFunction<number> => {
   );
 };
 
-const deriveOrigin = (min: number, max: number, origin: number | null): number => {
+const tryDeriveMin = (min: number | null): number | string =>
+  min === null ? MIN_INT_32 : Number.isInteger(min) ? min : `Minimum must be an integer, min = ${min}`;
+
+const tryDeriveMax = (max: number | null): number | string =>
+  max === null ? MAX_INT_32 : Number.isInteger(max) ? max : `Maximum must be an integer, max = ${max}`;
+
+const tryDeriveOrigin = (min: number, max: number, origin: number | null): number | string => {
   if (origin === null) {
-    return isBetween(min, max, 0) ? 0 : min;
+    const canOriginBeZero = isBetween(min, max, 0);
+    return canOriginBeZero ? 0 : min;
   }
+
+  if (!Number.isInteger(origin)) {
+    return `Origin must be an integer, origin = ${origin}`;
+  }
+
+  if (!isBetween(min, max, origin)) {
+    return `Origin must be in range, origin = ${origin}, range = [${min}, ${max}]`;
+  }
+
   return origin;
 };
 

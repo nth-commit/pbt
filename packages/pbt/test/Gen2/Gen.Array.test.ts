@@ -15,37 +15,39 @@ test('snapshot', () => {
   }
 });
 
-test('default(min) = 0', () => {
-  fc.assert(
-    fc.property(domainGen.sampleConfig(), domainGen.gen(), (config, elementGen) => {
-      const genDefault = dev.Gen.array(elementGen);
-      const genAlt = dev.Gen.array(elementGen).ofMinLength(0);
+describe('defaults', () => {
+  test('default(min) = 0', () => {
+    fc.assert(
+      fc.property(domainGen.sampleConfig(), domainGen.gen(), (config, elementGen) => {
+        const genDefault = dev.Gen.array(elementGen);
+        const genAlt = dev.Gen.array(elementGen).ofMinLength(0);
 
-      expect(dev.sample(genDefault, config)).toEqual(dev.sample(genAlt, config));
-    }),
-  );
-});
+        expect(dev.sample(genDefault, config)).toEqual(dev.sample(genAlt, config));
+      }),
+    );
+  });
 
-test('default(max) = 25', () => {
-  fc.assert(
-    fc.property(domainGen.sampleConfig(), domainGen.gen(), (config, elementGen) => {
-      const genDefault = dev.Gen.array(elementGen);
-      const genAlt = dev.Gen.array(elementGen).ofMaxLength(25);
+  test('default(max) = 25', () => {
+    fc.assert(
+      fc.property(domainGen.sampleConfig(), domainGen.gen(), (config, elementGen) => {
+        const genDefault = dev.Gen.array(elementGen);
+        const genAlt = dev.Gen.array(elementGen).ofMaxLength(25);
 
-      expect(dev.sample(genDefault, config)).toEqual(dev.sample(genAlt, config));
-    }),
-  );
-});
+        expect(dev.sample(genDefault, config)).toEqual(dev.sample(genAlt, config));
+      }),
+    );
+  });
 
-test('default(scale) = linear', () => {
-  fc.assert(
-    fc.property(domainGen.sampleConfig(), domainGen.gen(), (config, elementGen) => {
-      const genDefault = dev.Gen.array(elementGen);
-      const genAlt = dev.Gen.array(elementGen).growBy('linear');
+  test('default(scale) = linear', () => {
+    fc.assert(
+      fc.property(domainGen.sampleConfig(), domainGen.gen(), (config, elementGen) => {
+        const genDefault = dev.Gen.array(elementGen);
+        const genAlt = dev.Gen.array(elementGen).growBy('linear');
 
-      expect(dev.sample(genDefault, config)).toEqual(dev.sample(genAlt, config));
-    }),
-  );
+        expect(dev.sample(genDefault, config)).toEqual(dev.sample(genAlt, config));
+      }),
+    );
+  });
 });
 
 test('Gen.array().ofMaxLength(x).growBy(s) *produces* arrays with length equal to *oracle* Gen.integer().between(0, x).growBy(s)', () => {
