@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 import { GenTree } from '../GenTree';
 import { GenFunction } from './GenFunction';
 import { ScaleMode, Range } from './Range';
@@ -48,7 +50,7 @@ export const array = <T>(elementGen: Gen<T>, genFactory: GenFactory): ArrayGen<T
       });
     }
 
-    growsBy(scale: ScaleMode): ArrayGen<T> {
+    growBy(scale: ScaleMode): ArrayGen<T> {
       return new ArrayGenImpl({
         ...this.args,
         scale,

@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 import { concat, empty, generate, of, pipe } from 'ix/iterable';
 import { flatMap, map, skip } from 'ix/iterable/operators';
 import { indexed } from '../Core/iterableOperators';

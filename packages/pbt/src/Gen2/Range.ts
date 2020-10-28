@@ -1,28 +1,14 @@
 import { Size } from '../Core';
-import { CalculateComplexity } from '../GenTree';
 
 export type ScaleMode = 'constant' | 'linear';
 
 export type Bounds = [min: number, max: number];
-
-export namespace Bounds {
-  export const create = (x: number, y: number): Bounds => {
-    const min = x < y ? x : y;
-    const max = y > x ? y : x;
-    return [min, max];
-  };
-}
 
 export type Range = {
   getSizedBounds: (size: Size) => Bounds;
   getProportionalDistance: (n: number) => number;
   origin: number;
   bounds: Bounds;
-};
-
-const asProportionOf = (x: number) => (y: number): number => {
-  const complexity = x === 0 ? 0 : (y / x) * 100;
-  return complexity;
 };
 
 export namespace Range {
@@ -38,6 +24,7 @@ export namespace Range {
     return origin + diff;
   };
 
+  /* istanbul ignore next */
   const makeGetProportionalDistance = (min: number, max: number, origin: number) => (x: number): number => {
     if (x === origin) return 0;
     if (x === max) return 100;
