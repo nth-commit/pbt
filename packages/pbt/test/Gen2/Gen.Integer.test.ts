@@ -3,17 +3,15 @@ import { mean } from 'simple-statistics';
 import * as dev from './srcShim';
 import * as domainGen from './Helpers/domainGen';
 import { mockSeed } from './Helpers/mocks';
-import { failwith } from './Helpers/failwith';
 
 test('snapshot', () => {
   for (let i = 0; i <= 10; i++) {
     const seed = mockSeed(i);
     const gen = dev.Gen.integer().between(0, 10);
 
-    const sampleResult = dev.sampleTrees(gen, { seed, iterations: 1 });
+    const sample = dev.sampleTrees(gen, { seed, iterations: 1 });
 
-    if (sampleResult.kind !== 'success') return failwith('Expected success');
-    expect(dev.GenTree.format(sampleResult.values[0])).toMatchSnapshot(i.toString());
+    expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot(i.toString());
   }
 });
 
@@ -21,20 +19,18 @@ test('snapshot, positive range', () => {
   const seed = mockSeed(10);
   const gen = dev.Gen.integer().between(1, 10);
 
-  const sampleResult = dev.sampleTrees(gen, { seed, iterations: 1 });
+  const sample = dev.sampleTrees(gen, { seed, iterations: 1 });
 
-  if (sampleResult.kind !== 'success') return failwith('Expected success');
-  expect(dev.GenTree.format(sampleResult.values[0])).toMatchSnapshot();
+  expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot();
 });
 
 test('snapshot, negative range', () => {
   const seed = mockSeed(-10);
   const gen = dev.Gen.integer().between(-10, -1);
 
-  const sampleResult = dev.sampleTrees(gen, { seed, iterations: 1 });
+  const sample = dev.sampleTrees(gen, { seed, iterations: 1 });
 
-  if (sampleResult.kind !== 'success') return failwith('Expected success');
-  expect(dev.GenTree.format(sampleResult.values[0])).toMatchSnapshot();
+  expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot();
 });
 
 test('Gen.integer().between(x, y).growBy(s) *produces* integers in the range [x, y]', () => {
@@ -47,10 +43,9 @@ test('Gen.integer().between(x, y).growBy(s) *produces* integers in the range [x,
         const [x, y] = [a, b].sort((a, b) => a - b);
         const gen = dev.Gen.integer().between(x, y).growBy(s);
 
-        const sampleResult = dev.sample(gen, config);
+        const sample = dev.sample(gen, config);
 
-        if (sampleResult.kind !== 'success') return failwith('Expected success');
-        for (const value of sampleResult.values) {
+        for (const value of sample.values) {
           expect(value).toEqual(Math.round(value));
           expect(value).toBeGreaterThanOrEqual(x);
           expect(value).toBeLessThanOrEqual(y);
@@ -104,10 +99,9 @@ test('Gen.integer().between(x, y).growBy(constant) *produces* integers that are 
   const [x, y] = [a, b].sort((a, b) => a - b);
   const gen = dev.Gen.integer().between(x, y).growBy('constant');
 
-  const sampleResult = dev.sample(gen, { ...config, iterations: 10000 });
+  const sample = dev.sample(gen, { ...config, iterations: 10000 });
 
-  if (sampleResult.kind !== 'success') return failwith('Expected success');
-  const actualMean = mean(sampleResult.values);
+  const actualMean = mean(sample.values);
   const expectedMean = (y - x) / 2 + x;
   const ratioDifference = Math.abs(expectedMean / actualMean);
   expect(ratioDifference).toBeCloseTo(1, 0);
@@ -119,10 +113,9 @@ test('Gen.integer().between(x, y).origin(z).growBy(linear), size = 0 *produces* 
       const [x, z, y] = [a, b, c].sort((a, b) => a - b);
       const gen = dev.Gen.integer().between(x, y).origin(z).growBy('linear');
 
-      const sampleResult = dev.sample(gen, { ...config, size: 0 });
+      const sample = dev.sample(gen, { ...config, size: 0 });
 
-      if (sampleResult.kind !== 'success') return failwith('Expected success');
-      for (const value of sampleResult.values) {
+      for (const value of sample.values) {
         expect(value).toEqual(z);
       }
     }),
@@ -138,12 +131,11 @@ test('Gen.integer().between(x, y).origin(z).growBy(linear), size = 50 *produces*
         const [x, z, y] = [a, b, c].sort((a, b) => a - b);
         const gen = dev.Gen.integer().between(x, y).origin(z).growBy('linear');
 
-        const sampleResult = dev.sample(gen, { ...config, size: 50 });
+        const sample = dev.sample(gen, { ...config, size: 50 });
 
-        if (sampleResult.kind !== 'success') return failwith('Expected success');
         const leftMidpoint = Math.floor((z - x) / 2 + x);
         const rightMidpoint = Math.ceil((y - z) / 2 + z);
-        for (const value of sampleResult.values) {
+        for (const value of sample.values) {
           expect(value).toBeGreaterThanOrEqual(leftMidpoint);
           expect(value).toBeLessThanOrEqual(rightMidpoint);
         }
@@ -162,10 +154,9 @@ test('Gen.integer().between(x, y).growBy(linear), size = 100 *produces* integers
   const [x, y] = [a, b].sort((a, b) => a - b);
   const gen = dev.Gen.integer().between(x, y).growBy('linear');
 
-  const sampleResult = dev.sample(gen, { ...config, size: 100, iterations: 10000 });
+  const sample = dev.sample(gen, { ...config, size: 100, iterations: 10000 });
 
-  if (sampleResult.kind !== 'success') return failwith('Expected success');
-  const actualMean = mean(sampleResult.values);
+  const actualMean = mean(sample.values);
   const expectedMean = (y - x) / 2 + x;
   const ratioDifference = Math.abs(expectedMean / actualMean);
   expect(ratioDifference).toBeCloseTo(1, 0);
@@ -249,13 +240,7 @@ describe('errors', () => {
       fc.property(domainGen.sampleConfig(), domainGen.decimalWithAtLeastOneDp(), (config, x) => {
         const gen = dev.Gen.integer().greaterThanEqual(x);
 
-        const sampleResult = dev.sample(gen, config);
-
-        const expectedSampleResult: dev.SampleResult<number> = {
-          kind: 'error',
-          message: expect.stringMatching('Minimum must be an integer'),
-        };
-        expect(sampleResult).toEqual(expectedSampleResult);
+        expect(() => dev.sample(gen, config)).toThrow('Minimum must be an integer');
       }),
     );
   });
@@ -265,13 +250,7 @@ describe('errors', () => {
       fc.property(domainGen.sampleConfig(), domainGen.decimalWithAtLeastOneDp(), (config, x) => {
         const gen = dev.Gen.integer().lessThanEqual(x);
 
-        const sampleResult = dev.sample(gen, config);
-
-        const expectedSampleResult: dev.SampleResult<number> = {
-          kind: 'error',
-          message: expect.stringMatching('Maximum must be an integer'),
-        };
-        expect(sampleResult).toEqual(expectedSampleResult);
+        expect(() => dev.sample(gen, config)).toThrow('Maximum must be an integer');
       }),
     );
   });
@@ -281,13 +260,7 @@ describe('errors', () => {
       fc.property(domainGen.sampleConfig(), domainGen.decimalWithAtLeastOneDp(), (config, x) => {
         const gen = dev.Gen.integer().origin(x);
 
-        const sampleResult = dev.sample(gen, config);
-
-        const expectedSampleResult: dev.SampleResult<number> = {
-          kind: 'error',
-          message: expect.stringMatching('Origin must be an integer'),
-        };
-        expect(sampleResult).toEqual(expectedSampleResult);
+        expect(() => dev.sample(gen, config)).toThrow('Origin must be an integer');
       }),
     );
   });
@@ -302,13 +275,7 @@ describe('errors', () => {
           const [x, y, z] = [a, b, c].sort((a, b) => (a - b) * sortOrder);
           const gen = dev.Gen.integer().between(x, y).origin(z);
 
-          const sampleResult = dev.sample(gen, config);
-
-          const expectedSampleResult: dev.SampleResult<number> = {
-            kind: 'error',
-            message: expect.stringMatching('Origin must be in range'),
-          };
-          expect(sampleResult).toEqual(expectedSampleResult);
+          expect(() => dev.sample(gen, config)).toThrow('Origin must be in range');
         },
       ),
     );

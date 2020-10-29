@@ -11,13 +11,6 @@ export const size = (): fc.Arbitrary<devCore.Size> => fc.integer(0, 100);
 export const sampleConfig = (): fc.Arbitrary<SampleConfig> =>
   fc.tuple(seed(), size(), integer(1, 100)).map(([seed, size, iterations]) => ({ seed, size, iterations }));
 
-export const sampleFunc = <T>(): fc.Arbitrary<(gen: dev.Gen<T>) => dev.SampleResult<T>> =>
-  fc.tuple(seed(), size(), integer(1, 100)).map(([seed, size, iterations]) => {
-    const f = (gen: dev.Gen<T>) => dev.sample(gen, { seed, size, iterations });
-    f.toString = () => `sample(gen, { seed: ${seed.valueOf()}, size: ${size}, iterations: ${iterations}})`;
-    return f;
-  });
-
 export const scaleMode = (): fc.Arbitrary<devGenRange.ScaleMode> => {
   const scaleModeExhaustive: { [P in devGenRange.ScaleMode]: P } = {
     constant: 'constant',

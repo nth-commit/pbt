@@ -1,7 +1,6 @@
 import fc from 'fast-check';
 import * as dev from './srcShim';
 import * as domainGen from './Helpers/domainGen';
-import { failwith } from './Helpers/failwith';
 
 const genArrayLength = () => domainGen.integer({ min: 0, max: 10 });
 
@@ -10,10 +9,9 @@ test('snapshot', () => {
     const seed = 0;
     const gen = dev.Gen.array(dev.Gen.integer().between(0, 10));
 
-    const sampleResult = dev.sampleTrees(gen, { seed, size: i * 10, iterations: 1 });
+    const sample = dev.sampleTrees(gen, { seed, size: i * 10, iterations: 1 });
 
-    if (sampleResult.kind !== 'success') return failwith('Expected success');
-    expect(dev.GenTree.format(sampleResult.values[0])).toMatchSnapshot(i.toString());
+    expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot(i.toString());
   }
 });
 
@@ -136,13 +134,7 @@ describe('errors', () => {
       fc.property(domainGen.sampleConfig(), domainGen.gen(), domainGen.decimalWithAtLeastOneDp(), (config, gen, x) => {
         const genArray = dev.Gen.array(gen).ofMinLength(x);
 
-        const sampleResult = dev.sample(genArray, config);
-
-        const expectedSampleResult: dev.SampleResult<number> = {
-          kind: 'error',
-          message: expect.stringMatching('Minimum must be an integer'),
-        };
-        expect(sampleResult).toEqual(expectedSampleResult);
+        expect(() => dev.sample(genArray, config)).toThrowError('Minimum must be an integer');
       }),
     );
   });
@@ -152,13 +144,7 @@ describe('errors', () => {
       fc.property(domainGen.sampleConfig(), domainGen.gen(), domainGen.decimalWithAtLeastOneDp(), (config, gen, x) => {
         const genArray = dev.Gen.array(gen).ofMaxLength(x);
 
-        const sampleResult = dev.sample(genArray, config);
-
-        const expectedSampleResult: dev.SampleResult<number> = {
-          kind: 'error',
-          message: expect.stringMatching('Maximum must be an integer'),
-        };
-        expect(sampleResult).toEqual(expectedSampleResult);
+        expect(() => dev.sample(genArray, config)).toThrow('Maximum must be an integer');
       }),
     );
   });
@@ -168,13 +154,7 @@ describe('errors', () => {
       fc.property(domainGen.sampleConfig(), domainGen.gen(), domainGen.integer({ max: -1 }), (config, gen, x) => {
         const genArray = dev.Gen.array(gen).ofMinLength(x);
 
-        const sampleResult = dev.sample(genArray, config);
-
-        const expectedSampleResult: dev.SampleResult<number> = {
-          kind: 'error',
-          message: expect.stringMatching('Minimum must be at least 0'),
-        };
-        expect(sampleResult).toEqual(expectedSampleResult);
+        expect(() => dev.sample(genArray, config)).toThrow('Minimum must be at least 0');
       }),
     );
   });
@@ -184,13 +164,7 @@ describe('errors', () => {
       fc.property(domainGen.sampleConfig(), domainGen.gen(), domainGen.integer({ max: -1 }), (config, gen, x) => {
         const genArray = dev.Gen.array(gen).ofMaxLength(x);
 
-        const sampleResult = dev.sample(genArray, config);
-
-        const expectedSampleResult: dev.SampleResult<number> = {
-          kind: 'error',
-          message: expect.stringMatching('Maximum must be at least 0'),
-        };
-        expect(sampleResult).toEqual(expectedSampleResult);
+        expect(() => dev.sample(genArray, config)).toThrow('Maximum must be at least 0');
       }),
     );
   });
