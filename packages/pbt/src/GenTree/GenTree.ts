@@ -32,6 +32,9 @@ export namespace GenTree {
     yield* pipe(tree.shrinks, flatMapIter(traverse));
   };
 
+  export const traverseGreedy = <Value>(tree: GenTree<Value>, limit: number = 100): GenTreeNode<Value>[] =>
+    Array.from(pipe(traverse(tree), takeIter(limit)));
+
   export const unfold = <Value, Accumulator>(
     acc: Accumulator,
     accToValue: (acc: Accumulator) => Value,

@@ -56,4 +56,18 @@ export const setOfSize = <T>(elementGen: fc.Arbitrary<T>, size: number) => fc.se
 
 export const element = <T>(arr: T[]): fc.Arbitrary<T> => fc.constantFrom(...arr);
 
-export const gen = (): fc.Arbitrary<dev.Gen<unknown>> => element([dev.Gen.integer()]);
+const firstOrderGen = (): fc.Arbitrary<dev.Gen<unknown>> => element([dev.Gen.integer()]);
+
+const higherOrderGen = (innerGen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
+  choose(
+    zip(integer({ min: 0, max: 10 }), integer({ min: 0, max: 10 }), scaleMode()).map(([x, y, s]) =>
+      innerGen.array().betweenLengths(x, y).growBy(s),
+    ),
+  );
+
+const genRec = (gen: dev.Gen<unknown>, maxRecurse: number): fc.Arbitrary<dev.Gen<unknown>> => {
+  if (maxRecurse <= 0) return fc.constant(gen);
+  return choose(fc.constant(gen), higherOrderGen(gen));
+};
+
+export const gen = (): fc.Arbitrary<dev.Gen<unknown>> => firstOrderGen().chain((gen) => genRec(gen, 3));

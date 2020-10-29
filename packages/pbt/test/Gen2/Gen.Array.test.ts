@@ -13,7 +13,7 @@ test('snapshot', () => {
     const sampleResult = dev.sampleTrees(gen, { seed, size: i * 10, iterations: 1 });
 
     if (sampleResult.kind !== 'success') return failwith('Expected success');
-    expect(dev.GenTree.format(sampleResult.trees[0])).toMatchSnapshot(i.toString());
+    expect(dev.GenTree.format(sampleResult.values[0])).toMatchSnapshot(i.toString());
   }
 });
 

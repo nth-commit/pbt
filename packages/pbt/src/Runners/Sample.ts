@@ -26,24 +26,12 @@ export namespace SampleResult {
 
 export type SampleResult<T> = SampleResult.Success<T> | SampleResult.Error;
 
-export namespace SampleTreeResult {
-  export type Success<T> = {
-    kind: 'success';
-    trees: GenTree<T>[];
-    discards: number;
-  };
-
-  export type Error = SampleResult.Error;
-}
-
-export type SampleTreeResult<T> = SampleTreeResult.Success<T> | SampleTreeResult.Error;
-
 type SampleAccumulator<T> = {
   trees: GenTree<T>[];
   lastIteration: GenIteration<T>;
 };
 
-export const sampleTrees = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): SampleTreeResult<T> => {
+export const sampleTrees = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): SampleResult<GenTree<T>> => {
   const { seed, size, iterations: iterationCount }: SampleConfig = {
     seed: Seed.spawn(),
     size: 30,
@@ -84,7 +72,7 @@ export const sampleTrees = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}):
     case 'instance':
       return {
         kind: 'success',
-        trees: sampleAccumulator.trees,
+        values: sampleAccumulator.trees,
         discards: 0,
       };
     case 'error':
@@ -103,7 +91,7 @@ export const sample = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): Samp
     case 'success':
       return {
         kind: 'success',
-        values: sampleTreeResult.trees.map((tree) => tree.node.value),
+        values: sampleTreeResult.values.map((tree) => tree.node.value),
         discards: sampleTreeResult.discards,
       };
     default:
