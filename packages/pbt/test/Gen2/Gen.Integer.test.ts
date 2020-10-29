@@ -13,7 +13,7 @@ test('snapshot', () => {
     const sampleResult = dev.sampleTrees(gen, { seed, iterations: 1 });
 
     if (sampleResult.kind !== 'success') return failwith('Expected success');
-    expect(dev.GenTree.format(sampleResult.trees[0])).toMatchSnapshot(i.toString());
+    expect(dev.GenTree.format(sampleResult.values[0])).toMatchSnapshot(i.toString());
   }
 });
 
@@ -24,7 +24,7 @@ test('snapshot, positive range', () => {
   const sampleResult = dev.sampleTrees(gen, { seed, iterations: 1 });
 
   if (sampleResult.kind !== 'success') return failwith('Expected success');
-  expect(dev.GenTree.format(sampleResult.trees[0])).toMatchSnapshot();
+  expect(dev.GenTree.format(sampleResult.values[0])).toMatchSnapshot();
 });
 
 test('snapshot, negative range', () => {
@@ -34,7 +34,7 @@ test('snapshot, negative range', () => {
   const sampleResult = dev.sampleTrees(gen, { seed, iterations: 1 });
 
   if (sampleResult.kind !== 'success') return failwith('Expected success');
-  expect(dev.GenTree.format(sampleResult.trees[0])).toMatchSnapshot();
+  expect(dev.GenTree.format(sampleResult.values[0])).toMatchSnapshot();
 });
 
 test('Gen.integer().between(x, y).growBy(s) *produces* integers in the range [x, y]', () => {
