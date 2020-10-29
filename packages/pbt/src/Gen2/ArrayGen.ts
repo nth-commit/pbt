@@ -64,7 +64,7 @@ const arrayFunction = <T>(args: ArrayGenArgs<T>): GenFunction<T[]> => {
 
   const { gen, scale } = args;
   const range = Range.createFrom(min, max, 0, scale || 'linear');
-  return GenFunction.collect(gen.genFunction, range, sortAndShrinkForest(range.bounds[0]));
+  return GenFunction.collect(gen.genFunction, range, Shrink.array(range.bounds[0], getOrderOfTree));
 };
 
 const tryDeriveMin = (min: number | null): number | string => {
@@ -81,37 +81,12 @@ const tryDeriveMax = (max: number | null): number | string => {
   return max;
 };
 
-// TODO: Move into standard array shrinker, it makes debugging easier if we can build the same tree that we get out of the Gen
 /* istanbul ignore next */
-const sortAndShrinkForest = <T>(minLength: number) => {
-  const shrinkForest = Shrink.array<GenTree<T>>(minLength);
-
-  return function* (forest: GenTree<T>[]): Iterable<GenTree<T>[]> {
-    const sortedForest = sortForestByComplexity(forest);
-    const complexities = forest.map((tree) => tree.node.complexity);
-    const sortedComplexities = sortedForest.map((tree) => tree.node.complexity);
-
-    if (!numberArrayEquals(complexities, sortedComplexities)) {
-      yield sortedForest;
-      yield* shrinkForest(sortedForest);
-    } else {
-      yield* shrinkForest(forest);
-    }
-  };
-};
-
-/* istanbul ignore next */
-const numberArrayEquals = (xs: number[], ys: number[]): boolean =>
-  xs.length === ys.length && xs.every((x, i) => x === ys[i]);
-
-/* istanbul ignore next */
-const sortForestByComplexity = <T>(forest: GenTree<T>[]): GenTree<T>[] =>
-  [...forest].sort((a, b) =>
-    Array.isArray(a.node.value)
-      ? // If the node value is an array, that is, we are building an "array of arrays", it is "less complex" to
-        // order the inner arrays by descending length. It also lets us find the minimal shrink a lot more efficiently
-        // in some examples, e.g.: https://github.com/jlink/shrinking-challenge/blob/main/challenges/large_union_list.md
-        b.node.complexity - a.node.complexity
-      : // Else, sort the elements in ascending order of complexity (smallest first).
-        a.node.complexity - b.node.complexity,
-  );
+const getOrderOfTree = <T>(tree: GenTree<T>): number =>
+  Array.isArray(tree.node.value)
+    ? // If the node value is an array, that is, we are building an "array of arrays", it is "less complex" to
+      // order the inner arrays by descending length. It also lets us find the minimal shrink a lot more efficiently
+      // in some examples, e.g.: https://github.com/jlink/shrinking-challenge/blob/main/challenges/large_union_list.md
+      -tree.node.complexity
+    : // Else, sort the elements in ascending order of complexity (smallest first).
+      tree.node.complexity;
