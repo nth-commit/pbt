@@ -1,1 +1,1 @@
-export * from './Sample';
+export { sample, sampleTrees, Sample, SampleConfig } from './Sample';

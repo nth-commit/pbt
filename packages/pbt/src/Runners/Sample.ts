@@ -1,7 +1,8 @@
-import { last, pipe, toArray } from 'ix/iterable';
-import { filter, map, take, scan } from 'ix/iterable/operators';
+import { last, pipe } from 'ix/iterable';
+import { filter, take, scan } from 'ix/iterable/operators';
 import { Seed, Size } from '../Core';
 import { takeWhileInclusive } from '../Core/iterableOperators';
+import { Result } from '../Core/Result';
 import { Gen, GenIteration } from '../Gen2';
 import { GenTree } from '../GenTree';
 
@@ -24,14 +25,16 @@ export namespace SampleResult {
   };
 }
 
-export type SampleResult<T> = SampleResult.Success<T> | SampleResult.Error;
+export type Sample<T> = { values: T[]; discards: number };
+
+export type SampleResult<T> = Result<Sample<T>, string>;
 
 type SampleAccumulator<T> = {
   trees: GenTree<T>[];
   lastIteration: GenIteration<T>;
 };
 
-export const sampleTrees = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): SampleResult<GenTree<T>> => {
+export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): SampleResult<GenTree<T>> => {
   const { seed, size, iterations: iterationCount }: SampleConfig = {
     seed: Seed.spawn(),
     size: 30,
@@ -70,31 +73,25 @@ export const sampleTrees = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}):
 
   switch (sampleAccumulator.lastIteration.kind) {
     case 'instance':
-      return {
-        kind: 'success',
+      return Result.ofValue({
         values: sampleAccumulator.trees,
         discards: 0,
-      };
+      });
     case 'error':
-      return {
-        kind: 'error',
-        message: sampleAccumulator.lastIteration.message,
-      };
+      return Result.ofError(sampleAccumulator.lastIteration.message);
     default:
-      throw new Error('Whoopsies');
+      throw new Error('Not implemented');
   }
 };
 
-export const sample = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): SampleResult<T> => {
-  const sampleTreeResult = sampleTrees(gen, config);
-  switch (sampleTreeResult.kind) {
-    case 'success':
-      return {
-        kind: 'success',
-        values: sampleTreeResult.values.map((tree) => tree.node.value),
-        discards: sampleTreeResult.discards,
-      };
-    default:
-      return sampleTreeResult;
-  }
-};
+export const sampleInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): SampleResult<T> =>
+  sampleTreesInternal(gen, config).map<Sample<T>>((sample) => ({
+    discards: sample.discards,
+    values: sample.values.map((tree) => tree.node.value),
+  }));
+
+export const sampleTrees = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): Sample<GenTree<T>> =>
+  sampleTreesInternal(gen, config).asOk((message) => new Error(message));
+
+export const sample = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): Sample<T> =>
+  sampleInternal(gen, config).asOk((message) => new Error(message));
