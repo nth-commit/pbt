@@ -1,7 +1,9 @@
 import { OperatorFunction } from 'ix/interfaces';
 import { flatMap } from 'ix/iterable/operators';
 
-export type Exhausted = { kind: 'exhausted' };
+export const Exhausted = Symbol('Exhausted');
+
+export type Exhaustible<T> = T | typeof Exhausted;
 
 export type Discarded = { kind: 'discarded' };
 
@@ -12,9 +14,10 @@ export type ExhaustionStrategy = {
 };
 
 export namespace ExhaustionStrategy {
-  export const apply = <Iteration extends Discarded | { kind: string }>(
+  export const apply = <Iteration>(
     exhaustionStrategy: ExhaustionStrategy,
-  ): OperatorFunction<Iteration | Exhausted, Iteration | Exhausted> =>
+    isDiscard: (iteration: Iteration) => boolean,
+  ): OperatorFunction<Iteration, Exhaustible<Iteration>> =>
     flatMap((iteration) => {
       if (exhaustionStrategy.isExhausted()) {
         throw new Error('Fatal: Attempted to take iteration after stream was exhausted');
@@ -22,11 +25,11 @@ export namespace ExhaustionStrategy {
 
       exhaustionStrategy.onIteration();
 
-      if ('kind' in iteration && iteration.kind === 'discarded') {
+      if (isDiscard(iteration)) {
         exhaustionStrategy.onDiscard();
       }
 
-      return exhaustionStrategy.isExhausted() ? [iteration, { kind: 'exhausted' }] : [iteration];
+      return exhaustionStrategy.isExhausted() ? [iteration, Exhausted] : [iteration];
     });
 
   export const whenDiscardRateExceeds = (rate: number): ExhaustionStrategy => {

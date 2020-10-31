@@ -1,11 +1,11 @@
 import { last, pipe } from 'ix/iterable';
-import { filter, take, scan } from 'ix/iterable/operators';
+import { scan } from 'ix/iterable/operators';
 import { Seed, Size } from '../Core';
 import { takeWhileInclusive } from '../Core/iterableOperators';
 import { Result } from '../Core/Result';
 import { Gen, GenIteration } from '../Gen2';
 import { GenTree } from '../GenTree';
-import { ExhaustionStrategy } from './ExhaustionStrategy';
+import { Exhausted, Exhaustible, ExhaustionStrategy } from './ExhaustionStrategy';
 
 export type SampleConfig = {
   seed: Seed | number;
@@ -32,7 +32,7 @@ export type SampleResult<T> = Result<Sample<T>, string>;
 
 type SampleAccumulator<T> = {
   trees: GenTree<T>[];
-  lastIteration: GenIteration<T>;
+  lastIteration: Exhaustible<GenIteration<T>>;
   instanceCount: number;
   discardCount: number;
 };
@@ -53,8 +53,8 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
   const sampleAccumulator = last(
     pipe(
       gen.run(seed, size),
-      ExhaustionStrategy.apply(exhaustionStrategy),
-      scan<GenIteration<T>, SampleAccumulator<T>>({
+      ExhaustionStrategy.apply(exhaustionStrategy, (iteration) => iteration.kind === 'discarded'),
+      scan<Exhaustible<GenIteration<T>>, SampleAccumulator<T>>({
         seed: {
           trees: [],
           instanceCount: 0,
@@ -62,6 +62,8 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
           lastIteration: { kind: 'instance' } as GenIteration<T>,
         },
         callback: (acc, iteration) => {
+          if (iteration === Exhausted) return { ...acc, lastIteration: iteration };
+
           switch (iteration.kind) {
             case 'instance':
               return {
@@ -84,11 +86,19 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
           }
         },
       }),
-      filter((acc) => acc.lastIteration.kind !== 'discarded'),
-      takeWhileInclusive((acc) => acc.lastIteration.kind === 'instance'),
-      take(iterationCount),
+      takeWhileInclusive((acc) => {
+        if (acc.lastIteration === Exhausted) return false;
+
+        return acc.instanceCount <= iterationCount;
+      }),
     ),
   )!;
+
+  if (sampleAccumulator.lastIteration === Exhausted) {
+    return Result.ofError(
+      `Exhausted after ${sampleAccumulator.instanceCount} instance(s), (${sampleAccumulator.discardCount} discard(s))`,
+    );
+  }
 
   switch (sampleAccumulator.lastIteration.kind) {
     case 'instance':
@@ -96,10 +106,6 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
         values: sampleAccumulator.trees,
         discards: sampleAccumulator.discardCount,
       });
-    case 'exhausted':
-      return Result.ofError(
-        `Exhausted after ${sampleAccumulator.instanceCount} instance(s), (${sampleAccumulator.discardCount} discard(s))`,
-      );
     case 'error':
       return Result.ofError(sampleAccumulator.lastIteration.message);
     default:

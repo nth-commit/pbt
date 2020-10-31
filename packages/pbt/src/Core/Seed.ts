@@ -1,4 +1,5 @@
 /* istanbul ignore file */
+
 import { mersenne, uniformIntDistribution, RandomGenerator } from 'pure-rand';
 
 export type Seed = {
