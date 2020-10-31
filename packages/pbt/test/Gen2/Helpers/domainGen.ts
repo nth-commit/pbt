@@ -49,14 +49,18 @@ export const setOfSize = <T>(elementGen: fc.Arbitrary<T>, size: number) => fc.se
 
 export const element = <T>(arr: T[]): fc.Arbitrary<T> => fc.constantFrom(...arr);
 
-const firstOrderGen = (): fc.Arbitrary<dev.Gen<unknown>> => element([dev.Gen.integer()]);
+const augmentGenWithToString = <T extends dev.Gen<any>>(gen: T, str: string): T => {
+  gen.toString = () => str;
+  return gen;
+};
 
-const higherOrderGen = (innerGen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
-  choose(
-    zip(integer({ min: 0, max: 10 }), integer({ min: 0, max: 10 }), scaleMode()).map(([x, y, s]) =>
-      innerGen.array().betweenLengths(x, y).growBy(s),
-    ),
-  );
+const firstOrderGen = (): fc.Arbitrary<dev.Gen<unknown>> =>
+  element([augmentGenWithToString(dev.Gen.integer(), 'Gen.integer()')]);
+
+const arrayGen = (elementGen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown[]>> =>
+  scaleMode().map((s) => augmentGenWithToString(elementGen.array().growBy(s), `${elementGen}.array().growBy(${s})`));
+
+const higherOrderGen = (innerGen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> => choose(arrayGen(innerGen));
 
 const genRec = (gen: dev.Gen<unknown>, maxRecurse: number): fc.Arbitrary<dev.Gen<unknown>> => {
   if (maxRecurse <= 0) return fc.constant(gen);
@@ -64,3 +68,14 @@ const genRec = (gen: dev.Gen<unknown>, maxRecurse: number): fc.Arbitrary<dev.Gen
 };
 
 export const gen = (): fc.Arbitrary<dev.Gen<unknown>> => firstOrderGen().chain((gen) => genRec(gen, 3));
+
+export const predicate = () =>
+  fc
+    .func(
+      fc
+        .frequency({ weight: 3, arbitrary: fc.constant(true) }, { weight: 1, arbitrary: fc.constant(false) })
+        .noShrink()
+        .noBias(),
+    )
+    .noShrink()
+    .noBias();
