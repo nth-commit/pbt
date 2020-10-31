@@ -2,6 +2,19 @@ import fc from 'fast-check';
 import * as dev from './srcShim';
 import * as domainGen from './Helpers/domainGen';
 
+test('snapshot', () => {
+  for (let i = 0; i <= 10; i++) {
+    const seed = 0;
+    const gen = dev.Gen.integer()
+      .between(0, 10)
+      .filter((x) => x % 2 === 0);
+
+    const sample = dev.sampleTrees(gen, { seed, size: i * 10, iterations: 1 });
+
+    expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot(i.toString());
+  }
+});
+
 test('sample(gen.filter(false)) *throws* exhausted', () => {
   fc.assert(
     fc.property(domainGen.sampleConfig(), domainGen.gen(), (config, gen) => {
