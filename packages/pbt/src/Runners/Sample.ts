@@ -5,6 +5,7 @@ import { takeWhileInclusive } from '../Core/iterableOperators';
 import { Result } from '../Core/Result';
 import { Gen, GenIteration } from '../Gen2';
 import { GenTree } from '../GenTree';
+import { ExhaustionStrategy } from './ExhaustionStrategy';
 
 export type SampleConfig = {
   seed: Seed | number;
@@ -32,6 +33,8 @@ export type SampleResult<T> = Result<Sample<T>, string>;
 type SampleAccumulator<T> = {
   trees: GenTree<T>[];
   lastIteration: GenIteration<T>;
+  instanceCount: number;
+  discardCount: number;
 };
 
 export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): SampleResult<GenTree<T>> => {
@@ -42,30 +45,46 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
     ...config,
   };
 
+  const exhaustionStrategy = ExhaustionStrategy.whenAll(
+    ExhaustionStrategy.whenDiscardRateExceeds(0.9),
+    ExhaustionStrategy.whenDiscardCountExceeds(99),
+  );
+
   const sampleAccumulator = last(
     pipe(
       gen.run(seed, size),
-      filter(GenIteration.isNotDiscarded),
+      ExhaustionStrategy.apply(exhaustionStrategy),
       scan<GenIteration<T>, SampleAccumulator<T>>({
         seed: {
           trees: [],
+          instanceCount: 0,
+          discardCount: 0,
           lastIteration: { kind: 'instance' } as GenIteration<T>,
         },
         callback: (acc, iteration) => {
           switch (iteration.kind) {
             case 'instance':
               return {
-                trees: [...acc.trees, iteration.tree],
+                ...acc,
                 lastIteration: iteration,
+                trees: [...acc.trees, iteration.tree],
+                instanceCount: acc.instanceCount + 1,
+              };
+            case 'discarded':
+              return {
+                ...acc,
+                lastIteration: iteration,
+                discardCount: acc.discardCount + 1,
               };
             default:
               return {
-                trees: acc.trees,
+                ...acc,
                 lastIteration: iteration,
               };
           }
         },
       }),
+      filter((acc) => acc.lastIteration.kind !== 'discarded'),
       takeWhileInclusive((acc) => acc.lastIteration.kind === 'instance'),
       take(iterationCount),
     ),
@@ -75,12 +94,16 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
     case 'instance':
       return Result.ofValue({
         values: sampleAccumulator.trees,
-        discards: 0,
+        discards: sampleAccumulator.discardCount,
       });
+    case 'exhausted':
+      return Result.ofError(
+        `Exhausted after ${sampleAccumulator.instanceCount} instance(s), (${sampleAccumulator.discardCount} discard(s))`,
+      );
     case 'error':
       return Result.ofError(sampleAccumulator.lastIteration.message);
     default:
-      throw new Error('Not implemented');
+      throw new Error('Unhandled: ' + JSON.stringify(sampleAccumulator));
   }
 };
 

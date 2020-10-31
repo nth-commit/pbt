@@ -191,20 +191,36 @@ export namespace GenFunction {
     repeat(flatMapGenOnce(gen, k));
 
   export const filter = <T>(gen: GenFunction<T>, f: (x: T) => boolean): GenFunction<T> =>
-    mapInstances(gen, (instance) => {
-      const { node, shrinks } = instance.tree;
-      if (f(node.value) === false)
-        return {
-          kind: 'discarded',
-          value: node.value,
-          filteringPredicate: f,
-        };
+    function* (seed, size) {
+      let currentSeed = seed;
+      let currentSize = size;
+      while (true) {
+        const [leftSeed, rightSeed] = currentSeed.split();
 
-      return {
-        kind: 'instance',
-        tree: GenTree.create(node, GenTree.filterForest(shrinks, f)),
-      };
-    });
+        for (const iteration of gen(leftSeed, currentSize)) {
+          if (iteration.kind !== 'instance') yield iteration;
+          else {
+            const { node, shrinks } = iteration.tree;
+            if (f(node.value)) {
+              yield {
+                kind: 'instance',
+                tree: GenTree.create(node, GenTree.filterForest(shrinks, f)),
+              };
+            } else {
+              yield {
+                kind: 'discarded',
+                value: node.value,
+                filteringPredicate: f,
+              };
+              currentSize = Size.bigIncrement(currentSize);
+              break;
+            }
+          }
+        }
+
+        currentSeed = rightSeed;
+      }
+    };
 
   const collectOne = <T>(gen: GenFunction<T>, range: Range, shrinker: Shrinker<GenTree<T>[]>): GenFunction<T[]> =>
     function* (seed, size) {
