@@ -16,6 +16,10 @@ export const genFactory: GenFactory = {
 
 export type Gen<T> = _Gen<T>;
 
+export type AnyValues = any[];
+
+export type Gens<Values extends AnyValues> = { [P in keyof Values]: Gen<Values[P]> };
+
 export namespace Gen {
   export function create<T>(
     generate: (seed: Seed, size: Size) => T,
@@ -35,5 +39,26 @@ export namespace Gen {
 
   export function integer(): IntegerGen {
     return genFactory.integer();
+  }
+
+  export function zip<Ts extends any[]>(...gens: Gens<Ts>): Gen<Ts> {
+    switch (gens.length) {
+      case 0:
+        return constant(([] as unknown) as Ts);
+      default: {
+        const [gen, ...nextGens] = gens;
+        return gen.flatMap((x) => zip(...nextGens).map((xs) => ([x, ...xs] as unknown) as Ts));
+      }
+    }
+  }
+
+  export type MapperFunction<Ts extends any[], U> = (...xs: { [TLabel in keyof Ts]: Ts[TLabel] }) => U;
+  export type MapArgs<Ts extends any[], U> = [...Gens<Ts>, MapperFunction<Ts, U>];
+
+  export function map<Ts extends any[], U>(...args: MapArgs<Ts, U>): Gen<U> {
+    const [f, ...gens] = args.reverse();
+    const fUnsafe = f as MapperFunction<any[], U>;
+    const gensUnsafe = gens as Gens<any[]>;
+    return zip(...gensUnsafe).map(([...xs]) => fUnsafe(...xs));
   }
 }
