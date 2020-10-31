@@ -1,2 +1,3 @@
-export { Seed, Size, Tree } from '../Core';
-export * from '../Core/iterableOperators';
+/* istanbul ignore file */
+
+export { Seed, Size, Tree, indexed, takeWhileInclusive, concatWithLast } from '../Core';

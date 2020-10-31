@@ -20,29 +20,21 @@ export namespace GenIteration {
     filteringPredicate: Function;
   };
 
-  export type Exhausted = {
-    kind: 'exhausted';
-  };
-
   export type Error = {
     kind: 'error';
     message: string;
   };
 
   export const isInstance = <T>(iteration: GenIteration<T>): iteration is Instance<T> => iteration.kind === 'instance';
-  export const isNotInstance = <T>(iteration: GenIteration<T>): iteration is Discarded | Exhausted | Error =>
+  export const isNotInstance = <T>(iteration: GenIteration<T>): iteration is Discarded | Error =>
     !isInstance(iteration);
 
   export const isDiscarded = <T>(iteration: GenIteration<T>): iteration is Discarded => iteration.kind === 'discarded';
-  export const isNotDiscarded = <T>(iteration: GenIteration<T>): iteration is Instance<T> | Exhausted | Error =>
+  export const isNotDiscarded = <T>(iteration: GenIteration<T>): iteration is Instance<T> | Error =>
     !isDiscarded(iteration);
 }
 
-export type GenIteration<T> =
-  | GenIteration.Instance<T>
-  | GenIteration.Discarded
-  | GenIteration.Exhausted
-  | GenIteration.Error;
+export type GenIteration<T> = GenIteration.Instance<T> | GenIteration.Discarded | GenIteration.Error;
 
 export type GenFunction<T> = (seed: Seed, size: Size) => Iterable<GenIteration<T>>;
 
@@ -66,8 +58,6 @@ export namespace GenFunction {
   ): GenFunction<T> => (seed: Seed, size: Size) =>
     pipe(Seed.stream(seed), mapIter(generateInstance(f, shrink, calculateComplexity, size)));
 
-  export const exhausted = <T>(): GenFunction<T> => () => [{ kind: 'exhausted' }];
-
   export const error = <T>(message: string): GenFunction<T> => () => [{ kind: 'error', message }];
 
   export const constant = <T>(value: T): GenFunction<T> => () =>
@@ -83,7 +73,6 @@ export namespace GenFunction {
     pipe(
       Seed.stream(seed),
       flatMapIter((seed0) => gen(seed0, size)),
-      takeWhileInclusiveIter((iteration) => iteration.kind !== 'exhausted'),
     );
 
   /**
@@ -241,7 +230,6 @@ export namespace GenFunction {
               forest = [...forest, result.tree];
               break;
             case 'discarded':
-            case 'exhausted':
             case 'error':
               yield result;
               break;

@@ -2,7 +2,6 @@ import fc from 'fast-check';
 import { createHash } from 'crypto';
 import { mersenne } from 'pure-rand';
 import * as dev from '../../src/Public';
-import * as devCore from '../../src/Core';
 
 export type FunctionConstraints = {
   arity?: number;

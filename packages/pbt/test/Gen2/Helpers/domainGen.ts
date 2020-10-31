@@ -3,6 +3,7 @@ import * as devCore from '../../../src/Core';
 import * as devGenRange from '../../../src/Gen2/Range';
 import { SampleConfig } from '../../../src/Runners';
 import * as dev from '../srcShim';
+import { func } from '../../helpers/domainGen';
 
 export const seed = (): fc.Arbitrary<devCore.Seed> => fc.nat().map(devCore.Seed.create).noShrink();
 
@@ -70,12 +71,11 @@ const genRec = (gen: dev.Gen<unknown>, maxRecurse: number): fc.Arbitrary<dev.Gen
 export const gen = (): fc.Arbitrary<dev.Gen<unknown>> => firstOrderGen().chain((gen) => genRec(gen, 3));
 
 export const predicate = () =>
-  fc
-    .func(
-      fc
-        .frequency({ weight: 3, arbitrary: fc.constant(true) }, { weight: 1, arbitrary: fc.constant(false) })
-        .noShrink()
-        .noBias(),
-    )
+  func(
+    fc
+      .frequency({ weight: 3, arbitrary: fc.constant(true) }, { weight: 1, arbitrary: fc.constant(false) })
+      .noShrink()
+      .noBias(),
+  )
     .noShrink()
     .noBias();
