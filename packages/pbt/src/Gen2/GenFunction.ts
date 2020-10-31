@@ -38,6 +38,8 @@ export type GenIteration<T> = GenIteration.Instance<T> | GenIteration.Discarded 
 
 export type GenFunction<T> = (seed: Seed, size: Size) => Iterable<GenIteration<T>>;
 
+export type ResizableGenFunction<T> = (seed: Seed, size: Size) => Generator<GenIteration<T>, Size>;
+
 export namespace GenFunction {
   const id = <T>(x: T): T => x;
 
@@ -75,15 +77,19 @@ export namespace GenFunction {
       flatMapIter((seed0) => gen(seed0, size)),
     );
 
-  /**
-   * Like repeat, but is stingy in how many seeds it consumes. It's useful to be stingy when making comparisons about
-   * generators for testing.
-   * @param gen
-   */
-  const repeatUnobtrusive = <T>(gen: GenFunction<T>): GenFunction<T> =>
+  const resizableRepeat = <T>(gen: ResizableGenFunction<T>): GenFunction<T> =>
     function* (seed, size) {
       do {
-        yield* gen(seed, size);
+        const generator = gen(seed, size);
+        while (true) {
+          const next = generator.next();
+          if (next.done) {
+            size = next.value;
+            break;
+          } else {
+            yield next.value;
+          }
+        }
         seed = seed.split()[1];
       } while (true);
     };
@@ -180,39 +186,31 @@ export namespace GenFunction {
     repeat(flatMapGenOnce(gen, k));
 
   export const filter = <T>(gen: GenFunction<T>, f: (x: T) => boolean): GenFunction<T> =>
-    function* (seed, size) {
-      let currentSeed = seed;
-      let currentSize = size;
-      while (true) {
-        const [leftSeed, rightSeed] = currentSeed.split();
-
-        for (const iteration of gen(leftSeed, currentSize)) {
-          if (iteration.kind !== 'instance') yield iteration;
-          else {
-            const { node, shrinks } = iteration.tree;
-            if (f(node.value)) {
-              yield {
-                kind: 'instance',
-                tree: GenTree.create(node, GenTree.filterForest(shrinks, f)),
-              };
-            } else {
-              yield {
-                kind: 'discarded',
-                value: node.value,
-                filteringPredicate: f,
-              };
-              currentSize = Size.bigIncrement(currentSize);
-              break;
-            }
+    resizableRepeat(function* (seed, size) {
+      for (const iteration of gen(seed, size)) {
+        if (iteration.kind !== 'instance') yield iteration;
+        else {
+          const { node, shrinks } = iteration.tree;
+          if (f(node.value)) {
+            yield {
+              kind: 'instance',
+              tree: GenTree.create(node, GenTree.filterForest(shrinks, f)),
+            };
+          } else {
+            yield {
+              kind: 'discarded',
+              value: node.value,
+              filteringPredicate: f,
+            };
+            return Size.bigIncrement(size);
           }
         }
-
-        currentSeed = rightSeed;
       }
-    };
+      return size;
+    });
 
-  const collectOne = <T>(gen: GenFunction<T>, range: Range, shrinker: Shrinker<GenTree<T>[]>): GenFunction<T[]> =>
-    function* (seed, size) {
+  export const collect = <T>(gen: GenFunction<T>, range: Range, shrinker: Shrinker<GenTree<T>[]>): GenFunction<T[]> =>
+    resizableRepeat(function* (seed, size) {
       const [leftSeed, rightSeed] = seed.split();
 
       const length = leftSeed.nextInt(...range.getSizedBounds(size));
@@ -247,10 +245,9 @@ export namespace GenFunction {
           tree: GenTree.concat(forest, range.getProportionalDistance, shrinker),
         };
       }
-    };
 
-  export const collect = <T>(gen: GenFunction<T>, range: Range, shrinker: Shrinker<GenTree<T>[]>): GenFunction<T[]> =>
-    repeatUnobtrusive(collectOne(gen, range, shrinker));
+      return size;
+    });
 
   export const noShrink = <T>(gen: GenFunction<T>): GenFunction<T> =>
     mapTrees(gen, (tree) => GenTree.create(tree.node, []));
