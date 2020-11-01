@@ -3,9 +3,7 @@ import { flatMap } from 'ix/iterable/operators';
 
 export const Exhausted = Symbol('Exhausted');
 
-export type Exhaustible<T> = T | typeof Exhausted;
-
-export type Discarded = { kind: 'discarded' };
+export type Exhaustible<T> = { kind: 'exhausted' } | T;
 
 export type ExhaustionStrategy = {
   onDiscard(): void;
@@ -29,7 +27,7 @@ export namespace ExhaustionStrategy {
         exhaustionStrategy.onDiscard();
       }
 
-      return exhaustionStrategy.isExhausted() ? [iteration, Exhausted] : [iteration];
+      return exhaustionStrategy.isExhausted() ? [iteration, { kind: 'exhausted' }] : [iteration];
     });
 
   export const whenDiscardRateExceeds = (rate: number): ExhaustionStrategy => {

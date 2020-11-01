@@ -5,7 +5,7 @@ import { takeWhileInclusive } from '../Core/iterableOperators';
 import { Result } from '../Core/Result';
 import { Gen, GenIteration } from '../Gen2';
 import { GenTree } from '../GenTree';
-import { Exhausted, Exhaustible, ExhaustionStrategy } from './ExhaustionStrategy';
+import { Exhaustible, ExhaustionStrategy } from './ExhaustionStrategy';
 
 export type SampleConfig = {
   seed: Seed | number;
@@ -46,14 +46,14 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
   };
 
   const exhaustionStrategy = ExhaustionStrategy.whenAll(
-    ExhaustionStrategy.whenDiscardRateExceeds(0.9),
+    ExhaustionStrategy.whenDiscardRateExceeds(0.999),
     ExhaustionStrategy.whenDiscardCountExceeds(99),
   );
 
   const sampleAccumulator = last(
     pipe(
       gen.run(seed, size),
-      ExhaustionStrategy.apply(exhaustionStrategy, (iteration) => iteration.kind === 'discarded'),
+      ExhaustionStrategy.apply(exhaustionStrategy, (iteration) => iteration.kind === 'discard'),
       scan<Exhaustible<GenIteration<T>>, SampleAccumulator<T>>({
         seed: {
           trees: [],
@@ -62,8 +62,6 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
           lastIteration: { kind: 'instance' } as GenIteration<T>,
         },
         callback: (acc, iteration) => {
-          if (iteration === Exhausted) return { ...acc, lastIteration: iteration };
-
           switch (iteration.kind) {
             case 'instance':
               return {
@@ -72,7 +70,7 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
                 trees: [...acc.trees, iteration.tree],
                 instanceCount: acc.instanceCount + 1,
               };
-            case 'discarded':
+            case 'discard':
               return {
                 ...acc,
                 lastIteration: iteration,
@@ -87,18 +85,11 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
         },
       }),
       takeWhileInclusive((acc) => {
-        if (acc.lastIteration === Exhausted) return false;
-
-        return acc.instanceCount <= iterationCount;
+        if (acc.lastIteration.kind === 'exhausted') return false;
+        return acc.instanceCount < iterationCount;
       }),
     ),
   )!;
-
-  if (sampleAccumulator.lastIteration === Exhausted) {
-    return Result.ofError(
-      `Exhausted after ${sampleAccumulator.instanceCount} instance(s), (${sampleAccumulator.discardCount} discard(s))`,
-    );
-  }
 
   switch (sampleAccumulator.lastIteration.kind) {
     case 'instance':
@@ -108,6 +99,10 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
       });
     case 'error':
       return Result.ofError(sampleAccumulator.lastIteration.message);
+    case 'exhausted':
+      return Result.ofError(
+        `Exhausted after ${sampleAccumulator.instanceCount} instance(s), (${sampleAccumulator.discardCount} discard(s))`,
+      );
     default:
       throw new Error('Unhandled: ' + JSON.stringify(sampleAccumulator));
   }
