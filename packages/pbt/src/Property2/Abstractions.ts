@@ -24,9 +24,6 @@ export namespace ShrinkIteration {
     kind: 'fail';
     counterexample: Counterexample<Ts>;
   };
-
-  export const isFail = <Ts extends any[]>(shrinkIteration: ShrinkIteration<Ts>): shrinkIteration is Fail<Ts> =>
-    shrinkIteration.kind === 'fail';
 }
 
 export type ShrinkIteration<Ts extends any[]> = ShrinkIteration.Pass | ShrinkIteration.Fail<Ts>;

@@ -181,9 +181,7 @@ describe('shrinks', () => {
         genArrayLength(),
         domainGen.faillingFunc(),
         (config, gen, x, f) => {
-          const genArray = dev.Gen.array(gen)
-            .ofMinLength(x)
-            .map((x) => x);
+          const genArray = dev.Gen.array(gen).ofMinLength(x);
 
           const checkResult = dev.check(dev.property(genArray, f), config);
 

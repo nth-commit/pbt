@@ -1,5 +1,5 @@
 import { last, pipe } from 'ix/iterable';
-import { filter, map, scan } from 'ix/iterable/operators';
+import { scan } from 'ix/iterable/operators';
 import { Seed, Size, takeWhileInclusive } from '../Core';
 import { Property, PropertyIteration, Counterexample, ShrinkIteration } from '../Property2';
 import { Exhaustible, ExhaustionStrategy } from './ExhaustionStrategy';
@@ -14,16 +14,21 @@ export namespace CheckResult {
   export type Unfalsified = {
     kind: 'unfalsified';
     iterations: number;
+    discards: number;
   };
 
   export type Falsified<Ts extends any[]> = {
     kind: 'falsified';
     counterexample: Counterexample<Ts>;
     iterations: number;
+    shrinkIterations: number;
+    discards: number;
   };
 
   export type Exhausted = {
     kind: 'exhausted';
+    iterations: number;
+    discards: number;
   };
 
   export type Error = {
@@ -37,11 +42,6 @@ export type CheckResult<Ts extends any[]> =
   | CheckResult.Error
   | CheckResult.Exhausted;
 
-type CheckAccumulator<Ts extends any[]> = {
-  lastIteration: Exhaustible<PropertyIteration<Ts>>;
-  passIterations: number;
-};
-
 export const check = <Ts extends any[]>(property: Property<Ts>, config: Partial<CheckConfig> = {}): CheckResult<Ts> => {
   const { seed, size, iterations: iterationCount }: CheckConfig = {
     seed: Seed.spawn(),
@@ -50,28 +50,77 @@ export const check = <Ts extends any[]>(property: Property<Ts>, config: Partial<
     ...config,
   };
 
-  const exhaustionStrategy = ExhaustionStrategy.whenAll(
-    ExhaustionStrategy.whenDiscardRateExceeds(0.999),
-    ExhaustionStrategy.whenDiscardCountExceeds(99),
-  );
+  const iterationAccumulator = accumulateIterations<Ts>(property, seed, size, iterationCount);
 
-  const checkAccumulator = last(
+  switch (iterationAccumulator.lastIteration.kind) {
+    case 'pass':
+      return {
+        kind: 'unfalsified',
+        iterations: iterationAccumulator.iterationCount,
+        discards: iterationAccumulator.discardCount,
+      };
+    case 'fail':
+      const shrinkResult = accumulateShrinks(iterationAccumulator.lastIteration);
+      return {
+        kind: 'falsified',
+        iterations: iterationAccumulator.iterationCount,
+        discards: iterationAccumulator.discardCount,
+        ...shrinkResult,
+      };
+    case 'error':
+      return {
+        kind: 'error',
+      };
+    case 'exhausted':
+      return {
+        kind: 'exhausted',
+        iterations: iterationAccumulator.iterationCount,
+        discards: iterationAccumulator.discardCount,
+      };
+    default:
+      throw new Error('Unhandled: ' + JSON.stringify(iterationAccumulator));
+  }
+};
+
+type IterationAccumulator<Ts extends any[]> = {
+  lastIteration: Exhaustible<PropertyIteration<Ts>>;
+  iterationCount: number;
+  discardCount: number;
+};
+
+const accumulateIterations = <Ts extends any[]>(
+  property: Property<Ts>,
+  seed: number | Seed,
+  size: number,
+  iterationCount: number,
+) =>
+  last(
     pipe(
       property.run(seed, size),
-      ExhaustionStrategy.apply(exhaustionStrategy, (iteration) => iteration.kind === 'discard'),
-      scan<Exhaustible<PropertyIteration<Ts>>, CheckAccumulator<Ts>>({
+      ExhaustionStrategy.apply(ExhaustionStrategy.defaultStrategy(), (iteration) => iteration.kind === 'discard'),
+      scan<Exhaustible<PropertyIteration<Ts>>, IterationAccumulator<Ts>>({
         seed: {
           lastIteration: { kind: 'pass' } as PropertyIteration<Ts>,
-          passIterations: 0,
+          iterationCount: 0,
+          discardCount: 0,
         },
         callback: (acc, curr) => {
           switch (curr.kind) {
             case 'pass':
+            case 'fail':
+            case 'error':
               return {
                 ...acc,
-                passIterations: acc.passIterations + 1,
+                lastIteration: curr,
+                iterationCount: acc.iterationCount + 1,
               };
-            default:
+            case 'discard':
+              return {
+                ...acc,
+                lastIteration: curr,
+                discardCount: acc.discardCount + 1,
+              };
+            case 'exhausted':
               return {
                 ...acc,
                 lastIteration: curr,
@@ -81,35 +130,41 @@ export const check = <Ts extends any[]>(property: Property<Ts>, config: Partial<
       }),
       takeWhileInclusive((acc) => {
         if (acc.lastIteration.kind === 'exhausted') return false;
-        return acc.passIterations < iterationCount;
+        return acc.iterationCount < iterationCount;
       }),
     ),
   )!;
 
-  switch (checkAccumulator.lastIteration.kind) {
-    case 'pass':
-      return {
-        kind: 'unfalsified',
-        iterations: checkAccumulator.passIterations,
-      };
-    case 'fail':
-      return {
-        kind: 'falsified',
-        counterexample:
-          last(
-            pipe(
-              checkAccumulator.lastIteration.shrinks,
-              filter(ShrinkIteration.isFail),
-              map((shrink) => shrink.counterexample),
-            ),
-          ) || checkAccumulator.lastIteration.counterexample,
-        iterations: checkAccumulator.passIterations,
-      };
-    case 'error':
-      return {
-        kind: 'error',
-      };
-    default:
-      throw new Error('Unhandled: ' + JSON.stringify(checkAccumulator));
-  }
+type ShrinkAccumulator<Ts extends any[]> = Pick<CheckResult.Falsified<Ts>, 'counterexample' | 'shrinkIterations'>;
+
+const accumulateShrinks = <Ts extends any[]>(failIteration: PropertyIteration.Fail<Ts>): ShrinkAccumulator<Ts> => {
+  const initialShrink: ShrinkAccumulator<Ts> = {
+    shrinkIterations: 0,
+    counterexample: failIteration.counterexample,
+  };
+
+  return (
+    last(
+      pipe(
+        failIteration.shrinks,
+        scan<ShrinkIteration<Ts>, ShrinkAccumulator<Ts>>({
+          seed: { shrinkIterations: 0, counterexample: failIteration.counterexample },
+          callback: (acc, curr) => {
+            switch (curr.kind) {
+              case 'fail':
+                return {
+                  counterexample: curr.counterexample,
+                  shrinkIterations: acc.shrinkIterations + 1,
+                };
+              case 'pass':
+                return {
+                  ...acc,
+                  shrinkIterations: acc.shrinkIterations + 1,
+                };
+            }
+          },
+        }),
+      ),
+    ) || initialShrink
+  );
 };

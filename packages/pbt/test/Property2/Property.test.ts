@@ -10,6 +10,7 @@ test('Given a succeeding property function, it returns unfalsified', () => {
       const expectedCheckResult: dev.CheckResult<[]> = {
         kind: 'unfalsified',
         iterations: expect.anything(),
+        discards: expect.anything(),
       };
       expect(checkResult).toEqual(expectedCheckResult);
     }),
