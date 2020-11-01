@@ -1,6 +1,6 @@
 import { Seed } from '../srcShim';
 
-export const loggingSeedDecorator = (seed: Seed, idPath: Array<'L' | 'R'> = []): Seed => {
+const loggingSeedDecorator = (seed: Seed, idPath: Array<'L' | 'R'> = []): Seed => {
   const id = idPath.join(':');
 
   const log = (msg: string) => {
@@ -23,3 +23,6 @@ export const loggingSeedDecorator = (seed: Seed, idPath: Array<'L' | 'R'> = []):
 
   return Object.assign(seed0, { _id: id });
 };
+
+export const loggingSeed = (seed: Seed | number) =>
+  loggingSeedDecorator(typeof seed === 'number' ? Seed.create(seed) : seed);

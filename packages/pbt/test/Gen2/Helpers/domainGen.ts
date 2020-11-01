@@ -62,14 +62,57 @@ const augmentGenWithToString = <T extends dev.Gen<any>>(gen: T, str: string): T 
 const firstOrderGen = (): fc.Arbitrary<dev.Gen<unknown>> =>
   element([augmentGenWithToString(dev.Gen.integer(), 'Gen.integer()')]);
 
-const arrayGen = (elementGen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown[]>> =>
-  scaleMode().map((s) => augmentGenWithToString(elementGen.array().growBy(s), `${elementGen}.array().growBy(${s})`));
+const arrayGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown[]>> =>
+  scaleMode().map((s) => augmentGenWithToString(gen.array().growBy(s), `${gen}.array().growBy(${s})`));
 
-const higherOrderGen = (innerGen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> => choose(arrayGen(innerGen));
+const mapGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
+  func(fc.anything()).map((f) => augmentGenWithToString(gen.map(f), `${gen}.map(f)`));
+
+const filterGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
+  predicate(20).map((f) => augmentGenWithToString(gen.filter(f), `${gen}.filter(f)`));
+
+const flatMapGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
+  func(firstOrderGen()).map((k) => augmentGenWithToString(gen.flatMap(k), `${gen}.flatMap(k)`));
+
+const noShrinkGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
+  fc.constant(augmentGenWithToString(gen.noShrink(), `${gen}.noShrink()`));
+
+const noComplexityGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
+  fc.constant(augmentGenWithToString(gen.noComplexity(), `${gen}.noComplexity()`));
+
+const staticZipGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
+  array(firstOrderGen()).map((otherGens) =>
+    augmentGenWithToString(dev.Gen.zip(gen, ...otherGens), `Gen.zip(${gen}, ...[${otherGens.length} other gen(s)])`),
+  );
+
+const staticMapGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
+  fc
+    .tuple(array(firstOrderGen()), func(fc.anything()))
+    .map(([otherGens, f]) =>
+      augmentGenWithToString(
+        dev.Gen.map(gen, ...otherGens, f),
+        `Gen.map(${gen}, ...[${otherGens.length} other gen(s)], f)`,
+      ),
+    );
+
+const higherOrderGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
+  choose(
+    arrayGen(gen),
+    mapGen(gen),
+    filterGen(gen),
+    flatMapGen(gen),
+    noShrinkGen(gen),
+    noComplexityGen(gen),
+    staticZipGen(gen),
+    staticMapGen(gen),
+  );
 
 const genRec = (gen: dev.Gen<unknown>, maxRecurse: number): fc.Arbitrary<dev.Gen<unknown>> => {
   if (maxRecurse <= 0) return fc.constant(gen);
-  return choose(fc.constant(gen), higherOrderGen(gen));
+  return choose(
+    fc.constant(gen),
+    higherOrderGen(gen).chain((g) => genRec(g, maxRecurse - 1)),
+  ).noBias();
 };
 
 export const gen = (): fc.Arbitrary<dev.Gen<unknown>> => firstOrderGen().chain((gen) => genRec(gen, 3));
@@ -77,10 +120,10 @@ export const gen = (): fc.Arbitrary<dev.Gen<unknown>> => firstOrderGen().chain((
 export const gens = (): fc.Arbitrary<[dev.Gen<unknown>, ...dev.Gen<unknown>[]]> =>
   fc.array(gen(), { minLength: 1 }) as any;
 
-export const predicate = () =>
+export const predicate = (trueWeight: number = 3) =>
   func(
     fc
-      .frequency({ weight: 3, arbitrary: fc.constant(true) }, { weight: 1, arbitrary: fc.constant(false) })
+      .frequency({ weight: trueWeight, arbitrary: fc.constant(true) }, { weight: 1, arbitrary: fc.constant(false) })
       .noShrink()
       .noBias(),
   )
@@ -100,3 +143,10 @@ export const passingFunc = (): fc.Arbitrary<dev.PropertyFunction<any[]>> =>
     () => {},
     () => true,
   );
+
+export const fallibleFunc = (): fc.Arbitrary<dev.PropertyFunction<any[]>> => {
+  return zip(func(integer()), passingFunc(), faillingFunc()).map(([f, passF, failF]) => (...args) => {
+    const x = f(...args);
+    return x % 2 === 0 ? failF() : passF();
+  });
+};

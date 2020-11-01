@@ -8,7 +8,6 @@ import { Gen as _Gen, ArrayGen, IntegerGen, GenFactory } from './Abstractions';
 import { BaseGen } from './BaseGen';
 import { array } from './ArrayGen';
 import { integer } from './IntegerGen';
-import { gen } from '../Public';
 
 export const genFactory: GenFactory = {
   array: (elementGen) => array(elementGen, genFactory),

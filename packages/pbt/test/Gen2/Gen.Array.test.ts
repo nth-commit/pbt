@@ -97,7 +97,6 @@ describe('equivalent APIs', () => {
           expect(dev.sample(genArray, config)).toEqual(dev.sample(genArrayAlt, config));
         },
       ),
-      { seed: -617649306, path: '0:0:0:0:1:0:0:0', endOnFailure: true },
     );
   });
 

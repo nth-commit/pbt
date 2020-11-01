@@ -110,7 +110,7 @@ const mapGenIterationToNonReplicablePropertyIteration = <Ts extends any[]>(
     case 'discard':
       return {
         kind: 'discard',
-        predicate: genIteration.filteringPredicate,
+        predicate: genIteration.predicate,
         value: genIteration.value,
       };
     case 'error':

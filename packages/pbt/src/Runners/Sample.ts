@@ -18,15 +18,24 @@ export namespace SampleResult {
     kind: 'success';
     values: T[];
     discards: number;
+    seed: number;
+    size: number;
   };
 
   export type Error = {
     kind: 'error';
     message: string;
+    seed: number;
+    size: number;
   };
 }
 
-export type Sample<T> = { values: T[]; discards: number };
+export type Sample<T> = {
+  values: T[];
+  discards: number;
+  seed: number;
+  size: number;
+};
 
 export type SampleResult<T> = Result<Sample<T>, string>;
 
@@ -54,7 +63,7 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
           trees: [],
           instanceCount: 0,
           discardCount: 0,
-          lastIteration: { kind: 'instance' } as GenIteration<T>,
+          lastIteration: { kind: 'instance', seed: seed.valueOf(), size, tree: null as any },
         },
         callback: (acc, iteration) => {
           switch (iteration.kind) {
@@ -91,6 +100,8 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
       return Result.ofValue({
         values: sampleAccumulator.trees,
         discards: sampleAccumulator.discardCount,
+        seed: sampleAccumulator.lastIteration.seed,
+        size: sampleAccumulator.lastIteration.size,
       });
     case 'error':
       return Result.ofError(sampleAccumulator.lastIteration.message);
@@ -105,6 +116,7 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
 
 export const sampleInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): SampleResult<T> =>
   sampleTreesInternal(gen, config).map<Sample<T>>((sample) => ({
+    ...sample,
     discards: sample.discards,
     values: sample.values.map((tree) => tree.node.value),
   }));

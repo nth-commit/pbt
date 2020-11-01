@@ -16,12 +16,9 @@ test('It has an isomorphism with Array.prototype.reduce', () => {
 
         const reducedByGen = iterateAsOutcomes(reducedGen, { ...runParams, iterations: 1 })[0];
 
-        // Seed requires an extra split, to reproduce the initial split inside of the gen's reduce
-        const unreducedGenSeed = runParams.seed.split()[0];
         const reducedByArray = iterateOutcomes(unreducedGen, {
           ...runParams,
           iterations: length,
-          seed: unreducedGenSeed,
         }).reduce(f, init);
 
         expect(reducedByGen).toEqual(reducedByArray);
