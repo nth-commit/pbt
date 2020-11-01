@@ -64,7 +64,7 @@ const arrayFunction = <T>(args: ArrayGenArgs<T>): GenFunction<T[]> => {
 
   const { gen, scale } = args;
   const range = Range.createFrom(min, max, Math.min(min, max), scale || 'linear');
-  return GenFunction.collect(gen.genFunction, range, Shrink.array(range.bounds[0], getOrderOfTree));
+  return GenFunction.collect(gen.genFunction, range, Shrink.array(range.origin, getOrderOfTree));
 };
 
 const tryDeriveMin = (min: number | null): number | string => {

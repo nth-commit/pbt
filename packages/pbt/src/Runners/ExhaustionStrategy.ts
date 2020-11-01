@@ -71,4 +71,10 @@ export namespace ExhaustionStrategy {
     onIteration: () => exhaustionStrategies.forEach((s) => s.onIteration()),
     isExhausted: () => exhaustionStrategies.every((s) => s.isExhausted()),
   });
+
+  export const defaultStrategy = () =>
+    ExhaustionStrategy.whenAll(
+      ExhaustionStrategy.whenDiscardRateExceeds(0.999),
+      ExhaustionStrategy.whenDiscardCountExceeds(999),
+    );
 }
