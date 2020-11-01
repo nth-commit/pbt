@@ -1,6 +1,7 @@
 import fc from 'fast-check';
 import * as dev from './srcShim';
 import * as domainGen from './Helpers/domainGen';
+import { failwith } from './Helpers/failwith';
 
 const genArrayLength = () => domainGen.integer({ min: 0, max: 10 });
 
@@ -96,6 +97,7 @@ describe('equivalent APIs', () => {
           expect(dev.sample(genArray, config)).toEqual(dev.sample(genArrayAlt, config));
         },
       ),
+      { seed: -617649306, path: '0:0:0:0:1:0:0:0', endOnFailure: true },
     );
   });
 
@@ -166,6 +168,30 @@ describe('errors', () => {
 
         expect(() => dev.sample(genArray, config)).toThrow('Maximum must be at least 0');
       }),
+    );
+  });
+});
+
+describe('shrinks', () => {
+  test('Gen.array(gen).ofMinLength(x) *produces* arrays that shrink to length = x', () => {
+    fc.assert(
+      fc.property(
+        domainGen.checkConfig(),
+        domainGen.gen(),
+        genArrayLength(),
+        domainGen.faillingFunc(),
+        (config, gen, x, f) => {
+          const genArray = dev.Gen.array(gen)
+            .ofMinLength(x)
+            .map((x) => x);
+
+          const checkResult = dev.check(dev.property(genArray, f), config);
+
+          if (checkResult.kind !== 'falsified') return failwith('expected falsified');
+          expect(checkResult.counterexample.value[0].length).toEqual(x);
+          expect(checkResult.counterexample.complexity).toEqual(0);
+        },
+      ),
     );
   });
 });

@@ -1,7 +1,6 @@
 import fc from 'fast-check';
 import * as devCore from '../../../src/Core';
 import * as devGenRange from '../../../src/Gen2/Range';
-import { SampleConfig } from '../../../src/Runners';
 import * as dev from '../srcShim';
 import { func } from '../../helpers/domainGen';
 
@@ -9,7 +8,10 @@ export const seed = (): fc.Arbitrary<devCore.Seed> => fc.nat().map(devCore.Seed.
 
 export const size = (): fc.Arbitrary<devCore.Size> => fc.integer(0, 100);
 
-export const sampleConfig = (): fc.Arbitrary<SampleConfig> =>
+export const sampleConfig = (): fc.Arbitrary<dev.SampleConfig> =>
+  fc.tuple(seed(), size(), integer(1, 100)).map(([seed, size, iterations]) => ({ seed, size, iterations }));
+
+export const checkConfig = (): fc.Arbitrary<dev.CheckConfig> =>
   fc.tuple(seed(), size(), integer(1, 100)).map(([seed, size, iterations]) => ({ seed, size, iterations }));
 
 export const scaleMode = (): fc.Arbitrary<devGenRange.ScaleMode> => {
@@ -48,6 +50,8 @@ export const choose = <Values extends [any, ...any[]] | any[]>(
 
 export const setOfSize = <T>(elementGen: fc.Arbitrary<T>, size: number) => fc.set(elementGen, size, size);
 
+export const array = fc.array;
+
 export const element = <T>(arr: T[]): fc.Arbitrary<T> => fc.constantFrom(...arr);
 
 const augmentGenWithToString = <T extends dev.Gen<any>>(gen: T, str: string): T => {
@@ -70,6 +74,9 @@ const genRec = (gen: dev.Gen<unknown>, maxRecurse: number): fc.Arbitrary<dev.Gen
 
 export const gen = (): fc.Arbitrary<dev.Gen<unknown>> => firstOrderGen().chain((gen) => genRec(gen, 3));
 
+export const gens = (): fc.Arbitrary<[dev.Gen<unknown>, ...dev.Gen<unknown>[]]> =>
+  fc.array(gen(), { minLength: 1 }) as any;
+
 export const predicate = () =>
   func(
     fc
@@ -79,3 +86,17 @@ export const predicate = () =>
   )
     .noShrink()
     .noBias();
+
+export const faillingFunc = (): fc.Arbitrary<dev.PropertyFunction<any[]>> =>
+  fc.oneof(
+    fc.anything().map((x) => () => {
+      throw x;
+    }),
+    fc.constant(() => false),
+  );
+
+export const passingFunc = (): fc.Arbitrary<dev.PropertyFunction<any[]>> =>
+  fc.constantFrom(
+    () => {},
+    () => true,
+  );

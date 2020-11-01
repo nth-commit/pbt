@@ -14,8 +14,8 @@ export namespace GenIteration {
     tree: GenTree<T>;
   };
 
-  export type Discarded = {
-    kind: 'discarded';
+  export type Discard = {
+    kind: 'discard';
     value: unknown;
     filteringPredicate: Function;
   };
@@ -26,15 +26,14 @@ export namespace GenIteration {
   };
 
   export const isInstance = <T>(iteration: GenIteration<T>): iteration is Instance<T> => iteration.kind === 'instance';
-  export const isNotInstance = <T>(iteration: GenIteration<T>): iteration is Discarded | Error =>
-    !isInstance(iteration);
+  export const isNotInstance = <T>(iteration: GenIteration<T>): iteration is Discard | Error => !isInstance(iteration);
 
-  export const isDiscarded = <T>(iteration: GenIteration<T>): iteration is Discarded => iteration.kind === 'discarded';
+  export const isDiscarded = <T>(iteration: GenIteration<T>): iteration is Discard => iteration.kind === 'discard';
   export const isNotDiscarded = <T>(iteration: GenIteration<T>): iteration is Instance<T> | Error =>
     !isDiscarded(iteration);
 }
 
-export type GenIteration<T> = GenIteration.Instance<T> | GenIteration.Discarded | GenIteration.Error;
+export type GenIteration<T> = GenIteration.Instance<T> | GenIteration.Discard | GenIteration.Error;
 
 export type GenFunction<T> = (seed: Seed, size: Size) => Iterable<GenIteration<T>>;
 
@@ -117,8 +116,8 @@ export namespace GenFunction {
   /**
    * Given a single instance, runs the gen returned by `k` until it sees another instance. Then, merges the existing
    * instance and the newly generated instance by combining their shrinks, in accordance with `k`. Produces a gen
-   * that contains all intermediate non-instance values (e.g. discards or exhaustions), followed by the single
-   * successfully bound instance.
+   * that contains all intermediate non-instance values (e.g. discards), followed by the single successfully bound
+   * instance.
    * @param r
    * @param k
    */
@@ -165,7 +164,7 @@ export namespace GenFunction {
 
   /**
    * Runs the left gen until it finds and instance, then flatMaps that instance by passing it to `flatMapInstanceOnce`.
-   * Produces a gen that contains all discarded instances from the left gen and the right gen, followed by the single
+   * Produces a gen that contains all discard instances from the left gen and the right gen, followed by the single
    * bound instance.
    * @param gen
    * @param k
@@ -198,7 +197,7 @@ export namespace GenFunction {
             };
           } else {
             yield {
-              kind: 'discarded',
+              kind: 'discard',
               value: node.value,
               filteringPredicate: f,
             };
@@ -227,7 +226,7 @@ export namespace GenFunction {
             case 'instance':
               forest = [...forest, result.tree];
               break;
-            case 'discarded':
+            case 'discard':
             case 'error':
               yield result;
               break;

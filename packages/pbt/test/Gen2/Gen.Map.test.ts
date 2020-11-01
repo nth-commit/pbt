@@ -31,3 +31,16 @@ test('sample(gen.map(f)).values = sample(gen).values.map(f)', () => {
     }),
   );
 });
+
+describe('equivalent APIs', () => {
+  test('gen.map(f) = Gen.map(gen, f)', () => {
+    fc.assert(
+      fc.property(domainGen.sampleConfig(), domainGen.gen(), fc.func(fc.anything()), (config, gen, f) => {
+        const genMapped = gen.map((x) => f(x));
+        const genMappedAlt = dev.Gen.map(gen, (x) => f(x));
+
+        expect(dev.sample(genMapped, config)).toEqual(dev.sample(genMappedAlt, config));
+      }),
+    );
+  });
+});

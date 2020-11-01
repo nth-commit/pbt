@@ -3,6 +3,7 @@ import { mean } from 'simple-statistics';
 import * as dev from './srcShim';
 import * as domainGen from './Helpers/domainGen';
 import { mockSeed } from './Helpers/mocks';
+import { failwith } from './Helpers/failwith';
 
 test('snapshot', () => {
   for (let i = 0; i <= 10; i++) {
@@ -278,6 +279,27 @@ describe('errors', () => {
           expect(() => dev.sample(gen, config)).toThrow('Origin must be in range');
         },
       ),
+    );
+  });
+});
+
+describe('shrinks', () => {
+  test('Gen.integer().origin(z) *produces* values that shrink to z', () => {
+    fc.assert(
+      fc.property(domainGen.checkConfig(), domainGen.integer(), domainGen.faillingFunc(), (config, z, f) => {
+        const gen = dev.Gen.integer().origin(z);
+
+        const checkResult = dev.check(dev.property(gen, f), config);
+
+        const expectedCounterexample: dev.Counterexample<[number]> = {
+          path: expect.anything(),
+          reason: expect.anything(),
+          complexity: 0,
+          value: [z],
+        };
+        if (checkResult.kind !== 'falsified') return failwith('expected falsified');
+        expect(checkResult.counterexample).toEqual(expectedCounterexample);
+      }),
     );
   });
 });
