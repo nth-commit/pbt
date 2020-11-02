@@ -3,7 +3,7 @@ import { scan } from 'ix/iterable/operators';
 import { Seed, Size } from '../Core';
 import { takeWhileInclusive } from '../Core/iterableOperators';
 import { Result } from '../Core/Result';
-import { Gen, GenIteration } from '../Gen2';
+import { Gen, GenIteration } from '../Gen';
 import { GenTree } from '../GenTree';
 import { Exhaustible, ExhaustionStrategy } from './ExhaustionStrategy';
 

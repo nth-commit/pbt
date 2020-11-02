@@ -1,5 +1,5 @@
 import { Seed } from './Seed';
 
-export type RandomStream<T> = {
-  run(seed: number | Seed, size: number): Iterable<T>;
+export type RandomStream<T, TConfig = never> = {
+  run(seed: number | Seed, size: number, config?: TConfig): Iterable<T>;
 };

@@ -1,5 +1,5 @@
-import * as dev from '../Gen2/srcShim';
-import * as domainGen from '../Gen2/Helpers/domainGen';
+import * as dev from '../../src';
+import * as domainGen from '../Gen/Helpers/domainGen';
 import fc from 'fast-check';
 
 test('Given a succeeding property function, it returns unfalsified', () => {

@@ -1,7 +1,7 @@
 import { last, pipe } from 'ix/iterable';
 import { scan } from 'ix/iterable/operators';
 import { Seed, Size, takeWhileInclusive } from '../Core';
-import { Property, PropertyIteration, Counterexample, ShrinkIteration } from '../Property2';
+import { Property, PropertyIteration, Counterexample, ShrinkIteration } from '../Property';
 import { Exhaustible, ExhaustionStrategy } from './ExhaustionStrategy';
 
 export type CheckConfig = {

@@ -2,7 +2,7 @@ import fc from 'fast-check';
 import { count } from 'ix/iterable';
 import * as domainGen from './Helpers/domainGen';
 import { GenTree, GenTreeNode } from '../../src/GenTree';
-import { Shrink } from '../../src/Gen';
+import { Shrink } from '../../src';
 
 test('GenTree.concat([], concatComplexity, <shrink>) => the root node contains the concatComplexity', () => {
   fc.assert(

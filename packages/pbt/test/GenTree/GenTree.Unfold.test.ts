@@ -2,7 +2,7 @@ import fc from 'fast-check';
 import { pipe } from 'ix/iterable';
 import { take } from 'ix/iterable/operators';
 import * as domainGen from './Helpers/domainGen';
-import { GenTree } from '../../src/GenTree';
+import { GenTree } from '../../src';
 
 const id = <T>(x: T): T => x;
 

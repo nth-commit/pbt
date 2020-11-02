@@ -1,4 +1,4 @@
-import * as dev from '../srcShim';
+import * as dev from '../../../src';
 
 export const mockSeed = (value: number): dev.Seed => ({
   nextInt: () => value,

@@ -1,44 +1,46 @@
 import fc from 'fast-check';
-import { take } from 'ix/iterable/operators';
-import * as dev from '../../src/Gen';
+import * as dev from '../../src';
 import * as domainGen from './Helpers/domainGen';
-import { iterateOutcomes, iterateTrees } from './Helpers/genRunner';
 
-test('It has an isomorphism with Array.prototype.map', () => {
+test('snapshot', () => {
+  for (let i = 0; i <= 10; i++) {
+    const seed = 0;
+    const gen = dev.Gen.integer()
+      .between(0, 10)
+      .map((x) => String.fromCharCode(x + 65));
+
+    const sample = dev.sampleTrees(gen, { seed, size: i * 10, iterations: 1 });
+
+    expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot(i.toString());
+  }
+});
+
+test('sample(gen.map(f)).values = sample(gen).values.map(f)', () => {
   fc.assert(
-    fc.property(
-      domainGen.runParams(),
-      domainGen.firstOrderGen(),
-      domainGen.func(fc.anything(), { arity: 1 }),
-      (runParams, unmappedGen, f) => {
-        const mappedGen = dev.map(unmappedGen, f);
+    fc.property(domainGen.sampleConfig(), domainGen.gen(), fc.func(fc.anything()), (config, gen, f) => {
+      const genMapped = gen.map((x) => f(x));
 
-        const mappedOutcomesByGen = iterateOutcomes(mappedGen, runParams);
-        const mappedOutcomesByArray = iterateOutcomes(unmappedGen, runParams).map(f);
+      const mappedSample = dev.sampleTrees(genMapped, config);
+      const unmappedSample = dev.sampleTrees(gen, config);
 
-        expect(mappedOutcomesByGen).toEqual(mappedOutcomesByArray);
-      },
-    ),
+      const actualTrees = mappedSample.values.map(dev.GenTree.traverseGreedy);
+      const expectedTrees = unmappedSample.values
+        .map((tree) => dev.GenTree.map(tree, f))
+        .map(dev.GenTree.traverseGreedy);
+      expect(actualTrees).toEqual(expectedTrees);
+    }),
   );
 });
 
-test('It also applies the mapping to the shrinks', () => {
-  fc.assert(
-    fc.property(
-      domainGen.runParams(),
-      domainGen.firstOrderGen(),
-      fc.anything(),
-      (runParams, unmappedGen, mappedSymbol) => {
-        const mappedGen = dev.map(unmappedGen, () => mappedSymbol);
+describe('equivalent APIs', () => {
+  test('gen.map(f) = Gen.map(gen, f)', () => {
+    fc.assert(
+      fc.property(domainGen.sampleConfig(), domainGen.gen(), fc.func(fc.anything()), (config, gen, f) => {
+        const genMapped = gen.map((x) => f(x));
+        const genMappedAlt = dev.Gen.map(gen, (x) => f(x));
 
-        const mappedTrees = iterateTrees(mappedGen, runParams);
-
-        for (const tree of mappedTrees) {
-          for (const outcome of take(10)(dev.Tree.traverse(tree))) {
-            expect(outcome).toEqual(mappedSymbol);
-          }
-        }
-      },
-    ),
-  );
+        expect(dev.sample(genMapped, config)).toEqual(dev.sample(genMappedAlt, config));
+      }),
+    );
+  });
 });

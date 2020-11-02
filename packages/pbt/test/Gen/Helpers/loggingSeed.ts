@@ -1,4 +1,4 @@
-import { Seed } from '../srcShim';
+import { Seed } from '../../../src';
 
 const loggingSeedDecorator = (seed: Seed, idPath: Array<'L' | 'R'> = []): Seed => {
   const id = idPath.join(':');

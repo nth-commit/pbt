@@ -1,4 +1,4 @@
-import * as dev from '../../src/Gen';
+import * as dev from '../../src';
 
 test.each([
   { value: 0, target: 0, expectedShrinks: [] },
@@ -83,6 +83,20 @@ test.each([
   },
 ])('array', ({ value, targetLength, expectedShrinks }) => {
   const shrinker = dev.Shrink.array(targetLength);
+
+  const shrinks = Array.from(shrinker(value));
+
+  expect(shrinks).toEqual(expectedShrinks);
+});
+
+test.each([
+  {
+    value: ['c', 'b', 'a'],
+    targetLength: 0,
+    expectedShrinks: [['a', 'b', 'c'], [], ['a'], ['a', 'b'], ['b'], ['c'], ['a', 'c'], ['b', 'c']],
+  },
+])('array (with ordering)', ({ value, targetLength, expectedShrinks }) => {
+  const shrinker = dev.Shrink.array<string>(targetLength, (x) => x.charCodeAt(0));
 
   const shrinks = Array.from(shrinker(value));
 

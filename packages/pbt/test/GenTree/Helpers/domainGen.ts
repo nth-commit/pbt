@@ -1,7 +1,6 @@
 import fc from 'fast-check';
-import * as sharedDomainGen from '../../helpers/domainGen';
+import * as sharedDomainGen from '../../Gen/Helpers/domainGen';
 import { GenTree, GenTreeNode } from '../../../src/GenTree';
-import { Shrinker } from '../../../src/Gen';
 
 export const func = sharedDomainGen.func;
 
