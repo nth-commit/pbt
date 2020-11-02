@@ -5,6 +5,10 @@ import * as devCore from '../../src/Core';
 import * as devGenRange from '../../src/Gen/Range';
 import * as dev from '../../src';
 
+export const integer = fc.integer;
+export const naturalNumber = fc.nat;
+export const decimal = fc.float;
+
 export type FunctionConstraints = {
   arity?: number;
 };
@@ -47,7 +51,9 @@ export const sampleConfig = (): fc.Arbitrary<dev.SampleConfig> =>
   fc.tuple(seed(), size(), integer(1, 100)).map(([seed, size, iterations]) => ({ seed, size, iterations }));
 
 export const checkConfig = (): fc.Arbitrary<dev.CheckConfig> =>
-  fc.tuple(seed(), size(), integer(1, 100)).map(([seed, size, iterations]) => ({ seed, size, iterations }));
+  fc
+    .tuple(seed(), size(), integer(1, 100))
+    .map(([seed, size, iterations]) => ({ seed, size, iterations, path: undefined }));
 
 export const scaleMode = (): fc.Arbitrary<devGenRange.ScaleMode> => {
   const scaleModeExhaustive: { [P in devGenRange.ScaleMode]: P } = {
@@ -64,10 +70,6 @@ export const shuffle = <T>(arr: T[]): fc.Arbitrary<T[]> =>
       .sort((a, b) => a.order - b.order)
       .map((x) => x.value),
   );
-
-export const integer = fc.integer;
-export const naturalNumber = fc.nat;
-export const decimal = fc.float;
 
 export const decimalWithAtLeastOneDp = () => decimal().filter((x) => !Number.isInteger(x));
 
