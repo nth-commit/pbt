@@ -21,7 +21,7 @@
     "cross-env": "^7.0.2",
     "fast-check": "^2.2.0",
     "jest": "^26.4.1",
-    "pbt-0.0.1": "npm:pbt@0.0.1-alpha.86",
+    "pbt-vnext": "npm:pbt@0.0.1-alpha.153",
     "rimraf": "^3.0.2",
     "simple-statistics": "^7.3.0",
     "ts-jest": "^26.2.0",
