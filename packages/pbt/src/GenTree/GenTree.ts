@@ -180,14 +180,14 @@ export namespace GenTree {
       shrinkArray,
     );
 
-  export const navigate = <Value>(tree: GenTree<Value>, path: number[]): GenTree<Value> => {
+  export const navigate = <Value>(tree: GenTree<Value>, path: number[]): GenTree<Value> | null => {
     if (path.length === 0) return tree;
 
     const [x, ...xs] = path;
     const nextTree = firstIter(pipe(tree.shrinks, skipIter(x - 1)));
 
     if (!nextTree) {
-      throw 'Invalid path';
+      return null;
     }
 
     return navigate(nextTree, xs);
