@@ -8,6 +8,7 @@ export type CheckConfig = {
   seed: Seed | number;
   size: Size;
   iterations: number;
+  path?: number[];
 };
 
 export namespace CheckResult {
@@ -23,6 +24,8 @@ export namespace CheckResult {
     iterations: number;
     shrinkIterations: number;
     discards: number;
+    seed: number;
+    size: number;
   };
 
   export type Exhausted = {
@@ -43,14 +46,14 @@ export type CheckResult<Ts extends any[]> =
   | CheckResult.Exhausted;
 
 export const check = <Ts extends any[]>(property: Property<Ts>, config: Partial<CheckConfig> = {}): CheckResult<Ts> => {
-  const { seed, size, iterations: iterationCount }: CheckConfig = {
+  const resolvedConfig: CheckConfig = {
     seed: Seed.spawn(),
     size: 0,
     iterations: 100,
     ...config,
   };
 
-  const iterationAccumulator = accumulateIterations<Ts>(property, seed, size, iterationCount);
+  const iterationAccumulator = accumulateIterations<Ts>(property, resolvedConfig);
 
   switch (iterationAccumulator.lastIteration.kind) {
     case 'pass':
@@ -65,6 +68,8 @@ export const check = <Ts extends any[]>(property: Property<Ts>, config: Partial<
         kind: 'falsified',
         iterations: iterationAccumulator.iterationCount,
         discards: iterationAccumulator.discardCount,
+        seed: iterationAccumulator.lastIteration.seed.valueOf(),
+        size: iterationAccumulator.lastIteration.size,
         ...shrinkResult,
       };
     case 'error':
@@ -88,15 +93,10 @@ type IterationAccumulator<Ts extends any[]> = {
   discardCount: number;
 };
 
-const accumulateIterations = <Ts extends any[]>(
-  property: Property<Ts>,
-  seed: number | Seed,
-  size: number,
-  iterationCount: number,
-) =>
+const accumulateIterations = <Ts extends any[]>(property: Property<Ts>, config: CheckConfig) =>
   last(
     pipe(
-      property.run(seed, size),
+      property.run(config.seed, config.size, { path: config.path }),
       ExhaustionStrategy.apply(ExhaustionStrategy.defaultStrategy(), (iteration) => iteration.kind === 'discard'),
       scan<Exhaustible<PropertyIteration<Ts>>, IterationAccumulator<Ts>>({
         seed: {
@@ -130,7 +130,7 @@ const accumulateIterations = <Ts extends any[]>(
       }),
       takeWhileInclusive((acc) => {
         if (acc.lastIteration.kind === 'exhausted') return false;
-        return acc.iterationCount < iterationCount;
+        return acc.iterationCount < config.iterations;
       }),
     ),
   )!;

@@ -4,8 +4,8 @@ import fc from 'fast-check';
 
 test('Given a succeeding property function, it returns unfalsified', () => {
   fc.assert(
-    fc.property(domainGen.gens(), domainGen.passingFunc(), (gens, f) => {
-      const checkResult = dev.check(dev.property(...gens, f));
+    fc.property(domainGen.checkConfig(), domainGen.gens(), domainGen.passingFunc(), (config, gens, f) => {
+      const checkResult = dev.check(dev.property(...gens, f), config);
 
       const expectedCheckResult: dev.CheckResult<[]> = {
         kind: 'unfalsified',

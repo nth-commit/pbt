@@ -31,13 +31,13 @@ export type ShrinkIteration<Ts extends any[]> = ShrinkIteration.Pass | ShrinkIte
 export namespace PropertyIteration {
   export type Pass = {
     kind: 'pass';
-    seed: Seed;
+    seed: number;
     size: Size;
   };
 
   export type Fail<Ts extends any[]> = {
     kind: 'fail';
-    seed: Seed;
+    seed: number;
     size: Size;
     counterexample: Counterexample<Ts>;
     shrinks: Iterable<ShrinkIteration<Ts>>;
@@ -45,7 +45,7 @@ export namespace PropertyIteration {
 
   export type Discard = {
     kind: 'discard';
-    seed: Seed;
+    seed: number;
     size: Size;
     value: unknown;
     predicate: Function;
@@ -54,7 +54,7 @@ export namespace PropertyIteration {
   export type Error = {
     kind: 'error';
     message: string;
-    seed: Seed;
+    seed: number;
     size: Size;
   };
 }
@@ -97,4 +97,8 @@ export namespace PropertyFunction {
   };
 }
 
-export type Property<Ts extends any[]> = RandomStream<PropertyIteration<Ts>>;
+export type PropertyConfig = {
+  path: number[];
+};
+
+export type Property<Ts extends any[]> = RandomStream<PropertyIteration<Ts>, Partial<PropertyConfig>>;
