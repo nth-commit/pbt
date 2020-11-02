@@ -23,7 +23,9 @@ class PropertyImpl<Ts extends any[]> implements Property<Ts> {
     const seed0 = typeof seed === 'number' ? Seed.create(seed) : seed;
     const gen = Gen.zip<Ts>(...this.gens);
 
-    return config.path ? repeat(this.f, gen, seed0, size, config.path) : explore(this.f, gen, seed0, size);
+    return config.path === undefined
+      ? explore(this.f, gen, seed0, size)
+      : repeat(this.f, gen, seed0, size, config.path);
   }
 }
 
@@ -74,7 +76,7 @@ const mapGenIterationToPropertyIteration = <Ts extends any[]>(
             counterexample: {
               value: node.value,
               complexity: node.complexity,
-              path: [],
+              path: '',
               reason: fResult.reason,
             },
             shrinks: exploreForest(f, shrinks),
@@ -115,7 +117,9 @@ const exploreForest = function* <Ts extends any[]>(
             ...treeShrink,
             counterexample: {
               ...treeShrink.counterexample,
-              path: [index, ...treeShrink.counterexample.path],
+              path: treeShrink.counterexample.path
+                ? index.toString() + ':' + treeShrink.counterexample.path
+                : index.toString(),
             },
           };
       }
@@ -150,7 +154,7 @@ const exploreTree = function* <Ts extends any[]>(
     const shrinkIteration: ShrinkIteration<Ts> = {
       kind: 'fail',
       counterexample: {
-        path: [],
+        path: '',
         value: tree.node.value,
         complexity: tree.node.complexity,
         reason: fResult.reason,
@@ -168,15 +172,16 @@ const repeat = function* <Ts extends any[]>(
   gen: Gen<Ts>,
   seed: Seed,
   size: Size,
-  path: number[],
+  path: string,
 ): Iterable<PropertyIteration<Ts>> {
   for (const genIteration of gen.run(seed, size)) {
     if (genIteration.kind === 'discard' || genIteration.kind === 'error') {
       yield genIteration;
     } else {
-      const shrunkTree = GenTree.navigate(genIteration.tree, path);
+      const pathComponents = path === '' ? [] : path.split(':').map((x) => Number(x) + 1);
+      const shrunkTree = GenTree.navigate(genIteration.tree, pathComponents);
       if (shrunkTree === null) {
-        throw new Error('Invalid shrink path');
+        throw new Error('Invalid shrink path: ' + path);
       }
 
       const fResult = PropertyFunction.invoke(f, shrunkTree.node.value);

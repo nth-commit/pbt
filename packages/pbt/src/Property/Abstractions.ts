@@ -11,7 +11,7 @@ export type PropertyFailureReason = PropertyFailureReason.ReturnedFalse | Proper
 export type Counterexample<Ts extends any[]> = {
   value: Ts;
   complexity: Complexity;
-  path: number[];
+  path: string;
   reason: PropertyFailureReason;
 };
 
@@ -98,7 +98,7 @@ export namespace PropertyFunction {
 }
 
 export type PropertyConfig = {
-  path: number[];
+  path: string;
 };
 
 export type Property<Ts extends any[]> = RandomStream<PropertyIteration<Ts>, Partial<PropertyConfig>>;

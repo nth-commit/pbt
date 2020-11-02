@@ -8,7 +8,7 @@ export type CheckConfig = {
   seed: Seed | number;
   size: Size;
   iterations: number;
-  path?: number[];
+  path: string | undefined;
 };
 
 export namespace CheckResult {
@@ -50,6 +50,7 @@ export const check = <Ts extends any[]>(property: Property<Ts>, config: Partial<
     seed: Seed.spawn(),
     size: 0,
     iterations: 100,
+    path: undefined,
     ...config,
   };
 
