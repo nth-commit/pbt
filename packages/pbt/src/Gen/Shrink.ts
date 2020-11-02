@@ -1,6 +1,6 @@
 import { concat, empty, generate, of, pipe } from 'ix/iterable';
 import { flatMap, map, skip } from 'ix/iterable/operators';
-import { indexed } from './Imports';
+import { indexed } from '../Core/iterableOperators';
 
 export type Shrinker<T> = (value: T) => Iterable<T>;
 
@@ -55,12 +55,7 @@ export namespace Shrink {
     return allCombinations(k0, arr0);
   };
 
-  /**
-   * Shrinks an array by edging from the smallest possible array towards the given value. Shrinks via two passes. The
-   * first pass simply drops elements from the end of the original array. The second pass generates arrays of the
-   * same lengths, but will attempt all possible combinations at each length.
-   */
-  export const array = <T>(targetLength: number): Shrinker<T[]> => (arr) => {
+  const arrayUnsorted = <T>(targetLength: number): Shrinker<T[]> => (arr) => {
     const { length } = arr;
 
     const shrunkLengths = pipe(
@@ -85,6 +80,37 @@ export namespace Shrink {
     );
   };
 
+  const numberArrayEquals = (xs: number[], ys: number[]): boolean =>
+    xs.length === ys.length && xs.every((x, i) => x === ys[i]);
+
+  /**
+   * Shrinks an array by edging towards the smallest possible array towards the given value. Shrinks via three passes.
+   * The first pass sorts the array by the optionally provided order function. The purpose of this pass is to all the
+   * shrink to normalize to a certain result. The second pass simply drops elements from the end of the original array.
+   * The third pass generates arrays of the same lengths, but will attempt all possible combinations at each length.
+   */
+  export const array = <T>(minLength: number, order?: (x: T) => number): Shrinker<T[]> => {
+    const innerShrink = arrayUnsorted<T>(minLength);
+    return (arr) => {
+      if (!order) {
+        return innerShrink(arr);
+      }
+
+      const orderByIndex = new Map<number, number>(arr.map((x, i) => [i, order(x)]));
+      const initialOrder = arr.map((_, index) => index);
+      const sortedOrder = arr
+        .map((_, index) => ({ index, order: orderByIndex.get(index)! }))
+        .sort((a, b) => a.order - b.order)
+        .map((a) => a.index);
+      if (numberArrayEquals(initialOrder, sortedOrder)) {
+        return innerShrink(arr);
+      }
+
+      const sortedArr = sortedOrder.map((index) => arr[index]);
+      return concat([sortedArr], innerShrink(sortedArr));
+    };
+  };
+
   export const elements = <T>(shrinker: Shrinker<T>): Shrinker<T[]> => (arr) => {
     if (arr.length === 0) return empty();
 
@@ -100,5 +126,6 @@ export namespace Shrink {
     );
   };
 
+  /* istanbul ignore next */
   export const none = <T>(): Shrinker<T> => empty;
 }

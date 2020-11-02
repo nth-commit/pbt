@@ -1,79 +1,58 @@
 import fc from 'fast-check';
-import { take } from 'ix/iterable/operators';
-import * as dev from '../../src/Gen';
+import * as dev from '../../src';
 import * as domainGen from './Helpers/domainGen';
-import { iterate, iterateOutcomes, iterateTrees } from './Helpers/genRunner';
 
-test('When given a true predicate, it returns a gen which is equivalent to the base gen', () => {
+test('snapshot', () => {
+  for (let i = 0; i <= 10; i++) {
+    const seed = 0;
+    const gen = dev.Gen.integer()
+      .between(0, 10)
+      .filter((x) => x % 2 === 0);
+
+    const sample = dev.sampleTrees(gen, { seed, size: i * 10, iterations: 1 });
+
+    expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot(i.toString());
+  }
+});
+
+test('sample(gen.filter(false)) *throws* exhausted', () => {
   fc.assert(
-    fc.property(domainGen.runParams(), domainGen.firstOrderGen(), (runParams, unfilteredGen) => {
-      const filteredGen = dev.filter(unfilteredGen, () => true);
+    fc.property(domainGen.sampleConfig(), domainGen.gen(), (config, gen) => {
+      const genFiltered = gen.filter(() => false);
 
-      const filteredIterations = iterate(filteredGen, runParams);
-      const unfilteredIterations = iterate(unfilteredGen, runParams);
-
-      const normalizeForComparison = <T>(iteration: dev.GenIteration<T>) =>
-        iteration.kind === 'instance' ? { outcome: iteration.tree[0] } : iteration;
-
-      expect(filteredIterations.map(normalizeForComparison)).toEqual(unfilteredIterations.map(normalizeForComparison));
+      expect(() => dev.sample(genFiltered, config)).toThrow('Exhausted after');
     }),
   );
 });
 
-test('When given a false predicate, it returns a gen which only generates discards', () => {
+test('sample(gen.filter(size > 50)) *produces* values *because* it resizes itself after a failed predicate', () => {
   fc.assert(
-    fc.property(domainGen.runParams(), domainGen.firstOrderGen(), (runParams, unfilteredGen) => {
-      const filteredGen = dev.filter(unfilteredGen, () => false);
+    fc.property(domainGen.sampleConfig(), (config) => {
+      const gen = dev.Gen.create(
+        (_, size) => size,
+        dev.Shrink.none(),
+        (size) => size,
+      );
+      const genFiltered = gen.filter((size) => size > 50);
 
-      const filteredIterations = iterate(filteredGen, runParams);
-      const unfilteredIterations = iterate(unfilteredGen, runParams);
-
-      filteredIterations.forEach((iteration, i) => {
-        const expectedIteration: dev.GenIteration<unknown> = {
-          kind: 'discarded',
-          value: (unfilteredIterations[i] as dev.GenIteration.Instance<unknown>).tree[0],
-        };
-        expect(iteration).toEqual(expectedIteration);
-      });
+      expect(() => dev.sample(genFiltered, config)).not.toThrow();
     }),
   );
 });
 
-test('It has an isomorphism with Array.prototype.filter', () => {
+test('sample(gen.map(f)) *produces* values, x, where f(x) = true', () => {
   fc.assert(
-    fc.property(
-      domainGen.runParams(),
-      domainGen.firstOrderGen(),
-      domainGen.predicate({ arity: 1 }),
-      (runParams, unfilteredGen, predicate) => {
-        const filteredGen = dev.filter(unfilteredGen, predicate);
+    fc.property(domainGen.sampleConfig(), domainGen.gen(), domainGen.predicate(), (config, gen, f) => {
+      const genFiltered = gen.filter(f);
 
-        const filteredOutcomesByGen = iterateOutcomes(filteredGen, runParams);
-        const filteredOutcomesByArray = iterateOutcomes(unfilteredGen, runParams).filter(predicate);
+      const sample = dev.sampleTrees(genFiltered, config);
 
-        expect(filteredOutcomesByGen).toEqual(filteredOutcomesByArray);
-      },
-    ),
-  );
-});
-
-test('It also applies the filter to the shrinks', () => {
-  fc.assert(
-    fc.property(
-      domainGen.runParams(),
-      domainGen.firstOrderGen(),
-      domainGen.predicate({ arity: 1 }),
-      (runParams, unfilteredGen, predicate) => {
-        const filteredGen = dev.filter(unfilteredGen, predicate);
-
-        const filteredTrees = iterateTrees(filteredGen, runParams);
-
-        for (const tree of filteredTrees) {
-          for (const outcome of take(10)(dev.Tree.traverse(tree))) {
-            expect(predicate(outcome)).toEqual(true);
-          }
+      for (const tree of sample.values) {
+        expect(f(tree.node.value)).toEqual(true);
+        for (const shrink of dev.GenTree.traverseGreedy(tree)) {
+          expect(f(shrink.value)).toEqual(true);
         }
-      },
-    ),
+      }
+    }),
   );
 });

@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import * as dev from './srcShim';
+import * as dev from '../../src';
 import * as domainGen from './Helpers/domainGen';
 
 it('is repeatable', () => {

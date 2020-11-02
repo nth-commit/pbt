@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import { GenTree } from '../../src/GenTree';
+import { GenTree } from '../../src';
 import * as domainGen from './Helpers/domainGen';
 
 test('It has an isomorphism with Array.prototype.map', () => {

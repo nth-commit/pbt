@@ -1,4 +1,4 @@
-export * from './Imports';
-export * from './Reproduction';
-export * from './Exploration';
-export * from './Property';
+/* istanbul ignore file */
+
+export { Property, PropertyFunction, ShrinkIteration, Counterexample, PropertyIteration } from './Abstractions';
+export { property } from './Property';

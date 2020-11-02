@@ -1,4 +1,4 @@
-import { GenTree, GenTreeNode } from '../../src/GenTree';
+import { GenTree, GenTreeNode } from '../../src';
 
 const makeNode = (valueAndComplexity: number): GenTreeNode<number> => ({
   value: valueAndComplexity,

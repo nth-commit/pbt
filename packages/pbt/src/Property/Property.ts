@@ -1,94 +1,184 @@
-import { Gen, Seed, Size } from './Imports';
+/* istanbul ignore file */
 
-export type AnyValues = any[];
+import { pipe } from 'ix/iterable';
+import { map } from 'ix/iterable/operators';
+import { indexed, Seed, Size } from '../Core';
+import { Gen, Gens, GenIteration } from '../Gen';
+import { GenTree } from '../GenTree';
+import { Property, PropertyFunction, PropertyIteration, ShrinkIteration } from './Abstractions';
 
-export type Gens<Values extends AnyValues> = { [P in keyof Values]: Gen<Values[P]> };
+export type PropertyArgs<Ts extends [any, ...any[]]> = [...Gens<Ts>, PropertyFunction<Ts>];
 
-export type Property<Values extends AnyValues> = (seed: Seed, size: Size) => Iterable<PropertyResult<Values>>;
-
-export namespace PropertyResult {
-  export type Unfalsified = {
-    kind: 'unfalsified';
-    iterations: number;
-    discards: number;
-    seed: Seed;
-    size: Size;
-  };
-
-  export type Falsified<Values extends AnyValues> = {
-    kind: 'falsified';
-    iterations: number;
-    discards: number;
-    seed: Seed;
-    size: Size;
-    counterexample: Values;
-    counterexamplePath: number[];
-    shrinkIterations: number;
-    reason: PropertyFailureReason;
-  };
-
-  export type Exhausted = {
-    kind: 'exhausted';
-    iterations: number;
-    discards: number;
-    seed: Seed;
-    size: Size;
-  };
-
-  export type Error = {
-    kind: 'error';
-    iterations: number;
-    discards: number;
-    seed: Seed;
-    size: Size;
-  };
+export function property(f: PropertyFunction<[]>): Property<[]>;
+export function property<Ts extends [any, ...any[]]>(...args: PropertyArgs<Ts>): Property<Ts>;
+export function property<Ts extends [any, ...any[]]>(...args: PropertyArgs<Ts>): Property<Ts> {
+  const [f, ...gens] = args.reverse();
+  return new PropertyImpl(f as PropertyFunction<Ts>, gens as Gens<Ts>);
 }
 
-export type PropertyResult<Values extends AnyValues> =
-  | PropertyResult.Unfalsified
-  | PropertyResult.Falsified<Values>
-  | PropertyResult.Exhausted
-  | PropertyResult.Error;
+class PropertyImpl<Ts extends any[]> implements Property<Ts> {
+  constructor(public readonly f: PropertyFunction<Ts>, public readonly gens: Gens<Ts>) {}
 
-export namespace PropertyFailureReason {
-  export type ReturnedFalse = { kind: 'returnedFalse' };
-
-  export type ThrewError = { kind: 'threwError'; error: unknown };
+  run(seed: number | Seed, size: Size): Iterable<PropertyIteration<Ts>> {
+    return explore(this.f, this.gens, typeof seed === 'number' ? Seed.create(seed) : seed, size);
+  }
 }
 
-export type PropertyFailureReason = PropertyFailureReason.ReturnedFalse | PropertyFailureReason.ThrewError;
+const explore = function* <Ts extends any[]>(
+  f: PropertyFunction<Ts>,
+  gens: Gens<Ts>,
+  seed: Seed,
+  size: Size,
+): Iterable<PropertyIteration<Ts>> {
+  const gen = Gen.zip(...gens);
 
-export namespace PropertyFunctionInvocation {
-  export type Success = { kind: 'success' };
+  let iteration: PropertyIteration<Ts> = {
+    kind: 'pass',
+    seed,
+    size,
+  };
 
-  export type Failure = { kind: 'failure'; reason: PropertyFailureReason };
+  while (iteration.kind === 'pass') {
+    const [leftSeed, rightSeed] = seed.split();
 
-  export const success = (): Success => ({ kind: 'success' });
+    for (const genIteration of gen.run(rightSeed, size)) {
+      iteration = mapGenIterationToPropertyIteration(f, genIteration as GenIteration<any>, rightSeed, size);
 
-  export const returnedFalse = (): Failure => ({
-    kind: 'failure',
-    reason: { kind: 'returnedFalse' },
-  });
+      yield iteration;
 
-  export const threwError = (error: unknown): Failure => ({
-    kind: 'failure',
-    reason: { kind: 'threwError', error },
-  });
-}
-
-export type PropertyFunctionInvocation = PropertyFunctionInvocation.Failure | PropertyFunctionInvocation.Success;
-
-export type PropertyFunction<Values extends AnyValues> = (...args: Values) => boolean | void;
-
-export namespace PropertyFunction {
-  export const invoke = <Values extends AnyValues>(
-    f: PropertyFunction<Values>,
-    values: Values,
-  ): PropertyFunctionInvocation => {
-    try {
-      return f(...values) === false ? PropertyFunctionInvocation.returnedFalse() : PropertyFunctionInvocation.success();
-    } catch (error) {
-      return PropertyFunctionInvocation.threwError(error);
+      if (iteration.kind !== 'discard') {
+        break;
+      }
     }
-  };
-}
+
+    size = Size.increment(size);
+    seed = leftSeed;
+  }
+};
+
+type OmitSeedAndSize<T extends { seed: Seed; size: Size }> = Omit<T, 'seed' | 'size'>;
+
+const mapGenIterationToPropertyIteration = <Ts extends any[]>(
+  f: PropertyFunction<Ts>,
+  genIteration: GenIteration<Ts>,
+  seed: Seed,
+  size: Size,
+): PropertyIteration<Ts> => {
+  const iteration = mapGenIterationToNonReplicablePropertyIteration(f, genIteration);
+  switch (iteration.kind) {
+    default:
+      return {
+        ...iteration,
+        seed,
+        size,
+      };
+  }
+};
+
+type NonReplicablePropertyIteration<Ts extends any[]> =
+  | OmitSeedAndSize<PropertyIteration.Pass>
+  | OmitSeedAndSize<PropertyIteration.Fail<Ts>>
+  | OmitSeedAndSize<PropertyIteration.Discard>
+  | OmitSeedAndSize<PropertyIteration.Error>;
+
+const mapGenIterationToNonReplicablePropertyIteration = <Ts extends any[]>(
+  f: PropertyFunction<Ts>,
+  genIteration: GenIteration<Ts>,
+): NonReplicablePropertyIteration<Ts> => {
+  switch (genIteration.kind) {
+    case 'instance': {
+      const { node, shrinks } = genIteration.tree;
+      const fResult = PropertyFunction.invoke(f, node.value);
+      switch (fResult.kind) {
+        case 'success':
+          return {
+            kind: 'pass',
+          };
+        case 'failure':
+          return {
+            kind: 'fail',
+            counterexample: {
+              value: node.value,
+              complexity: node.complexity,
+              path: [],
+              reason: fResult.reason,
+            },
+            shrinks: exploreForest(f, shrinks),
+          };
+      }
+    }
+    case 'discard':
+      return {
+        kind: 'discard',
+        predicate: genIteration.predicate,
+        value: genIteration.value,
+      };
+    case 'error':
+      return {
+        kind: 'error',
+        message: genIteration.message,
+      };
+  }
+};
+
+const exploreForest = function* <Ts extends any[]>(
+  f: PropertyFunction<Ts>,
+  forest: Iterable<GenTree<Ts>>,
+): Iterable<ShrinkIteration<Ts>> {
+  for (const { value: tree, index } of pipe(forest, indexed())) {
+    const appendCurrentIndex = (treeShrink: ShrinkIteration<Ts>): ShrinkIteration<Ts> => {
+      switch (treeShrink.kind) {
+        case 'pass':
+          return treeShrink;
+        case 'fail':
+          return {
+            ...treeShrink,
+            counterexample: {
+              ...treeShrink.counterexample,
+              path: [index, ...treeShrink.counterexample.path],
+            },
+          };
+      }
+    };
+
+    let hasConfirmedCounterexample = false;
+
+    for (const treeShrink of pipe(exploreTree(f, tree), map(appendCurrentIndex))) {
+      yield treeShrink;
+
+      if (treeShrink.kind === 'fail') {
+        hasConfirmedCounterexample = true;
+      }
+    }
+
+    if (hasConfirmedCounterexample) {
+      break;
+    }
+  }
+};
+
+const exploreTree = function* <Ts extends any[]>(
+  f: PropertyFunction<Ts>,
+  tree: GenTree<Ts>,
+): Iterable<ShrinkIteration<Ts>> {
+  const fResult = PropertyFunction.invoke(f, tree.node.value);
+  if (fResult.kind === 'success') {
+    yield {
+      kind: 'pass',
+    };
+  } else {
+    const shrinkIteration: ShrinkIteration<Ts> = {
+      kind: 'fail',
+      counterexample: {
+        path: [],
+        value: tree.node.value,
+        complexity: tree.node.complexity,
+        reason: fResult.reason,
+      },
+    };
+
+    yield shrinkIteration;
+
+    yield* exploreForest(f, tree.shrinks);
+  }
+};

@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import { Bounds, Range } from '../../src/Gen2/Range';
+import { Bounds, Range } from '../../src/Gen/Range';
 import * as domainGen from './Helpers/domainGen';
 
 type RangeParams = {

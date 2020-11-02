@@ -1,85 +1,19 @@
 import fc from 'fast-check';
+import * as devCore from '../../../src/Core';
+import * as devGenRange from '../../../src/Gen/Range';
+import * as dev from '../../../src';
 import { createHash } from 'crypto';
 import { mersenne } from 'pure-rand';
-import * as dev from '../../../src/Gen';
-import { Gens, Gens_FirstOrder } from '../Gen.Spec';
-import { empty } from 'ix/iterable';
 
-export type GenRunParams = {
-  seed: dev.Seed;
-  size: dev.Size;
-  iterations: number;
+export type FunctionConstraints = {
+  arity?: number;
 };
-
-export const seed = (): fc.Arbitrary<dev.Seed> => fc.nat().map(dev.Seed.create).noShrink();
-
-export const size = (): fc.Arbitrary<dev.Size> => fc.oneof(fc.integer(0, 100), fc.constant(0), fc.constant(100));
-
-export const iterations = (): fc.Arbitrary<number> => fc.integer(1, 100);
-
-export const runParams = (): fc.Arbitrary<GenRunParams> =>
-  fc.tuple(seed(), size(), iterations()).map(([seed, size, iterations]) => ({ seed, size, iterations }));
-
-export const integer = (min: number, max: number): fc.Arbitrary<number> => fc.integer(min, max);
-
-export const negativeInteger = (): fc.Arbitrary<number> =>
-  naturalNumber()
-    .filter((x) => x > 0)
-    .map((x) => -x);
-
-export const naturalNumber = (max: number = 1000): fc.Arbitrary<number> => fc.nat(max);
-
-export const element = <T>(collection: Record<any, T>): fc.Arbitrary<T> => {
-  const elements = Object.values(collection);
-  return fc.constantFrom(...elements);
-};
-
-export const record = <Key extends string, Value>(
-  keyGen: fc.Arbitrary<Key>,
-  valueGen: fc.Arbitrary<Value>,
-  minLength: number,
-  maxLength: number,
-): fc.Arbitrary<Record<Key, Value>> => {
-  const arbitraryKvp = fc.tuple(keyGen, valueGen);
-  return fc.array(arbitraryKvp, minLength, maxLength).map((kvps) =>
-    kvps.reduce((acc, [key, value]) => {
-      acc[key] = value;
-      return acc;
-    }, {} as Record<Key, Value>),
-  );
-};
-
-export const map = <Key, Value>(
-  keyGen: fc.Arbitrary<Key>,
-  valueGen: fc.Arbitrary<Value>,
-  minLength: number,
-  maxLength: number,
-): fc.Arbitrary<Map<Key, Value>> =>
-  fc.array(fc.tuple(keyGen, valueGen), minLength, maxLength).map((entries) => new Map(entries));
-
-export const set = <Value>(
-  elementGen: fc.Arbitrary<Value>,
-  minLength: number,
-  maxLength: number,
-): fc.Arbitrary<Set<Value>> => fc.set(elementGen, minLength, maxLength).map((s) => new Set(s));
-
-export const collection = (minLength: number, maxLength: number) =>
-  fc.oneof(
-    fc.array(fc.anything(), minLength, maxLength),
-    record(fc.string(), fc.anything(), minLength, maxLength),
-    fc.set(fc.anything(), minLength, maxLength).map((x) => new Set(x)),
-    fc.array(fc.tuple(fc.anything(), fc.anything()), minLength, maxLength).map((entries) => new Map(entries)),
-  );
 
 const getHexRepresentation = (x: unknown): string => {
   const json = JSON.stringify(x);
   const hash = createHash('sha256');
   hash.update(json, 'utf8');
   return hash.digest('hex');
-};
-
-export type FunctionConstraints = {
-  arity?: number;
 };
 
 export const func = <T, TArgs extends any[] = unknown[]>(
@@ -94,7 +28,7 @@ export const func = <T, TArgs extends any[] = unknown[]>(
     .map((n) => {
       const f = (...args: TArgs): T => {
         const hashArgs = constraints.arity === undefined ? args : args.slice(0, constraints.arity);
-        const m = Number(getHexRepresentation(hashArgs).replace(/[a-f]/gi, '').slice(0, 10));
+        const m = parseInt(getHexRepresentation(hashArgs), 16);
         const seed = n + m;
         return genReturn.generate(new fc.Random(mersenne(seed))).value;
       };
@@ -105,84 +39,134 @@ export const func = <T, TArgs extends any[] = unknown[]>(
     });
 };
 
-export const predicate = <TArgs extends any[] = unknown[]>(
-  constraints?: FunctionConstraints,
-): fc.Arbitrary<(...args: TArgs) => boolean> => func<boolean, TArgs>(fc.boolean(), constraints);
+export const seed = (): fc.Arbitrary<devCore.Seed> => fc.nat().map(devCore.Seed.create).noShrink();
 
-export namespace defaultGens {
-  export const integerUnscaled = (): fc.Arbitrary<dev.Gen<number>> =>
-    fc.tuple(integer(-1000, 1000), integer(-1000, 1000)).map((args) => dev.integer.unscaled(...args));
+export const size = (): fc.Arbitrary<devCore.Size> => fc.integer(0, 100);
 
-  export const integerScaledLinearly = (): fc.Arbitrary<dev.Gen<number>> =>
-    fc.tuple(integer(-1000, 1000), integer(-1000, 1000)).map((args) => dev.integer.unscaled(...args));
+export const sampleConfig = (): fc.Arbitrary<dev.SampleConfig> =>
+  fc.tuple(seed(), size(), integer(1, 100)).map(([seed, size, iterations]) => ({ seed, size, iterations }));
 
-  export const naturalNumberUnscaled = (): fc.Arbitrary<dev.Gen<number>> =>
-    naturalNumber().map((max) => dev.naturalNumber.unscaled(max));
+export const checkConfig = (): fc.Arbitrary<dev.CheckConfig> =>
+  fc.tuple(seed(), size(), integer(1, 100)).map(([seed, size, iterations]) => ({ seed, size, iterations }));
 
-  export const naturalNumberScaledLinearly = (): fc.Arbitrary<dev.Gen<number>> =>
-    naturalNumber().map((max) => dev.naturalNumber.scaleLinearly(max));
-
-  export const arrayUnscaled = (): fc.Arbitrary<dev.Gen<unknown[]>> =>
-    fc.tuple(naturalNumber(10), naturalNumber(10)).map((args) => dev.array.unscaled(...args, dev.constant({})));
-
-  export const arrayScaledLinearly = (): fc.Arbitrary<dev.Gen<unknown[]>> =>
-    fc.tuple(naturalNumber(10), naturalNumber(10)).map((args) => dev.array.unscaled(...args, dev.constant({})));
-
-  export const element = (): fc.Arbitrary<dev.Gen<unknown>> =>
-    collection(1, 10).map((collection) => dev.element(collection));
-
-  export const map = (): fc.Arbitrary<dev.Gen<unknown>> =>
-    fc.tuple(firstOrderGen(), func(fc.anything())).map(([gen, f]) => dev.map(gen, f));
-
-  export const flatMap = (): fc.Arbitrary<dev.Gen<unknown>> =>
-    fc.tuple(firstOrderGen(), func(firstOrderGen())).map(([gen, k]) => dev.flatMap(gen, k));
-
-  export const filter = (): fc.Arbitrary<dev.Gen<unknown>> =>
-    fc.tuple(firstOrderGen(), predicate()).map(([gen, predicate]) => dev.filter(gen, predicate));
-
-  export const reduce = (): fc.Arbitrary<dev.Gen<unknown>> =>
-    fc
-      .tuple(firstOrderGen(), fc.integer(1, 10), func(fc.anything(), { arity: 2 }), fc.anything())
-      .map(([gen, length, f, init]) => dev.reduce(gen, length, f, init));
-
-  export const noShrink = (): fc.Arbitrary<dev.Gen<unknown>> => firstOrderGen().map(dev.noShrink);
-
-  export const postShrink = (): fc.Arbitrary<dev.Gen<unknown>> =>
-    firstOrderGen().map((gen) => dev.postShrink(gen, empty));
-}
-
-export const firstOrderGen = (): fc.Arbitrary<dev.Gen<unknown>> => {
-  type GensByLabel = { [P in Gens_FirstOrder]: fc.Arbitrary<dev.Gen<unknown>> };
-
-  const gensByLabel: GensByLabel = {
-    'integer.unscaled': defaultGens.integerUnscaled(),
-    'integer.scaleLinearly': defaultGens.integerScaledLinearly(),
-    'naturalNumber.unscaled': defaultGens.integerUnscaled(),
-    'naturalNumber.scaleLinearly': defaultGens.naturalNumberScaledLinearly(),
-    element: defaultGens.element(),
+export const scaleMode = (): fc.Arbitrary<devGenRange.ScaleMode> => {
+  const scaleModeExhaustive: { [P in devGenRange.ScaleMode]: P } = {
+    constant: 'constant',
+    linear: 'linear',
   };
-
-  return element(gensByLabel).chain((x) => x);
+  return fc.constantFrom(...Object.values(scaleModeExhaustive));
 };
 
-export const gen = (): fc.Arbitrary<dev.Gen<unknown>> => {
-  type GensByLabel = { [P in Gens]: fc.Arbitrary<dev.Gen<unknown>> };
+export const shuffle = <T>(arr: T[]): fc.Arbitrary<T[]> =>
+  fc.array(fc.nat(), arr.length, arr.length).map((orders) =>
+    arr
+      .map((value, i) => ({ value: value, order: orders[i] }))
+      .sort((a, b) => a.order - b.order)
+      .map((x) => x.value),
+  );
 
-  const gensByLabel: GensByLabel = {
-    'integer.unscaled': defaultGens.integerUnscaled(),
-    'integer.scaleLinearly': defaultGens.integerScaledLinearly(),
-    'naturalNumber.unscaled': defaultGens.naturalNumberUnscaled(),
-    'naturalNumber.scaleLinearly': defaultGens.naturalNumberScaledLinearly(),
-    'array.unscaled': defaultGens.arrayUnscaled(),
-    'array.scaleLinearly': defaultGens.arrayScaledLinearly(),
-    element: defaultGens.element(),
-    map: defaultGens.map(),
-    flatMap: defaultGens.flatMap(),
-    filter: defaultGens.filter(),
-    reduce: defaultGens.reduce(),
-    noShrink: defaultGens.noShrink(),
-    postShrink: defaultGens.postShrink(),
-  };
+export const integer = fc.integer;
+export const naturalNumber = fc.nat;
+export const decimal = fc.float;
 
-  return element(gensByLabel).chain((x) => x);
+export const decimalWithAtLeastOneDp = () => decimal().filter((x) => !Number.isInteger(x));
+
+export const zip = <Values extends [any, ...any[]]>(
+  ...gens: { [Label in keyof Values]: fc.Arbitrary<Values[Label]> }
+): fc.Arbitrary<Values> => (fc.tuple as any)(...gens);
+
+type ArrayElement<A> = A extends readonly (infer T)[] ? T : never;
+
+export const choose = <Values extends [any, ...any[]] | any[]>(
+  ...gens: Values extends [any, ...any[]]
+    ? { [Label in keyof Values]: fc.Arbitrary<Values[Label]> }
+    : fc.Arbitrary<ArrayElement<Values>>[]
+): fc.Arbitrary<ArrayElement<Values>> => (fc.oneof as any)(...gens);
+
+export const setOfSize = <T>(elementGen: fc.Arbitrary<T>, size: number) => fc.set(elementGen, size, size);
+
+export const array = fc.array;
+
+export const element = <T>(arr: T[]): fc.Arbitrary<T> => fc.constantFrom(...arr);
+
+const augmentGenWithToString = <T extends dev.Gen<any>>(gen: T, str: string): T => {
+  gen.toString = () => str;
+  return gen;
+};
+
+const firstOrderGen = (): fc.Arbitrary<dev.Gen<unknown>> =>
+  element([augmentGenWithToString(dev.Gen.integer(), 'Gen.integer()')]);
+
+const arrayGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown[]>> =>
+  scaleMode().map((s) => augmentGenWithToString(gen.array().growBy(s), `${gen}.array().growBy(${s})`));
+
+const mapGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
+  func(fc.anything()).map((f) => augmentGenWithToString(gen.map(f), `${gen}.map(f)`));
+
+const filterGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
+  predicate(20).map((f) => augmentGenWithToString(gen.filter(f), `${gen}.filter(f)`));
+
+const flatMapGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
+  func(firstOrderGen()).map((k) => augmentGenWithToString(gen.flatMap(k), `${gen}.flatMap(k)`));
+
+const staticZipGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
+  array(firstOrderGen()).map((otherGens) =>
+    augmentGenWithToString(dev.Gen.zip(gen, ...otherGens), `Gen.zip(${gen}, ...[${otherGens.length} other gen(s)])`),
+  );
+
+const staticMapGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
+  fc
+    .tuple(array(firstOrderGen()), func(fc.anything()))
+    .map(([otherGens, f]) =>
+      augmentGenWithToString(
+        dev.Gen.map(gen, ...otherGens, f),
+        `Gen.map(${gen}, ...[${otherGens.length} other gen(s)], f)`,
+      ),
+    );
+
+const higherOrderGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
+  choose(arrayGen(gen), mapGen(gen), filterGen(gen), flatMapGen(gen), staticZipGen(gen), staticMapGen(gen));
+
+const genRec = (gen: dev.Gen<unknown>, maxRecurse: number): fc.Arbitrary<dev.Gen<unknown>> => {
+  if (maxRecurse <= 0) return fc.constant(gen);
+  return choose(
+    fc.constant(gen),
+    higherOrderGen(gen).chain((g) => genRec(g, maxRecurse - 1)),
+  ).noBias();
+};
+
+export const gen = (): fc.Arbitrary<dev.Gen<unknown>> => firstOrderGen().chain((gen) => genRec(gen, 3));
+
+export const gens = (): fc.Arbitrary<[dev.Gen<unknown>, ...dev.Gen<unknown>[]]> =>
+  fc.array(gen(), { minLength: 1 }) as any;
+
+export const predicate = (trueWeight: number = 3) =>
+  func(
+    fc
+      .frequency({ weight: trueWeight, arbitrary: fc.constant(true) }, { weight: 1, arbitrary: fc.constant(false) })
+      .noShrink()
+      .noBias(),
+  )
+    .noShrink()
+    .noBias();
+
+export const faillingFunc = (): fc.Arbitrary<dev.PropertyFunction<any[]>> =>
+  fc.oneof(
+    fc.anything().map((x) => () => {
+      throw x;
+    }),
+    fc.constant(() => false),
+  );
+
+export const passingFunc = (): fc.Arbitrary<dev.PropertyFunction<any[]>> =>
+  fc.constantFrom(
+    () => {},
+    () => true,
+  );
+
+export const fallibleFunc = (): fc.Arbitrary<dev.PropertyFunction<any[]>> => {
+  return zip(func(integer()), passingFunc(), faillingFunc()).map(([f, passF, failF]) => (...args) => {
+    const x = f(...args);
+    return x % 2 === 0 ? failF() : passF();
+  });
 };
