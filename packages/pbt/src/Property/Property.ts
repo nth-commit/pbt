@@ -13,7 +13,7 @@ export function property(f: PropertyFunction<[]>): Property<[]>;
 export function property<Ts extends [any, ...any[]]>(...args: PropertyArgs<Ts>): Property<Ts>;
 export function property<Ts extends [any, ...any[]]>(...args: PropertyArgs<Ts>): Property<Ts> {
   const [f, ...gens] = args.reverse();
-  return new PropertyImpl(f as PropertyFunction<Ts>, gens as Gens<Ts>);
+  return new PropertyImpl(f as PropertyFunction<Ts>, gens.reverse() as Gens<Ts>);
 }
 
 class PropertyImpl<Ts extends any[]> implements Property<Ts> {
