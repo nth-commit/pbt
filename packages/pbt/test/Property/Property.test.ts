@@ -1,5 +1,5 @@
 import * as dev from '../../src';
-import * as domainGen from '../Gen/Helpers/domainGen';
+import * as domainGen from '../Helpers/domainGen';
 import fc from 'fast-check';
 
 test('Given a succeeding property function, it returns unfalsified', () => {

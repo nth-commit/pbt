@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import * as sharedDomainGen from '../../Gen/Helpers/domainGen';
+import * as sharedDomainGen from '../../Helpers/domainGen';
 import { GenTree, GenTreeNode } from '../../../src/GenTree';
 
 export const func = sharedDomainGen.func;

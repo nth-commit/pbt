@@ -1,9 +1,9 @@
 import fc from 'fast-check';
-import * as devCore from '../../../src/Core';
-import * as devGenRange from '../../../src/Gen/Range';
-import * as dev from '../../../src';
 import { createHash } from 'crypto';
 import { mersenne } from 'pure-rand';
+import * as devCore from '../../src/Core';
+import * as devGenRange from '../../src/Gen/Range';
+import * as dev from '../../src';
 
 export type FunctionConstraints = {
   arity?: number;
