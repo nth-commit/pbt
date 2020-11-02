@@ -2,7 +2,7 @@ import fc from 'fast-check';
 import { Gen } from '../src/Gen';
 import { GenTree } from '../src/GenTree';
 import { sample, sampleTrees } from '../src/Runners';
-import { gen } from '../test/Gen/Helpers/domainGen';
+import { gen } from '../test/Helpers/domainGen';
 
 console.log(
   fc.sample(

@@ -1,9 +1,9 @@
 import fc from 'fast-check';
 import { mean } from 'simple-statistics';
 import * as dev from '../../src';
-import * as domainGen from './Helpers/domainGen';
-import { mockSeed } from './Helpers/mocks';
-import { failwith } from './Helpers/failwith';
+import * as domainGen from '../Helpers/domainGen';
+import { mockSeed } from '../Helpers/mocks';
+import { failwith } from '../Helpers/failwith';
 
 test('snapshot', () => {
   for (let i = 0; i <= 10; i++) {
