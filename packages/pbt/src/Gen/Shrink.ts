@@ -107,7 +107,7 @@ export namespace Shrink {
       }
 
       const sortedArr = sortedOrder.map((index) => arr[index]);
-      return concat([sortedArr], innerShrink(sortedArr));
+      return concat([sortedArr], innerShrink(sortedArr), innerShrink(arr));
     };
   };
 
