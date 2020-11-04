@@ -2,7 +2,7 @@
 
 import { pipe } from 'ix/iterable';
 import { map } from 'ix/iterable/operators';
-import { indexed, Seed, Size } from '../Core';
+import { indexed, Rng, Size } from '../Core';
 import { Gen, Gens, GenIteration } from '../Gen';
 import { GenTree } from '../GenTree';
 import { Property, PropertyConfig, PropertyFunction, PropertyIteration, ShrinkIteration } from './Abstractions';
@@ -19,29 +19,24 @@ export function property<Ts extends [any, ...any[]]>(...args: PropertyArgs<Ts>):
 class PropertyImpl<Ts extends any[]> implements Property<Ts> {
   constructor(private readonly f: PropertyFunction<Ts>, private readonly gens: Gens<Ts>) {}
 
-  run(seed: number | Seed, size: Size, config: Partial<PropertyConfig> = {}): Iterable<PropertyIteration<Ts>> {
-    const seed0 = typeof seed === 'number' ? Seed.create(seed) : seed;
+  run(seed: number, size: Size, config: Partial<PropertyConfig> = {}): Iterable<PropertyIteration<Ts>> {
     const gen = Gen.zip<Ts>(...this.gens);
-
-    return config.path === undefined
-      ? explore(this.f, gen, seed0, size)
-      : repeat(this.f, gen, seed0, size, config.path);
+    return config.path === undefined ? explore(this.f, gen, seed, size) : repeat(this.f, gen, seed, size, config.path);
   }
 }
 
 const explore = function* <Ts extends any[]>(
   f: PropertyFunction<Ts>,
   gen: Gen<Ts>,
-  seed: Seed,
+  seed: number,
   size: Size,
 ): Iterable<PropertyIteration<Ts>> {
   let iteration: PropertyIteration<Ts> | null = null;
 
   while (iteration === null || iteration.kind === 'pass') {
-    const [leftSeed, rightSeed] = seed.split();
-
-    for (const genIteration of gen.run(rightSeed, size)) {
+    for (const genIteration of gen.run(seed, size)) {
       iteration = mapGenIterationToPropertyIteration(f, genIteration as GenIteration<any>);
+      seed = iteration.seed;
 
       yield iteration;
 
@@ -51,7 +46,7 @@ const explore = function* <Ts extends any[]>(
     }
 
     size = Size.increment(size);
-    seed = leftSeed;
+    seed = Rng.create(seed).next().seed;
   }
 };
 
@@ -170,7 +165,7 @@ const exploreTree = function* <Ts extends any[]>(
 const repeat = function* <Ts extends any[]>(
   f: PropertyFunction<Ts>,
   gen: Gen<Ts>,
-  seed: Seed,
+  seed: number,
   size: Size,
   path: string,
 ): Iterable<PropertyIteration<Ts>> {

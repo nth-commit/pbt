@@ -1,4 +1,4 @@
-import { Seed, Size } from '../Core';
+import { Rng, Size } from '../Core';
 import { GenFactory, IntegerGen } from './Abstractions';
 import { BaseGen } from './BaseGen';
 import { ScaleMode, Range } from './Range';
@@ -115,6 +115,6 @@ const tryDeriveOrigin = (min: number, max: number, origin: number | null): numbe
   return origin;
 };
 
-const nextNumber = (seed: Seed, size: Size, range: Range): number => seed.nextInt(...range.getSizedBounds(size));
+const nextNumber = (rng: Rng, size: Size, range: Range): number => rng.value(...range.getSizedBounds(size));
 
 const isBetween = (x: number, y: number, n: number) => (x <= n && n <= y) || (y <= n && n <= x);

@@ -1,6 +1,6 @@
 /* istanbul ignore file */
 
-import { Seed } from '../Core';
+import { Rng, Seed } from '../Core';
 import { ArrayGen, Gen, GenFactory } from './Abstractions';
 import { GenFunction, GenIteration } from './GenFunction';
 
@@ -32,8 +32,7 @@ export class BaseGen<T> implements Gen<T> {
     return new BaseGen<T>(GenFunction.noComplexity(this.genFunction), this.genFactory);
   }
 
-  run(seed: number | Seed, size: number): Iterable<GenIteration<T>> {
-    const s = typeof seed === 'number' ? Seed.create(seed) : seed;
-    return this.genFunction(s, size);
+  run(seed: number, size: number): Iterable<GenIteration<T>> {
+    return this.genFunction(Rng.create(seed), size);
   }
 }

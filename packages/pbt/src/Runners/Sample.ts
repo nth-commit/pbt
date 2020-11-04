@@ -8,7 +8,7 @@ import { GenTree } from '../GenTree';
 import { Exhaustible, ExhaustionStrategy } from './ExhaustionStrategy';
 
 export type SampleConfig = {
-  seed: Seed | number;
+  seed: number;
   size: Size;
   iterations: number;
 };
@@ -48,7 +48,7 @@ type SampleAccumulator<T> = {
 
 export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): SampleResult<GenTree<T>> => {
   const { seed, size, iterations: iterationCount }: SampleConfig = {
-    seed: Seed.spawn(),
+    seed: Date.now(),
     size: 30,
     iterations: 100,
     ...config,

@@ -1,17 +1,30 @@
-import fc from 'fast-check';
-import { Gen } from '../src/Gen';
-import { GenTree } from '../src/GenTree';
-import { sample, sampleTrees } from '../src/Runners';
-import { gen } from '../test/Helpers/domainGen';
+import { max } from 'simple-statistics';
+import * as dev from '../src';
+import { formatBreadthFirst } from './Util/GenTreeExtensions';
 
-console.log(
-  fc.sample(
-    gen().map((g) => g.toString()),
-    { numRuns: 10 },
-  ),
-);
+const seed = 1285740320;
+const size = 90;
 
-// const result = sampleTrees(Gen.integer().between(-100, -1), { iterations: 1, size: 100, seed: 0 });
-// if (result.kind === 'error') throw 'uh oh';
+const g = dev.Gen.integer()
+  .between(1, 2)
+  .flatMap((length) => dev.Gen.integer().between(0, 10).growBy('constant').array().ofLength(length));
 
-// console.log(GenTree.format(result.trees[0], { indentation: '.' }));
+const p = dev.property(g, (xs) => {
+  console.log(xs);
+  return max(xs) < 8;
+});
+
+const r = dev.check(p, { seed, size });
+
+console.log(JSON.stringify(r, null, 2));
+
+if (r.kind === 'falsified') {
+  const tree = dev.sampleTrees(g, { seed: r.seed, size: r.size, iterations: 1 }).values[0];
+  const path = r.counterexample.path
+    .split(':')
+    .map((x) => Number(x))
+    .reverse()
+    .slice(0, 2);
+  const navigatedTree = dev.GenTree.navigate(tree, [])!;
+  console.log(formatBreadthFirst(navigatedTree, { formatValue: (xs) => `[${xs.join(',')}]`, maxNodes: 200 }));
+}

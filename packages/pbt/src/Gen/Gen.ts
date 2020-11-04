@@ -1,6 +1,6 @@
 /* istanbul ignore file */
 
-import { Seed, Size } from '../Core';
+import { Rng, Size } from '../Core';
 import { CalculateComplexity } from '../GenTree';
 import { GenFunction } from './GenFunction';
 import { Shrinker } from './Shrink';
@@ -20,7 +20,7 @@ export type Gens<Ts extends any[]> = { [P in keyof Ts]: Gen<Ts[P]> };
 
 export namespace Gen {
   export function create<T>(
-    generate: (seed: Seed, size: Size) => T,
+    generate: (rng: Rng, size: Size) => T,
     shrink: Shrinker<T>,
     calculateComplexity: CalculateComplexity<T>,
   ): Gen<T> {

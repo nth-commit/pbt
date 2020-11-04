@@ -5,7 +5,7 @@ import { Property, PropertyIteration, Counterexample, ShrinkIteration } from '..
 import { Exhaustible, ExhaustionStrategy } from './ExhaustionStrategy';
 
 export type CheckConfig = {
-  seed: Seed | number;
+  seed: number;
   size: Size;
   iterations: number;
   path: string | undefined;
@@ -47,14 +47,53 @@ export type CheckResult<Ts extends any[]> =
 
 export const check = <Ts extends any[]>(property: Property<Ts>, config: Partial<CheckConfig> = {}): CheckResult<Ts> => {
   const resolvedConfig: CheckConfig = {
-    seed: Seed.spawn(),
+    seed: Date.now(),
     size: 0,
     iterations: 100,
     path: undefined,
     ...config,
   };
 
-  const iterationAccumulator = accumulateIterations<Ts>(property, resolvedConfig);
+  const initialResult = checkOnce(property, resolvedConfig);
+  switch (initialResult.kind) {
+    case 'unfalsified':
+    case 'error':
+    case 'exhausted':
+      return initialResult;
+    case 'falsified':
+      return checkThoroughly(property, resolvedConfig, initialResult, 0);
+  }
+};
+
+const checkThoroughly = <Ts extends any[]>(
+  property: Property<Ts>,
+  initialConfig: CheckConfig,
+  initialFail: CheckResult.Falsified<Ts>,
+  recheckIterations: number,
+): CheckResult<Ts> => {
+  let lastFail = initialFail;
+
+  for (let i = 0; i < recheckIterations; i++) {
+    const nextResult = checkOnce(property, {
+      ...initialConfig,
+      seed: initialFail.seed,
+      size: Size.bigIncrement(lastFail.size),
+    });
+
+    if (nextResult.kind === 'unfalsified' || nextResult.kind === 'error' || nextResult.kind === 'exhausted') {
+      continue;
+    }
+
+    if (nextResult.counterexample.complexity < lastFail.counterexample.complexity) {
+      lastFail = nextResult;
+    }
+  }
+
+  return lastFail;
+};
+
+const checkOnce = <Ts extends any[]>(property: Property<Ts>, config: CheckConfig): CheckResult<Ts> => {
+  const iterationAccumulator = accumulateIterations<Ts>(property, config);
 
   switch (iterationAccumulator.lastIteration.kind) {
     case 'pass':

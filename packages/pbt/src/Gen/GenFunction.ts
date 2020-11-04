@@ -3,7 +3,7 @@
 import { of, pipe, concat, repeatValue } from 'ix/iterable';
 import { map as mapIter, filter as filterIter, flatMap as flatMapIter } from 'ix/iterable/operators';
 import { takeWhileInclusive as takeWhileInclusiveIter } from '../Core/iterableOperators';
-import { Seed, Size } from '../Core';
+import { Rng, Size } from '../Core';
 import { GenTree, GenTreeNode, CalculateComplexity } from '../GenTree';
 import { Shrinker } from './Shrink';
 import { Range } from './Range';
@@ -41,74 +41,69 @@ export namespace GenIteration {
 
 export type GenIteration<T> = GenIteration.Instance<T> | GenIteration.Discard | GenIteration.Error;
 
-export type GenFunction<T> = (seed: Seed, size: Size) => Iterable<GenIteration<T>>;
+export type GenFunction<T> = (rng: Rng, size: Size) => Iterable<GenIteration<T>>;
 
-export type ResizableGenFunction<T> = (seed: Seed, size: Size) => Generator<GenIteration<T>, Size>;
+export type ResizableGenFunction<T> = (rng: Rng, size: Size) => Generator<GenIteration<T>, [Rng, Size]>;
 
 export namespace GenFunction {
   const id = <T>(x: T): T => x;
 
   const generateInstance = <T>(
-    f: (seed: Seed, size: Size) => T,
+    f: (rng: Rng, size: Size) => T,
     shrink: Shrinker<T>,
     calculateComplexity: CalculateComplexity<T>,
     size: Size,
-  ) => (seed: Seed): GenIteration.Instance<T> => ({
+  ) => (rng: Rng): GenIteration.Instance<T> => ({
     kind: 'instance',
-    tree: GenTree.unfold(f(seed, size), id, shrink, calculateComplexity),
-    seed: seed.valueOf(),
+    tree: GenTree.unfold(f(rng, size), id, shrink, calculateComplexity),
+    seed: rng.seed,
     size,
   });
 
   export const create = <T>(
-    f: (seed: Seed, size: Size) => T,
+    f: (rng: Rng, size: Size) => T,
     shrink: Shrinker<T>,
     calculateComplexity: CalculateComplexity<T>,
-  ): GenFunction<T> => (seed: Seed, size: Size) =>
-    pipe(Seed.stream(seed), mapIter(generateInstance(f, shrink, calculateComplexity, size)));
+  ): GenFunction<T> => (rng: Rng, size: Size) =>
+    pipe(Rng.stream(rng), mapIter(generateInstance(f, shrink, calculateComplexity, size)));
 
-  export const error = <T>(message: string): GenFunction<T> => (seed, size) => [
-    { kind: 'error', message, seed: seed.valueOf(), size },
+  export const error = <T>(message: string): GenFunction<T> => (rng, size) => [
+    { kind: 'error', message, seed: rng.seed, size },
   ];
 
-  export const constant = <T>(value: T): GenFunction<T> => (seed, size) =>
+  export const constant = <T>(value: T): GenFunction<T> => (rng, size) =>
     repeatValue<GenIteration.Instance<T>>({
       kind: 'instance',
       tree: {
         node: { value, complexity: 0 },
         shrinks: [],
       },
-      seed: seed.valueOf(),
+      seed: rng.seed,
       size,
     });
 
-  const repeat = <T>(gen: GenFunction<T>): GenFunction<T> => (seed, size) =>
-    pipe(
-      Seed.stream(seed),
-      flatMapIter((seed0) => gen(seed0, size)),
-    );
-
   const resizableRepeat = <T>(gen: ResizableGenFunction<T>): GenFunction<T> =>
-    function* (seed, size) {
+    function* (rng, size) {
       do {
-        const generator = gen(seed, size);
+        const generator = gen(rng, size);
         while (true) {
           const next = generator.next();
           if (next.done) {
-            size = next.value;
+            rng = next.value[0];
+            size = next.value[1];
             break;
           } else {
             yield next.value;
           }
         }
-        seed = seed.split()[1];
+        rng = rng.next();
       } while (true);
     };
 
   const mapIterations = <T, U>(
     gen: GenFunction<T>,
     f: (iteration: GenIteration<T>) => GenIteration<U>,
-  ): GenFunction<U> => (seed, size) => pipe(gen(seed, size), mapIter(f));
+  ): GenFunction<U> => (rng, size) => pipe(gen(rng, size), mapIter(f));
 
   const mapInstances = <T, U>(
     gen: GenFunction<T>,
@@ -134,7 +129,7 @@ export namespace GenFunction {
    * @param k
    */
   const flatMapInstanceOnce = <T, U>(r: GenIteration.Instance<T>, k: (x: T) => GenFunction<U>): GenFunction<U> => (
-    seed,
+    rng,
     size,
   ) => {
     const treeFolder = (node0: GenTreeNode<T>, iterations: Iterable<GenIteration<U>>): Iterable<GenIteration<U>> => {
@@ -147,7 +142,7 @@ export namespace GenFunction {
       );
 
       return pipe(
-        genK(seed, size),
+        genK(rng, size),
         takeWhileInclusiveIter(GenIteration.isNotInstance),
         mapIter((iteration1) => {
           if (GenIteration.isNotInstance(iteration1)) return iteration1;
@@ -183,26 +178,26 @@ export namespace GenFunction {
    * @param k
    */
   export const flatMap = <T, U>(gen: GenFunction<T>, k: (x: T) => GenFunction<U>): GenFunction<U> =>
-    resizableRepeat(function* (seed, size) {
-      const [leftSeed] = seed.split();
+    resizableRepeat(function* (rng, size) {
+      const nextRng = rng.next();
       yield* pipe(
-        gen(seed, size),
+        gen(rng, size),
         flatMapIter((genIteration) => {
           if (GenIteration.isNotInstance(genIteration)) return of(genIteration);
-          return flatMapInstanceOnce(genIteration, k)(leftSeed, size);
+          return flatMapInstanceOnce(genIteration, k)(nextRng, size);
         }),
         takeWhileInclusiveIter(GenIteration.isNotInstance),
         mapIter((iteration) => ({
           ...iteration,
-          seed: seed.valueOf(),
+          seed: rng.seed,
         })),
       );
-      return size;
+      return [nextRng, size];
     });
 
   export const filter = <T>(gen: GenFunction<T>, f: (x: T) => boolean): GenFunction<T> =>
-    resizableRepeat(function* (seed, size) {
-      for (const iteration of gen(seed, size)) {
+    resizableRepeat(function* (rng, size) {
+      for (const iteration of gen(rng, size)) {
         if (iteration.kind !== 'instance') yield iteration;
         else {
           const { node, shrinks } = iteration.tree;
@@ -210,7 +205,7 @@ export namespace GenFunction {
             yield {
               kind: 'instance',
               tree: GenTree.create(node, GenTree.filterForest(shrinks, f)),
-              seed: seed.valueOf(),
+              seed: rng.seed,
               size,
             };
           } else {
@@ -218,32 +213,32 @@ export namespace GenFunction {
               kind: 'discard',
               value: node.value,
               predicate: f,
-              seed: seed.valueOf(),
+              seed: rng.seed,
               size,
             };
-            return Size.bigIncrement(size);
+            return [rng, Size.bigIncrement(size)];
           }
         }
       }
-      return size;
+      return [rng, size];
     });
 
   export const collect = <T>(gen: GenFunction<T>, range: Range, shrinker: Shrinker<GenTree<T>[]>): GenFunction<T[]> =>
-    resizableRepeat(function* (seed, size) {
-      const [leftSeed] = seed.split();
+    resizableRepeat(function* (rng, size) {
+      const nextRng = rng.next();
 
-      const length = seed.nextInt(...range.getSizedBounds(size));
+      const length = rng.value(...range.getSizedBounds(size));
       if (length === 0) {
         yield {
           kind: 'instance',
           tree: GenTree.create({ value: [], complexity: 0 }, []),
-          seed: seed.valueOf(),
+          seed: rng.seed,
           size,
         };
       } else {
         let forest: GenTree<T>[] = [];
 
-        for (const result of gen(leftSeed, size)) {
+        for (const result of gen(nextRng, size)) {
           switch (result.kind) {
             case 'instance':
               forest = [...forest, result.tree];
@@ -264,12 +259,12 @@ export namespace GenFunction {
         yield {
           kind: 'instance',
           tree: GenTree.concat(forest, range.getProportionalDistance, shrinker),
-          seed: seed.valueOf(),
+          seed: rng.seed,
           size,
         };
       }
 
-      return size;
+      return [nextRng, size];
     });
 
   export const noShrink = <T>(gen: GenFunction<T>): GenFunction<T> =>
