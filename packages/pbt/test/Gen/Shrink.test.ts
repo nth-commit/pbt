@@ -93,7 +93,23 @@ test.each([
   {
     value: ['c', 'b', 'a'],
     targetLength: 0,
-    expectedShrinks: [['a', 'b', 'c'], [], ['a'], ['a', 'b'], ['b'], ['c'], ['a', 'c'], ['b', 'c']],
+    expectedShrinks: [
+      ['a', 'b', 'c'],
+      [],
+      ['a'],
+      ['a', 'b'],
+      ['b'],
+      ['c'],
+      ['a', 'c'],
+      ['b', 'c'],
+      [],
+      ['c'],
+      ['c', 'b'],
+      ['b'],
+      ['a'],
+      ['c', 'a'],
+      ['b', 'a'],
+    ],
   },
 ])('array (with ordering)', ({ value, targetLength, expectedShrinks }) => {
   const shrinker = dev.Shrink.array<string>(targetLength, (x) => x.charCodeAt(0));

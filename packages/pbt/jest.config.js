@@ -4,7 +4,7 @@ module.exports = {
   setupFilesAfterEnv: ['./jest.setup.js'],
   globals: {
     'ts-jest': {
-      tsconfig: 'test/tsconfig.json'
+      tsconfig: 'tsconfig.test.json'
     }
   },
   collectCoverageFrom: [
