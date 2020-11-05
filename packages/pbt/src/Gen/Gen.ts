@@ -20,7 +20,7 @@ export type Gens<Ts extends any[]> = { [P in keyof Ts]: Gen<Ts[P]> };
 
 export namespace Gen {
   export function create<T>(
-    generate: (rng: Rng, size: Size) => T,
+    generate: (rng: Rng, size: Size) => [T, Rng],
     shrink: Shrinker<T>,
     calculateComplexity: CalculateComplexity<T>,
   ): Gen<T> {

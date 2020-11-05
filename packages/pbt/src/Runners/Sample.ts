@@ -63,7 +63,15 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
           trees: [],
           instanceCount: 0,
           discardCount: 0,
-          lastIteration: { kind: 'instance', seed: seed.valueOf(), size, tree: null as any },
+          lastIteration: {
+            kind: 'instance',
+            seed,
+            tree: null as any,
+            rng: null as any,
+            nextRng: null as any,
+            size,
+            nextSize: null as any,
+          },
         },
         callback: (acc, iteration) => {
           switch (iteration.kind) {
