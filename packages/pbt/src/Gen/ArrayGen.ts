@@ -82,11 +82,11 @@ const tryDeriveMax = (max: number | null): number | string => {
 };
 
 /* istanbul ignore next */
-const getOrderOfTree = <T>(tree: GenTree<T>): number =>
-  Array.isArray(tree.node.value)
-    ? // If the node value is an array, that is, we are building an "array of arrays", it is "less complex" to
-      // order the inner arrays by descending length. It also lets us find the minimal shrink a lot more efficiently
-      // in some examples, e.g.: https://github.com/jlink/shrinking-challenge/blob/main/challenges/large_union_list.md
-      -tree.node.complexity
-    : // Else, sort the elements in ascending order of complexity (smallest first).
-      tree.node.complexity;
+const getOrderOfTree = <T>(tree: GenTree<T>): number => -tree.node.complexity;
+// Array.isArray(tree.node.value)
+//   ? // If the node value is an array, that is, we are building an "array of arrays", it is "less complex" to
+//     // order the inner arrays by descending length. It also lets us find the minimal shrink a lot more efficiently
+//     // in some examples, e.g.: https://github.com/jlink/shrinking-challenge/blob/main/challenges/large_union_list.md
+//     -tree.node.complexity
+//   : // Else, sort the elements in ascending order of complexity (smallest first).
+//     tree.node.complexity;

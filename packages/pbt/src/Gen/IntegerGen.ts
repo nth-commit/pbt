@@ -115,6 +115,11 @@ const tryDeriveOrigin = (min: number, max: number, origin: number | null): numbe
   return origin;
 };
 
-const nextNumber = (rng: Rng, size: Size, range: Range): number => rng.value(...range.getSizedBounds(size));
+const nextNumber = (rng: Rng, size: Size, range: Range): number => {
+  const bounds = range.getSizedBounds(size);
+  const value = rng.value(...bounds);
+  console.log(`seed:value:${rng}[${bounds}] = ${value}`);
+  return value;
+};
 
 const isBetween = (x: number, y: number, n: number) => (x <= n && n <= y) || (y <= n && n <= x);

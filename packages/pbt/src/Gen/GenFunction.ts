@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 
 import { of, pipe, concat, repeatValue } from 'ix/iterable';
-import { map as mapIter, filter as filterIter, flatMap as flatMapIter } from 'ix/iterable/operators';
+import { map as mapIter, filter as filterIter, flatMap as flatMapIter, tap } from 'ix/iterable/operators';
 import { takeWhileInclusive as takeWhileInclusiveIter } from '../Core/iterableOperators';
 import { Rng, Size } from '../Core';
 import { GenTree, GenTreeNode, CalculateComplexity } from '../GenTree';
@@ -132,8 +132,13 @@ export namespace GenFunction {
     rng,
     size,
   ) => {
-    const treeFolder = (node0: GenTreeNode<T>, iterations: Iterable<GenIteration<U>>): Iterable<GenIteration<U>> => {
-      const genK = k(node0.value);
+    console.log(`leftIteration:${Rng.create(r.seed)}`);
+
+    const treeFolder = function* (
+      node0: GenTreeNode<T>,
+      iterations: Iterable<GenIteration<U>>,
+    ): Iterable<GenIteration<U>> {
+      const genK = k(node0.value); // Create the array generator
 
       const trees0 = pipe(
         iterations,
@@ -141,24 +146,60 @@ export namespace GenFunction {
         mapIter((instance0) => instance0.tree),
       );
 
-      return pipe(
-        genK(rng, size),
-        takeWhileInclusiveIter(GenIteration.isNotInstance),
-        mapIter((iteration1) => {
-          if (GenIteration.isNotInstance(iteration1)) return iteration1;
+      const run = (rng: Rng): Iterable<GenIteration<U>> =>
+        pipe(
+          genK(rng, size), // Run the array generator
+          takeWhileInclusiveIter(GenIteration.isNotInstance),
+          mapIter((iteration1) => {
+            console.log(`rightIteration:${Rng.create(iteration1.seed)}`);
 
-          const tree1 = GenTree.mapNode(iteration1.tree, (node1) => ({
-            value: node1.value,
-            complexity: node0.complexity + node1.complexity,
-          }));
+            if (GenIteration.isNotInstance(iteration1)) return iteration1;
 
-          return {
-            ...iteration1,
-            kind: 'instance',
-            tree: GenTree.create(tree1.node, concat(trees0, tree1.shrinks)),
-          };
+            // Now I know what the seed was
+
+            const tree1 = GenTree.mapNode(iteration1.tree, (node1) => ({
+              value: node1.value,
+              complexity: node0.complexity + node1.complexity,
+            }));
+
+            return {
+              ...iteration1,
+              kind: 'instance',
+              tree: GenTree.create(tree1.node, concat(trees0, tree1.shrinks)),
+            };
+          }),
+        );
+
+      // console.log({ initialSeed: rng.seed });
+
+      let lastRng = Rng.create(rng.seed);
+      yield* pipe(
+        run(rng),
+        tap((iteration) => {
+          lastRng = Rng.create(iteration.seed);
         }),
       );
+
+      console.log({ lastSeed: lastRng.toString() });
+
+      // let breaker = 0;
+      // let currentSeed = rng.seed;
+
+      // while (true) {
+      //   breaker++;
+      //   if (breaker > 20) {
+      //     throw 'breaker';
+      //   }
+
+      //   // console.log({ currentSeed });
+      //   if (currentSeed === initialRng.seed) {
+      //     break;
+      //   }
+
+      //   const nextRng = rng.next();
+      //   yield* run(nextRng);
+      //   currentSeed = nextRng.seed;
+      // }
     };
 
     const forestFolder = (iterationsOfIterations: Iterable<Iterable<GenIteration<U>>>): Iterable<GenIteration<U>> =>
@@ -180,6 +221,7 @@ export namespace GenFunction {
   export const flatMap = <T, U>(gen: GenFunction<T>, k: (x: T) => GenFunction<U>): GenFunction<U> =>
     resizableRepeat(function* (rng, size) {
       const nextRng = rng.next();
+      // console.log({ flatMapInitSeed: rng.seed, flatMapNextSeed: nextRng.seed });
       yield* pipe(
         gen(rng, size),
         flatMapIter((genIteration) => {
