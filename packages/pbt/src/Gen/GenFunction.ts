@@ -1,6 +1,6 @@
 /* istanbul ignore file */
 
-import { of, pipe, concat, repeatValue } from 'ix/iterable';
+import { pipe, concat, repeatValue, first } from 'ix/iterable';
 import { map as mapIter, filter as filterIter, flatMap as flatMapIter, tap } from 'ix/iterable/operators';
 import { takeWhileInclusive as takeWhileInclusiveIter } from '../Core/iterableOperators';
 import { Rng, Size } from '../Core';
@@ -65,24 +65,6 @@ export namespace GenFunction {
         }
       } while (true);
     };
-
-  const generateInstance = <T>(
-    f: (rng: Rng, size: Size) => [T, Rng],
-    shrink: Shrinker<T>,
-    calculateComplexity: CalculateComplexity<T>,
-    size: Size,
-  ) => (rng: Rng): GenIteration.Instance<T> => {
-    const [value, nextRng] = f(rng, size);
-    return {
-      kind: 'instance',
-      tree: GenTree.unfold(value, id, shrink, calculateComplexity),
-      seed: rng.seed,
-      rng,
-      size,
-      nextRng,
-      nextSize: size,
-    };
-  };
 
   const generateInstance2 = <T>(
     f: (rng: Rng, size: Size) => [T, Rng],
@@ -164,80 +146,99 @@ export namespace GenFunction {
    * @param r
    * @param k
    */
-  const flatMapInstanceOnce = <T, U>(r: GenIteration.Instance<T>, k: (x: T) => GenFunction<U>): GenFunction<U> => (
-    rng,
-    size,
-  ) => {
-    console.log(`leftIteration - from ${r.rng} to ${r.nextRng}`);
-
+  const flatMapInstanceOnce = <T, U>(
+    r: GenIteration.Instance<T>,
+    k: (x: T) => GenFunction<U>,
+    size: Size,
+  ): Iterable<GenIteration<U>> => {
     const treeFolder = function* (
       node0: GenTreeNode<T>,
       iterations: Iterable<GenIteration<U>>,
     ): Iterable<GenIteration<U>> {
       const genK = k(node0.value); // Create the array generator
 
-      const trees0 = pipe(
-        iterations,
-        filterIter(GenIteration.isInstance),
-        mapIter((instance0) => instance0.tree),
-      );
+      const instances0 = pipe(iterations, filterIter(GenIteration.isInstance));
 
       const run = (rng: Rng): Iterable<GenIteration<U>> =>
         pipe(
           genK(rng, size), // Run the array generator
           takeWhileInclusiveIter(GenIteration.isNotInstance),
           mapIter((iteration1) => {
-            console.log(`rightIteration - from ${iteration1.rng} to ${iteration1.nextRng}`);
-
             if (GenIteration.isNotInstance(iteration1)) return iteration1;
 
-            // Now I know what the seed was
+            const trees0 = pipe(
+              instances0,
+              mapIter((instance) => instance.tree),
+            );
 
             const tree1 = GenTree.mapNode(iteration1.tree, (node1) => ({
               value: node1.value,
               complexity: node0.complexity + node1.complexity,
             }));
 
-            return {
+            if (tree1.node.complexity === 370) {
+              // const instance0 = first(instances0);
+              // if (instance0) {
+              //   // console.log(instance0.tree);
+              // }
+              // console.log(Array.from(trees0).map((t) => t.node));
+            }
+
+            const iteration: GenIteration.Instance<U> = {
               ...iteration1,
               kind: 'instance',
-              tree: GenTree.create(tree1.node, concat(trees0, tree1.shrinks)),
+              tree: GenTree.create(
+                tree1.node,
+                pipe(
+                  concat(trees0, tree1.shrinks),
+                  mapIter((x) => {
+                    (x as any).__parent = iteration;
+                    return x;
+                  }),
+                ),
+              ),
             };
+
+            // console.log({
+            //   node: iteration.tree.node,
+            //   rng: iteration.rng.seed,
+            //   nextRng: iteration.nextRng.seed,
+            //   rngCount: Rng.range(iteration.rng, iteration.nextRng).length - 1,
+            // });
+
+            return iteration;
           }),
         );
 
-      // console.log({ initialSeed: rng.seed });
-
-      let nextRng = rng.next();
+      let instance1: GenIteration.Instance<U> | null = null;
       yield* pipe(
-        run(rng),
+        run(r.nextRng),
         tap((iteration) => {
-          nextRng = iteration.nextRng;
+          if (iteration.kind === 'instance') {
+            const instance0 = first(instances0);
+            console.log({
+              instance1: {
+                node: iteration.tree.node.value,
+                rngCount: Rng.range(r.nextRng, iteration.nextRng).length - 1,
+              },
+              instance0: {
+                node: instance0?.tree.node.value,
+                rngCount: instance0 ? Rng.range(r.nextRng, instance0.nextRng).length - 1 : -1,
+              },
+            });
+            instance1 = iteration;
+          }
         }),
       );
 
-      // First: 369, 167, 927, 257x
-      // Second: 369, 167, 927x
+      // const intance0 = first(instances0);
 
-      console.log({ lastSeed: nextRng.toString() });
+      // if (instance1) {
+      //   const altRngs = Rng.rangeLazy(r.nextRng.next(), (instance1 as GenIteration.Instance<U>).nextRng);
 
-      // let breaker = 0;
-      // let currentSeed = rng.seed;
-
-      // while (true) {
-      //   breaker++;
-      //   if (breaker > 20) {
-      //     throw 'breaker';
+      //   for (const altRng of altRngs) {
+      //     yield* run(altRng);
       //   }
-
-      //   // console.log({ currentSeed });
-      //   if (currentSeed === initialRng.seed) {
-      //     break;
-      //   }
-
-      //   const nextRng = rng.next();
-      //   yield* run(nextRng);
-      //   currentSeed = nextRng.seed;
       // }
     };
 
@@ -262,14 +263,14 @@ export namespace GenFunction {
       pipe(
         gen(rng, size),
         flatMapIter((genIteration) => {
-          if (GenIteration.isNotInstance(genIteration)) return of(genIteration);
-          return flatMapInstanceOnce(genIteration, k)(genIteration.nextRng, size);
+          if (GenIteration.isNotInstance(genIteration)) return [genIteration];
+          return flatMapInstanceOnce(genIteration, k, size);
         }),
         takeWhileInclusiveIter(GenIteration.isNotInstance),
-        // mapIter((iteration) => ({
-        //   ...iteration,
-        //   seed: rng.seed,
-        // })),
+        mapIter((iteration) => ({
+          ...iteration,
+          seed: rng.seed,
+        })),
       ),
     );
 

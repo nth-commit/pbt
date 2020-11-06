@@ -118,7 +118,7 @@ const tryDeriveOrigin = (min: number, max: number, origin: number | null): numbe
 const nextNumber = (rng: Rng, size: Size, range: Range): [number, Rng] => {
   const bounds = range.getSizedBounds(size);
   const value = rng.value(...bounds);
-  console.log(`seed:value:${rng}[${bounds}] = ${value}`);
+  // console.log(`seed:value:${rng}[${bounds}] = ${value}`);
   return [value, rng.next()];
 };
 

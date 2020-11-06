@@ -32,7 +32,7 @@ export namespace Rng {
         },
       };
 
-      console.log(`seed:create:${rng} (from: ${prevRng})`);
+      // console.log(`seed:create:${rng} (from: ${prevRng})`);
 
       CACHE.set(seed, rng);
     }
@@ -42,10 +42,19 @@ export namespace Rng {
 
   export const spawn = () => create(Date.now());
 
-  export const stream = function* (rng: Rng): Iterable<Rng> {
-    do {
-      yield rng;
-      rng = rng.next();
-    } while (true);
+  export const rangeLazy = function* (start: Rng, end: Rng): Iterable<Rng> {
+    let breaker = 0;
+    while (start.seed !== end.seed) {
+      breaker++;
+      if (breaker > 100) {
+        throw 'break';
+      }
+
+      yield start;
+      start = start.next();
+    }
+    yield start;
   };
+
+  export const range = (start: Rng, end: Rng): Rng[] => Array.from(rangeLazy(start, end));
 }
