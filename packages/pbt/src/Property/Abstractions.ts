@@ -1,5 +1,6 @@
-import { RandomStream, Seed, Size } from '../Core';
+import { RandomStream } from '../Core';
 import { Complexity } from '../GenTree';
+import { GenIteration } from '../Gen';
 
 export namespace PropertyFailureReason {
   export type ReturnedFalse = { kind: 'returnedFalse' };
@@ -31,32 +32,17 @@ export type ShrinkIteration<Ts extends any[]> = ShrinkIteration.Pass | ShrinkIte
 export namespace PropertyIteration {
   export type Pass = {
     kind: 'pass';
-    seed: number;
-    size: Size;
-  };
+  } & GenIteration.Base;
 
   export type Fail<Ts extends any[]> = {
     kind: 'fail';
-    seed: number;
-    size: Size;
     counterexample: Counterexample<Ts>;
     shrinks: Iterable<ShrinkIteration<Ts>>;
-  };
+  } & GenIteration.Base;
 
-  export type Discard = {
-    kind: 'discard';
-    seed: number;
-    size: Size;
-    value: unknown;
-    predicate: Function;
-  };
+  export type Discard = GenIteration.Discard;
 
-  export type Error = {
-    kind: 'error';
-    message: string;
-    seed: number;
-    size: Size;
-  };
+  export type Error = GenIteration.Error;
 }
 
 export type PropertyIteration<Ts extends any[]> =

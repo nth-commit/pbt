@@ -1,11 +1,11 @@
 import { last, pipe } from 'ix/iterable';
 import { scan } from 'ix/iterable/operators';
-import { Seed, Size, takeWhileInclusive } from '../Core';
+import { Size, takeWhileInclusive } from '../Core';
 import { Property, PropertyIteration, Counterexample, ShrinkIteration } from '../Property';
 import { Exhaustible, ExhaustionStrategy } from './ExhaustionStrategy';
 
 export type CheckConfig = {
-  seed: Seed | number;
+  seed: number;
   size: Size;
   iterations: number;
   path: string | undefined;
@@ -47,7 +47,7 @@ export type CheckResult<Ts extends any[]> =
 
 export const check = <Ts extends any[]>(property: Property<Ts>, config: Partial<CheckConfig> = {}): CheckResult<Ts> => {
   const resolvedConfig: CheckConfig = {
-    seed: Seed.spawn(),
+    seed: Date.now(),
     size: 0,
     iterations: 100,
     path: undefined,
@@ -69,8 +69,8 @@ export const check = <Ts extends any[]>(property: Property<Ts>, config: Partial<
         kind: 'falsified',
         iterations: iterationAccumulator.iterationCount,
         discards: iterationAccumulator.discardCount,
-        seed: iterationAccumulator.lastIteration.seed.valueOf(),
-        size: iterationAccumulator.lastIteration.size,
+        seed: iterationAccumulator.lastIteration.initRng.seed,
+        size: iterationAccumulator.lastIteration.initSize,
         ...shrinkResult,
       };
     case 'error':

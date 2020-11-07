@@ -2,5 +2,6 @@
 
 export { ArrayGen, IntegerGen } from './Abstractions';
 export { Gen, Gens } from './Gen';
-export { GenFunction, GenIteration } from './GenFunction';
+export { GenFunction } from './GenFunction';
+export { GenIteration } from './GenIteration';
 export * from './Shrink';

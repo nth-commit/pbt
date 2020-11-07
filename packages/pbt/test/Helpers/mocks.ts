@@ -1,8 +1,9 @@
 import * as dev from '../../src';
 
-export const mockSeed = (value: number): dev.Seed => ({
-  nextInt: () => value,
-  split: () => [mockSeed(value), mockSeed(value)],
-  toString: () => `mockSeed(${value})`,
-  valueOf: () => value,
+export const mockSeed = (value: number): dev.Rng => ({
+  value: () => value,
+  next: () => mockSeed(value),
+  seed: 0,
+  family: 0,
+  order: 0,
 });

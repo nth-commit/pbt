@@ -1,4 +1,4 @@
-export { RandomStream, Seed, Size } from './Core';
+export { RandomStream, Rng, Size } from './Core';
 export { GenTree, GenTreeNode, Complexity, CalculateComplexity } from './GenTree';
 export { Gen, Shrink, Shrinker, GenIteration } from './Gen';
 export { property, Property, PropertyIteration, PropertyFunction, ShrinkIteration, Counterexample } from './Property';
