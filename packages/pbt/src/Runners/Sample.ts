@@ -1,6 +1,6 @@
 import { last, pipe } from 'ix/iterable';
 import { scan } from 'ix/iterable/operators';
-import { Seed, Size } from '../Core';
+import { Rng, Size } from '../Core';
 import { takeWhileInclusive } from '../Core/iterableOperators';
 import { Result } from '../Core/Result';
 import { Gen, GenIteration } from '../Gen';
@@ -8,9 +8,12 @@ import { GenTree } from '../GenTree';
 import { Exhaustible, ExhaustionStrategy } from './ExhaustionStrategy';
 
 export type SampleConfig = {
-  seed: Seed | number;
+  seed: number;
   size: Size;
   iterations: number;
+  advanced?: Partial<{
+    makeRng: (seed: number) => Rng;
+  }>;
 };
 
 export namespace SampleResult {
@@ -48,7 +51,7 @@ type SampleAccumulator<T> = {
 
 export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): SampleResult<GenTree<T>> => {
   const { seed, size, iterations: iterationCount }: SampleConfig = {
-    seed: Seed.spawn(),
+    seed: Date.now(),
     size: 30,
     iterations: 100,
     ...config,
@@ -56,14 +59,21 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
 
   const sampleAccumulator = last(
     pipe(
-      gen.run(seed, size),
+      gen.run(seed, size, { makeRng: config?.advanced?.makeRng }),
       ExhaustionStrategy.apply(ExhaustionStrategy.defaultStrategy(), (iteration) => iteration.kind === 'discard'),
       scan<Exhaustible<GenIteration<T>>, SampleAccumulator<T>>({
         seed: {
           trees: [],
           instanceCount: 0,
           discardCount: 0,
-          lastIteration: { kind: 'instance', seed: seed.valueOf(), size, tree: null as any },
+          lastIteration: {
+            kind: 'instance',
+            initRng: Rng.create(seed),
+            nextRng: Rng.create(seed),
+            initSize: size,
+            nextSize: size,
+            tree: null as any,
+          },
         },
         callback: (acc, iteration) => {
           switch (iteration.kind) {
@@ -100,8 +110,8 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
       return Result.ofValue({
         values: sampleAccumulator.trees,
         discards: sampleAccumulator.discardCount,
-        seed: sampleAccumulator.lastIteration.seed,
-        size: sampleAccumulator.lastIteration.size,
+        seed: sampleAccumulator.lastIteration.initRng.seed,
+        size: sampleAccumulator.lastIteration.initSize,
       });
     case 'error':
       return Result.ofError(sampleAccumulator.lastIteration.message);

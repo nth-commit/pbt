@@ -2,7 +2,7 @@
 
 import { pipe } from 'ix/iterable';
 import { map } from 'ix/iterable/operators';
-import { indexed, Seed, Size } from '../Core';
+import { indexed, Size } from '../Core';
 import { Gen, Gens, GenIteration } from '../Gen';
 import { GenTree } from '../GenTree';
 import { Property, PropertyConfig, PropertyFunction, PropertyIteration, ShrinkIteration } from './Abstractions';
@@ -19,28 +19,22 @@ export function property<Ts extends [any, ...any[]]>(...args: PropertyArgs<Ts>):
 class PropertyImpl<Ts extends any[]> implements Property<Ts> {
   constructor(private readonly f: PropertyFunction<Ts>, private readonly gens: Gens<Ts>) {}
 
-  run(seed: number | Seed, size: Size, config: Partial<PropertyConfig> = {}): Iterable<PropertyIteration<Ts>> {
-    const seed0 = typeof seed === 'number' ? Seed.create(seed) : seed;
+  run(seed: number, size: Size, config: Partial<PropertyConfig> = {}): Iterable<PropertyIteration<Ts>> {
     const gen = Gen.zip<Ts>(...this.gens);
-
-    return config.path === undefined
-      ? explore(this.f, gen, seed0, size)
-      : repeat(this.f, gen, seed0, size, config.path);
+    return config.path === undefined ? explore(this.f, gen, seed, size) : repeat(this.f, gen, seed, size, config.path);
   }
 }
 
 const explore = function* <Ts extends any[]>(
   f: PropertyFunction<Ts>,
   gen: Gen<Ts>,
-  seed: Seed,
+  seed: number,
   size: Size,
 ): Iterable<PropertyIteration<Ts>> {
   let iteration: PropertyIteration<Ts> | null = null;
 
   while (iteration === null || iteration.kind === 'pass') {
-    const [leftSeed, rightSeed] = seed.split();
-
-    for (const genIteration of gen.run(rightSeed, size)) {
+    for (const genIteration of gen.run(seed, size)) {
       iteration = mapGenIterationToPropertyIteration(f, genIteration as GenIteration<any>);
 
       yield iteration;
@@ -51,7 +45,7 @@ const explore = function* <Ts extends any[]>(
     }
 
     size = Size.increment(size);
-    seed = leftSeed;
+    seed = iteration?.nextRng?.seed || seed;
   }
 };
 
@@ -67,8 +61,10 @@ const mapGenIterationToPropertyIteration = <Ts extends any[]>(
         case 'success':
           return {
             kind: 'pass',
-            seed: genIteration.seed,
-            size: genIteration.size,
+            initRng: genIteration.initRng,
+            nextRng: genIteration.nextRng,
+            initSize: genIteration.initSize,
+            nextSize: genIteration.nextSize,
           };
         case 'failure':
           return {
@@ -80,26 +76,16 @@ const mapGenIterationToPropertyIteration = <Ts extends any[]>(
               reason: fResult.reason,
             },
             shrinks: exploreForest(f, shrinks),
-            seed: genIteration.seed,
-            size: genIteration.size,
+            initRng: genIteration.initRng,
+            nextRng: genIteration.nextRng,
+            initSize: genIteration.initSize,
+            nextSize: genIteration.nextSize,
           };
       }
     }
     case 'discard':
-      return {
-        kind: 'discard',
-        predicate: genIteration.predicate,
-        value: genIteration.value,
-        seed: genIteration.seed,
-        size: genIteration.size,
-      };
     case 'error':
-      return {
-        kind: 'error',
-        message: genIteration.message,
-        seed: genIteration.seed,
-        size: genIteration.size,
-      };
+      return genIteration;
   }
 };
 
@@ -170,7 +156,7 @@ const exploreTree = function* <Ts extends any[]>(
 const repeat = function* <Ts extends any[]>(
   f: PropertyFunction<Ts>,
   gen: Gen<Ts>,
-  seed: Seed,
+  seed: number,
   size: Size,
   path: string,
 ): Iterable<PropertyIteration<Ts>> {
@@ -188,8 +174,10 @@ const repeat = function* <Ts extends any[]>(
       if (fResult.kind === 'failure') {
         yield {
           kind: 'fail',
-          seed: genIteration.seed,
-          size: genIteration.size,
+          initRng: genIteration.initRng,
+          nextRng: genIteration.nextRng,
+          initSize: genIteration.initSize,
+          nextSize: genIteration.nextSize,
           counterexample: {
             path,
             reason: fResult.reason,
@@ -200,8 +188,10 @@ const repeat = function* <Ts extends any[]>(
       } else {
         yield {
           kind: 'pass',
-          seed: genIteration.seed,
-          size: genIteration.size,
+          initRng: genIteration.initRng,
+          nextRng: genIteration.nextRng,
+          initSize: genIteration.initSize,
+          nextSize: genIteration.nextSize,
         };
       }
 

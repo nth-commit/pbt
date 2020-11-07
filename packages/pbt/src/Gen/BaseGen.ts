@@ -1,8 +1,9 @@
 /* istanbul ignore file */
 
-import { Seed } from '../Core';
-import { ArrayGen, Gen, GenFactory } from './Abstractions';
-import { GenFunction, GenIteration } from './GenFunction';
+import { Rng, Size } from '../Core';
+import { ArrayGen, Gen, GenConfig, GenFactory } from './Abstractions';
+import { GenFunction } from './GenFunction';
+import { GenIteration } from './GenIteration';
 
 export class BaseGen<T> implements Gen<T> {
   constructor(public readonly genFunction: GenFunction<T>, private readonly genFactory: GenFactory) {}
@@ -32,8 +33,7 @@ export class BaseGen<T> implements Gen<T> {
     return new BaseGen<T>(GenFunction.noComplexity(this.genFunction), this.genFactory);
   }
 
-  run(seed: number | Seed, size: number): Iterable<GenIteration<T>> {
-    const s = typeof seed === 'number' ? Seed.create(seed) : seed;
-    return this.genFunction(s, size);
+  run(seed: number, size: Size, config: GenConfig = {}): Iterable<GenIteration<T>> {
+    return this.genFunction(config.makeRng ? config.makeRng(seed) : Rng.create(seed), size);
   }
 }

@@ -1,4 +1,4 @@
-import { Seed, Size } from '../Core';
+import { Size } from '../Core';
 import { GenFactory, IntegerGen } from './Abstractions';
 import { BaseGen } from './BaseGen';
 import { ScaleMode, Range } from './Range';
@@ -86,7 +86,7 @@ const integerFunction = (args: IntegerGenArgs): GenFunction<number> => {
   const range = Range.createFrom(min, max, origin, scale);
 
   return GenFunction.create(
-    (seed, size) => nextNumber(seed, size, range),
+    (consumeRandomInt, size) => consumeRandomInt(...range.getSizedBounds(size)),
     Shrink.towardsNumber(range.origin),
     range.getProportionalDistance,
   );
@@ -114,7 +114,5 @@ const tryDeriveOrigin = (min: number, max: number, origin: number | null): numbe
 
   return origin;
 };
-
-const nextNumber = (seed: Seed, size: Size, range: Range): number => seed.nextInt(...range.getSizedBounds(size));
 
 const isBetween = (x: number, y: number, n: number) => (x <= n && n <= y) || (y <= n && n <= x);

@@ -1,8 +1,7 @@
 /* istanbul ignore file */
 
-import { Seed, Size } from '../Core';
 import { CalculateComplexity } from '../GenTree';
-import { GenFunction } from './GenFunction';
+import { GenFunction, GenInstanceStatefulFunction } from './GenFunction';
 import { Shrinker } from './Shrink';
 import { Gen as _Gen, ArrayGen, IntegerGen, GenFactory } from './Abstractions';
 import { BaseGen } from './BaseGen';
@@ -20,11 +19,11 @@ export type Gens<Ts extends any[]> = { [P in keyof Ts]: Gen<Ts[P]> };
 
 export namespace Gen {
   export function create<T>(
-    generate: (seed: Seed, size: Size) => T,
+    f: GenInstanceStatefulFunction<T>,
     shrink: Shrinker<T>,
     calculateComplexity: CalculateComplexity<T>,
   ): Gen<T> {
-    return new BaseGen(GenFunction.create(generate, shrink, calculateComplexity), genFactory);
+    return new BaseGen(GenFunction.create(f, shrink, calculateComplexity), genFactory);
   }
 
   export function constant<T>(x: T): Gen<T> {

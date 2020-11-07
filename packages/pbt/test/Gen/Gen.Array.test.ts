@@ -30,7 +30,9 @@ test('Gen.array(gen).ofMaxLength(x).growBy(s) *produces* arrays with length equa
           .map((arr) => arr.length);
         const genInteger = dev.Gen.integer().between(0, x).growBy(s);
 
-        expect(dev.sample(genArray, config)).toEqual(dev.sample(genInteger, config));
+        expect(dev.sample(genArray, { ...config, iterations: 1 })).toEqual(
+          dev.sample(genInteger, { ...config, iterations: 1 }),
+        );
       },
     ),
   );

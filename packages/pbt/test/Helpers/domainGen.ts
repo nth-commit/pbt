@@ -43,7 +43,7 @@ export const func = <T, TArgs extends any[] = unknown[]>(
     });
 };
 
-export const seed = (): fc.Arbitrary<devCore.Seed> => fc.nat().map(devCore.Seed.create).noShrink();
+export const seed = (): fc.Arbitrary<number> => fc.nat().noShrink();
 
 export const size = (): fc.Arbitrary<devCore.Size> => fc.integer(0, 100);
 
