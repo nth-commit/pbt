@@ -3,6 +3,7 @@
 import { Rng, Seed } from '../Core';
 import { ArrayGen, Gen, GenFactory } from './Abstractions';
 import { GenFunction, GenIteration } from './GenFunction';
+import { flatMap } from './FlatMap_Experimental';
 
 export class BaseGen<T> implements Gen<T> {
   constructor(public readonly genFunction: GenFunction<T>, private readonly genFactory: GenFactory) {}
@@ -17,7 +18,7 @@ export class BaseGen<T> implements Gen<T> {
 
   flatMap<U>(k: (x: T) => Gen<U>): Gen<U> {
     const genFunctionK = (x: T): GenFunction<U> => k(x).genFunction;
-    return new BaseGen<U>(GenFunction.flatMap(this.genFunction, genFunctionK), this.genFactory);
+    return new BaseGen<U>(flatMap(this.genFunction, genFunctionK), this.genFactory);
   }
 
   filter(predicate: (x: T) => boolean): Gen<T> {

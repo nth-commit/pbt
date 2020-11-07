@@ -1,0 +1,161 @@
+const flatMapInstanceOnce2 = <T, U>(
+    r: GenIteration.Instance<T>,
+    k: (x: T) => GenFunction<U>,
+    size: Size,
+  ): Iterable<GenIteration<U>> => {
+    type FoldingNode<Value> = {
+      nodeValue: Value;
+      parentInstance: null | GenIteration.Instance<FoldingNode<never>>;
+    };
+
+    const treeFolder = function* (
+      node0: GenTreeNode<FoldingNode<T>>,
+      iterations: Iterable<GenIteration<FoldingNode<U>>>,
+    ): Iterable<GenIteration<FoldingNode<U>>> {
+      const genK = k(node0.value.nodeValue); // Create the array generator
+
+      const instances0 = pipe(iterations, filterIter(GenIteration.isInstance));
+
+      const run = (rng: Rng): Iterable<GenIteration<FoldingNode<U>>> =>
+        pipe(
+          genK(rng, size), // Run the array generator
+          takeWhileInclusiveIter(GenIteration.isNotInstance),
+          mapIter((iteration1) => {
+            if (GenIteration.isNotInstance(iteration1)) return iteration1;
+
+            const trees0 = pipe(
+              instances0,
+              mapIter((instance) => instance.tree),
+            );
+
+            const tree1 = GenTree.mapNode(iteration1.tree, (node1) => ({
+              value: node1.value,
+              complexity: node0.complexity + node1.complexity,
+            }));
+
+            if (tree1.node.complexity === 370) {
+              // const instance0 = first(instances0);
+              // if (instance0) {
+              //   // console.log(instance0.tree);
+              // }
+              // console.log(Array.from(trees0).map((t) => t.node));
+            }
+
+            const foldingNode1: GenTreeNode<FoldingNode<U>> = {
+              complexity: tree1.node.complexity,
+              value: {
+                nodeValue: tree1.node.value,
+                parentInstance: node0.value.parentInstance,
+              },
+            };
+
+            const iteration: GenIteration.Instance<FoldingNode<U>> = {
+              ...iteration1,
+              kind: 'instance',
+              tree: GenTree.create(
+                foldingNode1,
+                concat<GenTree<FoldingNode<U>>, GenTree<FoldingNode<U>>>(
+                  pipe(
+                    trees0,
+                    mapIter(
+                      (tree): GenTree<FoldingNode<U>> => ({
+                        ...tree,
+                        node: {
+                          ...tree.node,
+                          value: {
+                            nodeValue: tree.node.value.nodeValue,
+                            parentInstance: iteration as any,
+                          },
+                        },
+                      }),
+                    ),
+                  ),
+                  pipe(
+                    tree1.shrinks,
+                    mapIter(
+                      (tree): GenTree<FoldingNode<U>> =>
+                        GenTree.map<U, FoldingNode<U>>(tree, (value) => ({
+                          parentInstance: iteration as any,
+                          nodeValue: value,
+                        })),
+                    ),
+                  ),
+                ),
+              ),
+            };
+
+            // console.log({
+            //   node: iteration.tree.node,
+            //   rng: iteration.rng.seed,
+            //   nextRng: iteration.nextRng.seed,
+            //   rngCount: Rng.range(iteration.rng, iteration.nextRng).length - 1,
+            // });
+
+            return iteration;
+          }),
+        );
+
+      yield* pipe(
+        run(r.nextRng),
+        tap((iteration) => {
+          if (iteration.kind === 'instance') {
+            const instance0 = first(instances0);
+            console.log({
+              instance1: {
+                node: iteration.tree.node.value,
+                rngCount: Rng.range(r.nextRng, iteration.nextRng).length - 1,
+              },
+              instance0: {
+                node: instance0?.tree.node.value,
+                rngCount: instance0 ? Rng.range(r.nextRng, instance0.nextRng).length - 1 : -1,
+              },
+            });
+          }
+        }),
+      );
+
+      // const intance0 = first(instances0);
+
+      // if (instance1) {
+      //   const altRngs = Rng.rangeLazy(r.nextRng.next(), (instance1 as GenIteration.Instance<U>).nextRng);
+
+      //   for (const altRng of altRngs) {
+      //     yield* run(altRng);
+      //   }
+      // }
+    };
+
+    const forestFolder = (
+      iterationsOfIterations: Iterable<Iterable<GenIteration<FoldingNode<U>>>>,
+    ): Iterable<GenIteration<FoldingNode<U>>> =>
+      pipe(
+        iterationsOfIterations,
+        flatMapIter((x) => x),
+      );
+
+    const preFoldedTree = GenTree.map<T, FoldingNode<T>>(r.tree, (value) => ({
+      nodeValue: value,
+      parentInstance: null,
+    }));
+
+    const postFolded = GenTree.fold<
+      FoldingNode<T>,
+      Iterable<GenIteration<FoldingNode<U>>>,
+      Iterable<GenIteration<FoldingNode<U>>>
+    >(preFoldedTree, treeFolder, forestFolder);
+
+    return pipe(
+      postFolded,
+      mapIter(
+        (iteration): GenIteration<U> => {
+          if (GenIteration.isNotInstance(iteration)) return iteration;
+
+          return {
+            ...iteration,
+            kind: 'instance',
+            tree: GenTree.map(iteration.tree, (value) => value.nodeValue),
+          };
+        },
+      ),
+    );
+  };

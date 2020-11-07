@@ -1,7 +1,14 @@
 /* istanbul ignore file */
 
 import { pipe, concat, repeatValue, first } from 'ix/iterable';
-import { map as mapIter, filter as filterIter, flatMap as flatMapIter, tap } from 'ix/iterable/operators';
+import {
+  map as mapIter,
+  filter as filterIter,
+  flatMap as flatMapIter,
+  tap,
+  share,
+  memoize,
+} from 'ix/iterable/operators';
 import { takeWhileInclusive as takeWhileInclusiveIter } from '../Core/iterableOperators';
 import { Rng, Size } from '../Core';
 import { GenTree, GenTreeNode, CalculateComplexity } from '../GenTree';
@@ -166,37 +173,76 @@ export namespace GenFunction {
           mapIter((iteration1) => {
             if (GenIteration.isNotInstance(iteration1)) return iteration1;
 
-            const trees0 = pipe(
-              instances0,
-              mapIter((instance) => instance.tree),
-            );
+            // const trees0 = pipe(
+            //   instances0,
+            //   mapIter((instance) => instance.tree),
+            // );
 
             const tree1 = GenTree.mapNode(iteration1.tree, (node1) => ({
               value: node1.value,
               complexity: node0.complexity + node1.complexity,
             }));
 
-            if (tree1.node.complexity === 370) {
-              // const instance0 = first(instances0);
-              // if (instance0) {
-              //   // console.log(instance0.tree);
-              // }
-              // console.log(Array.from(trees0).map((t) => t.node));
-            }
+            const trees2 = pipe(
+              instances0,
+              flatMapIter(function* (instance): Iterable<GenTree<U>> {
+                if (tree1.node.complexity === 370) {
+                  const rngDiff = iteration1.nextRng.order - instance.nextRng.order;
+
+                  if (instance.tree.node.complexity === 40) {
+                    for (let i = 0; i < rngDiff; i++) {
+                      console.log(instance.tree.node);
+
+                      console.log(
+                        JSON.stringify(
+                          Array.from(run(rng.next())).map((i) => (i as any).tree.node),
+                          null,
+                          2,
+                        ),
+                      );
+
+                      break;
+                    }
+                  }
+
+                  // console.log({
+                  //   order: instance.rng.order,
+                  //   nextOrder: instance.nextRng.order,
+                  //   parentOrder: iteration1.rng.order,
+                  //   parentNextOrder: iteration1.nextRng.order,
+                  //   rngDiff,
+                  // });
+
+                  // let currentRng = rng;
+                  // for (let i = 0; i < rngCount - childRngCount; i++) {
+                  //   currentRng = rng.next();
+                  //   yield* pipe(
+                  //     run(currentRng),
+                  //     filterIter(GenIteration.isInstance),
+                  //     mapIter((iteration) => iteration.tree),
+                  //   );
+                  // }
+
+                  // console.log({
+                  //   rngCount: Rng.range(rng, iteration1.nextRng).length,
+                  //   value: tree1.node.value,
+                  //   childRngCount: childRngCount,
+                  //   shrunkValue: instance.tree.node.value,
+                  // });
+
+                  // for (const alternateRng of Rng.range(rng.next(), rng.next())) {
+                  //   console.log(alternateRng.seed);
+                  // }
+                }
+
+                yield instance.tree;
+              }),
+            );
 
             const iteration: GenIteration.Instance<U> = {
               ...iteration1,
               kind: 'instance',
-              tree: GenTree.create(
-                tree1.node,
-                pipe(
-                  concat(trees0, tree1.shrinks),
-                  mapIter((x) => {
-                    (x as any).__parent = iteration;
-                    return x;
-                  }),
-                ),
-              ),
+              tree: GenTree.create(tree1.node, pipe(concat(trees2, tree1.shrinks))),
             };
 
             // console.log({
@@ -210,36 +256,7 @@ export namespace GenFunction {
           }),
         );
 
-      let instance1: GenIteration.Instance<U> | null = null;
-      yield* pipe(
-        run(r.nextRng),
-        tap((iteration) => {
-          if (iteration.kind === 'instance') {
-            const instance0 = first(instances0);
-            console.log({
-              instance1: {
-                node: iteration.tree.node.value,
-                rngCount: Rng.range(r.nextRng, iteration.nextRng).length - 1,
-              },
-              instance0: {
-                node: instance0?.tree.node.value,
-                rngCount: instance0 ? Rng.range(r.nextRng, instance0.nextRng).length - 1 : -1,
-              },
-            });
-            instance1 = iteration;
-          }
-        }),
-      );
-
-      // const intance0 = first(instances0);
-
-      // if (instance1) {
-      //   const altRngs = Rng.rangeLazy(r.nextRng.next(), (instance1 as GenIteration.Instance<U>).nextRng);
-
-      //   for (const altRng of altRngs) {
-      //     yield* run(altRng);
-      //   }
-      // }
+      yield* run(r.nextRng);
     };
 
     const forestFolder = (iterationsOfIterations: Iterable<Iterable<GenIteration<U>>>): Iterable<GenIteration<U>> =>
@@ -304,7 +321,6 @@ export namespace GenFunction {
           }
         }
       }
-      return size;
     });
 
   export const collect = <T>(gen: GenFunction<T>, range: Range, shrinker: Shrinker<GenTree<T>[]>): GenFunction<T[]> =>
@@ -315,7 +331,6 @@ export namespace GenFunction {
       } else {
         yield* collectUntilLength<T>(gen, rng, length, size, range, shrinker);
       }
-      return size;
     });
 
   const collectNone = <T>(lengthRng: Rng, size: Size): GenIteration.Instance<T[]> => {

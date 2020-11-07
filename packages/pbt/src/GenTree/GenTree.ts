@@ -110,6 +110,41 @@ export namespace GenTree {
     );
   }
 
+  type GenTrees<Values extends any[]> = { [P in keyof Values]: GenTree<Values[P]> };
+
+  type GenTreeNodes<Values extends any[]> = { [P in keyof Values]: GenTreeNode<Values[P]> };
+
+  export const merge2 = <ElementValues extends any[], MergedValue>(
+    forest: GenTrees<ElementValues>,
+    fMerge: (...values: ElementValues) => MergedValue,
+    fMergeComplexity: (...nodes: GenTreeNodes<ElementValues>) => Complexity,
+  ): GenTree<MergedValue> => {
+    const node = mergeNode2(forest.map((tree) => tree.node) as GenTreeNodes<ElementValues>, fMerge, fMergeComplexity);
+
+    const treeMergingShrinks = pipe(
+      forest.map((tree) => tree.shrinks),
+      mapIter((shrinks, index) => replaceTreeWithShrinks(forest, shrinks, index)),
+      flatMapIter((x) => x),
+    );
+
+    return create(
+      node,
+      pipe(
+        concatIter(treeMergingShrinks),
+        mapIter((forest0) => merge2(forest0 as GenTrees<ElementValues>, fMerge, fMergeComplexity)),
+      ),
+    );
+  };
+
+  const mergeNode2 = <ElementValues extends any[], MergedValue>(
+    elementNodes: GenTreeNodes<ElementValues>,
+    fMerge: (...values: ElementValues) => MergedValue,
+    fMergeComplexity: (...nodes: GenTreeNodes<ElementValues>) => Complexity,
+  ): GenTreeNode<MergedValue> => ({
+    value: fMerge(...(elementNodes.map((node) => node.value) as any)),
+    complexity: fMergeComplexity(...elementNodes),
+  });
+
   export const merge = <ElementValue, MergedValue>(
     forest: GenTree<ElementValue>[],
     fMerge: (values: ElementValue[]) => MergedValue,
