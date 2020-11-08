@@ -57,12 +57,14 @@ export namespace GenTree {
       mapIter((acc0) => unfold(acc0, accToValue, accExpander, calculateComplexity)),
     );
 
+  /* istanbul ignore next */
   export const fold = <Value, FoldedTree, FoldedForest>(
     tree: GenTree<Value>,
     treeFolder: (node: GenTreeNode<Value>, foldedForest: FoldedForest) => FoldedTree,
     forestFolder: (forest: Iterable<FoldedTree>) => FoldedForest,
   ): FoldedTree => treeFolder(tree.node, foldForest(tree.shrinks, treeFolder, forestFolder));
 
+  /* istanbul ignore next */
   export const foldForest = <Value, FoldedTree, FoldedForest>(
     forest: Iterable<GenTree<Value>>,
     treeFolder: (node: GenTreeNode<Value>, foldedForest: FoldedForest) => FoldedTree,

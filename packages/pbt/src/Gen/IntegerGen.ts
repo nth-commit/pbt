@@ -1,4 +1,3 @@
-import { Size } from '../Core';
 import { GenFactory, IntegerGen } from './Abstractions';
 import { BaseGen } from './BaseGen';
 import { ScaleMode, Range } from './Range';
@@ -86,7 +85,7 @@ const integerFunction = (args: IntegerGenArgs): GenFunction<number> => {
   const range = Range.createFrom(min, max, origin, scale);
 
   return GenFunction.create(
-    (consumeRandomInt, size) => consumeRandomInt(...range.getSizedBounds(size)),
+    (useNextInt, size) => useNextInt(...range.getSizedBounds(size)),
     Shrink.towardsNumber(range.origin),
     range.getProportionalDistance,
   );
