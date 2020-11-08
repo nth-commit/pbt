@@ -10,7 +10,7 @@ import {
 } from 'ix/iterable/operators';
 import { takeWhileInclusive as takeWhileInclusiveIter } from '../Core/iterableOperators';
 import { Rng, Size } from '../Core';
-import { GenTree, GenTreeNode, CalculateComplexity } from '../GenTree';
+import { GenTree, CalculateComplexity } from '../GenTree';
 import { Shrinker } from './Shrink';
 import { Range } from './Range';
 import { GenIteration } from './GenIteration';
