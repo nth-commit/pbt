@@ -1,7 +1,13 @@
 /* istanbul ignore file */
 
-import { of, pipe, concat, repeatValue } from 'ix/iterable';
-import { map as mapIter, filter as filterIter, flatMap as flatMapIter } from 'ix/iterable/operators';
+import { of, pipe, concat } from 'ix/iterable';
+import {
+  map as mapIter,
+  filter as filterIter,
+  flatMap as flatMapIter,
+  take as takeIter,
+  skip as skipIter,
+} from 'ix/iterable/operators';
 import { takeWhileInclusive as takeWhileInclusiveIter } from '../Core/iterableOperators';
 import { Rng, Size } from '../Core';
 import { GenTree, GenTreeNode, CalculateComplexity } from '../GenTree';
@@ -76,62 +82,13 @@ export namespace GenFunction {
   export const error = <T>(message: string): GenFunction<T> => (rng, size) =>
     of(GenIteration.error(message, rng, rng, size, size));
 
-  export const constant = <T>(value: T): GenFunction<T> => (rng, size) => {
+  export const constant = <T>(value: T): GenFunction<T> => {
     const tree = GenTree.create({ value, complexity: 0 }, []);
-    return repeatValue(GenIteration.instance(tree, rng, rng, size, size));
+    return infinite((rng, size) => of(GenIteration.instance(tree, rng, rng, size, size)));
   };
 
   export const map = <T, U>(gen: GenFunction<T>, f: (x: T) => U): GenFunction<U> =>
     mapTrees(gen, (tree) => GenTree.map(tree, f));
-
-  /**
-   * Given a single instance, runs the gen returned by `k` until it sees another instance. Then, merges the existing
-   * instance and the newly generated instance by combining their shrinks, in accordance with `k`. Produces a gen
-   * that contains all intermediate non-instance values (e.g. discards), followed by the single successfully bound
-   * instance.
-   * @param r
-   * @param k
-   */
-  const flatMapInstanceOnce = <T, U>(r: GenIteration.Instance<T>, k: (x: T) => GenFunction<U>): GenFunction<U> => (
-    rng,
-    size,
-  ) => {
-    const treeFolder = (node0: GenTreeNode<T>, iterations: Iterable<GenIteration<U>>): Iterable<GenIteration<U>> => {
-      const genK = k(node0.value);
-
-      const trees0 = pipe(
-        iterations,
-        filterIter(GenIteration.isInstance),
-        mapIter((instance0) => instance0.tree),
-      );
-
-      return pipe(
-        genK(rng, size),
-        takeWhileInclusiveIter(GenIteration.isNotInstance),
-        mapIter((iteration1) => {
-          if (GenIteration.isNotInstance(iteration1)) return iteration1;
-
-          const tree1 = GenTree.mapNode(iteration1.tree, (node1) => ({
-            value: node1.value,
-            complexity: node0.complexity + node1.complexity,
-          }));
-
-          return {
-            ...iteration1,
-            tree: GenTree.create(tree1.node, concat(trees0, tree1.shrinks)),
-          };
-        }),
-      );
-    };
-
-    const forestFolder = (iterationsOfIterations: Iterable<Iterable<GenIteration<U>>>): Iterable<GenIteration<U>> =>
-      pipe(
-        iterationsOfIterations,
-        flatMapIter((x) => x),
-      );
-
-    return GenTree.fold<T, Iterable<GenIteration<U>>, Iterable<GenIteration<U>>>(r.tree, treeFolder, forestFolder);
-  };
 
   /**
    * Runs the left gen until it finds and instance, then flatMaps that instance by passing it to `flatMapInstanceOnce`.
@@ -144,10 +101,7 @@ export namespace GenFunction {
     infinite((rng, size) =>
       pipe(
         gen(rng, size),
-        flatMapIter((iteration) => {
-          if (GenIteration.isNotInstance(iteration)) return [iteration];
-          return flatMapInstanceOnce(iteration, k)(rng, size);
-        }),
+        flatMapIter(flatMapOnce(k, size)),
         takeWhileInclusiveIter(GenIteration.isNotInstance),
         mapIter((iteration) => ({
           ...iteration,
@@ -157,6 +111,69 @@ export namespace GenFunction {
         })),
       ),
     );
+
+  /**
+   * Given a single instance, runs the gen returned by `k` until it sees another instance. Then, merges the existing
+   * instance and the newly generated instance by combining their shrinks, in accordance with `k`. Produces a gen
+   * that contains all intermediate non-instance values (e.g. discards), followed by the single successfully bound
+   * instance.
+   * @param iteration
+   * @param k
+   */
+  const flatMapOnce = <T, U>(k: (x: T) => GenFunction<U>, size: Size) => (
+    iteration: GenIteration<T>,
+  ): Iterable<GenIteration<U>> => {
+    if (GenIteration.isNotInstance(iteration)) return [iteration];
+    return flatMapTreeToIterations(iteration.tree, k, iteration.nextRng, size);
+  };
+
+  const flatMapTreeToIterations = <T, U>(
+    leftTree: GenTree<T>,
+    k: (x: T) => GenFunction<U>,
+    rng: Rng,
+    size: Size,
+  ): Iterable<GenIteration<U>> => {
+    const gen = k(leftTree.node.value);
+
+    return pipe(
+      gen(rng, size),
+      takeWhileInclusiveIter(GenIteration.isNotInstance),
+      mapIter((iteration) => {
+        if (GenIteration.isNotInstance(iteration)) return iteration;
+
+        const rightTree = GenTree.mapNode(iteration.tree, (node) => ({
+          value: node.value,
+          complexity: leftTree.node.complexity + node.complexity,
+        }));
+
+        const leftShrinkFlatMapped = pipe(
+          leftTree.shrinks,
+          flatMapIter(function* (leftTreeShrink): Iterable<GenTree<U>> {
+            for (const leftTreeShrinkIteration of flatMapTreeToIterations(leftTreeShrink, k, rng, size)) {
+              if (leftTreeShrinkIteration.kind === 'instance') {
+                yield leftTreeShrinkIteration.tree;
+
+                yield* pipe(
+                  Rng.stream(rng),
+                  skipIter(1),
+                  takeIter(iteration.nextRng.order - leftTreeShrinkIteration.nextRng.order),
+                  flatMapIter((altRng) => flatMapTreeToIterations(leftTreeShrink, k, altRng, size)),
+                  filterIter(GenIteration.isInstance),
+                  mapIter((iteration) => iteration.tree),
+                );
+              }
+            }
+          }),
+        );
+
+        return {
+          ...iteration,
+          kind: 'instance',
+          tree: GenTree.create(rightTree.node, concat(leftShrinkFlatMapped, rightTree.shrinks)),
+        };
+      }),
+    );
+  };
 
   export const filter = <T>(gen: GenFunction<T>, f: (x: T) => boolean): GenFunction<T> =>
     infinite(function* (rng, size) {
