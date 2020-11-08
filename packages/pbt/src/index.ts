@@ -13,4 +13,5 @@ export {
   assert,
   AssertConfig,
   PbtAssertionError,
+  defaultConfig,
 } from './Runners';

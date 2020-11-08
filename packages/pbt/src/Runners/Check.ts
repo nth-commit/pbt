@@ -1,7 +1,8 @@
 import { last, pipe } from 'ix/iterable';
 import { scan } from 'ix/iterable/operators';
-import { Size, takeWhileInclusive } from '../Core';
+import { Rng, Size, takeWhileInclusive } from '../Core';
 import { Property, PropertyIteration, Counterexample, ShrinkIteration } from '../Property';
+import { getDefaultConfig } from './DefaultConfig';
 import { Exhaustible, ExhaustionStrategy } from './ExhaustionStrategy';
 
 export type CheckConfig = {
@@ -36,6 +37,7 @@ export namespace CheckResult {
 
   export type Error = {
     kind: 'error';
+    iterations: number;
   };
 }
 
@@ -47,14 +49,20 @@ export type CheckResult<Ts extends any[]> =
 
 export const check = <Ts extends any[]>(property: Property<Ts>, config: Partial<CheckConfig> = {}): CheckResult<Ts> => {
   const resolvedConfig: CheckConfig = {
-    seed: Date.now(),
-    size: 0,
-    iterations: 100,
     path: undefined,
+    ...getDefaultConfig({ size: 0 }),
     ...config,
   };
 
   const iterationAccumulator = accumulateIterations<Ts>(property, resolvedConfig);
+
+  if (!iterationAccumulator) {
+    return {
+      kind: 'unfalsified',
+      iterations: 0,
+      discards: 0,
+    };
+  }
 
   switch (iterationAccumulator.lastIteration.kind) {
     case 'pass':
@@ -76,6 +84,7 @@ export const check = <Ts extends any[]>(property: Property<Ts>, config: Partial<
     case 'error':
       return {
         kind: 'error',
+        iterations: iterationAccumulator.iterationCount,
       };
     case 'exhausted':
       return {
@@ -101,7 +110,13 @@ const accumulateIterations = <Ts extends any[]>(property: Property<Ts>, config: 
       ExhaustionStrategy.apply(ExhaustionStrategy.defaultStrategy(), (iteration) => iteration.kind === 'discard'),
       scan<Exhaustible<PropertyIteration<Ts>>, IterationAccumulator<Ts>>({
         seed: {
-          lastIteration: { kind: 'pass' } as PropertyIteration<Ts>,
+          lastIteration: {
+            kind: 'pass',
+            initRng: Rng.create(config.seed),
+            nextRng: Rng.create(config.seed),
+            initSize: config.size,
+            nextSize: config.size,
+          },
           iterationCount: 0,
           discardCount: 0,
         },
@@ -130,11 +145,12 @@ const accumulateIterations = <Ts extends any[]>(property: Property<Ts>, config: 
         },
       }),
       takeWhileInclusive((acc) => {
+        if (acc.lastIteration === null) return true;
         if (acc.lastIteration.kind === 'exhausted') return false;
         return acc.iterationCount < config.iterations;
       }),
     ),
-  )!;
+  );
 
 type ShrinkAccumulator<Ts extends any[]> = Pick<CheckResult.Falsified<Ts>, 'counterexample' | 'shrinkIterations'>;
 

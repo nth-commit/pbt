@@ -5,6 +5,7 @@ import { takeWhileInclusive } from '../Core/iterableOperators';
 import { Result } from '../Core/Result';
 import { Gen, GenIteration } from '../Gen';
 import { GenTree } from '../GenTree';
+import { getDefaultConfig } from './DefaultConfig';
 import { Exhaustible, ExhaustionStrategy } from './ExhaustionStrategy';
 
 export type SampleConfig = {
@@ -51,9 +52,7 @@ type SampleAccumulator<T> = {
 
 export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): SampleResult<GenTree<T>> => {
   const { seed, size, iterations: iterationCount }: SampleConfig = {
-    seed: Date.now(),
-    size: 30,
-    iterations: 100,
+    ...getDefaultConfig({ size: 30 }),
     ...config,
   };
 
