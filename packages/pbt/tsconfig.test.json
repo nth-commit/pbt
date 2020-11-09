@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.esm.json",
   "compilerOptions": {
-    "types": ["node", "jest", "pbt-jest-vnext"],
+    "types": ["node", "jest", "pbt-jest"],
     "esModuleInterop": true,
     "noEmit": true
   },

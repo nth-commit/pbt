@@ -1,6 +1,6 @@
-require('pbt-jest-vnext');
+require('pbt-jest');
 const fc = require('fast-check');
-const pbt = require('pbt-vnext');
+const pbt = require('pbt');
 
 const fastCheckRuns = process.env.fastCheckRuns ? Number(process.env.fastCheckRuns) : undefined;
 

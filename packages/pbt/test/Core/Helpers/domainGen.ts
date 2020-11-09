@@ -1,4 +1,4 @@
-import * as stable from 'pbt-vnext';
+import * as stable from 'pbt';
 
 export type AnyArray = any[];
 export type AnyNonEmptyArray = [any, ...AnyArray];

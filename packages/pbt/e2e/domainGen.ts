@@ -1,4 +1,4 @@
-import { Gen } from 'pbt-vnext';
+import { Gen } from 'pbt';
 import * as dev from '../src';
 
 export const seed = (): Gen<number> => Gen.integer().growBy('constant').noShrink();

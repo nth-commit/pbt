@@ -1,4 +1,4 @@
-import { Gen } from 'pbt-vnext';
+import { Gen } from 'pbt';
 
 export const anything = (): Gen<unknown> => Gen.constant({});
 
