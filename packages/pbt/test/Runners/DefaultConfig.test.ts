@@ -1,4 +1,4 @@
-import { assert, property, Gen } from 'pbt-vnext';
+import { assert, property, Gen } from 'pbt';
 import * as dev from '../../src';
 import { PropertyConfig } from '../../src/Property/Abstractions';
 import * as domainGen from '../Helpers/domainGenV2';
