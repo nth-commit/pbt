@@ -283,19 +283,12 @@ describe('errors', () => {
 describe('shrinks', () => {
   test('Gen.integer().origin(z) *produces* values that shrink to z', () => {
     fc.assert(
-      fc.property(domainGen.checkConfig(), domainGen.integer(), domainGen.faillingFunc(), (config, z, f) => {
+      fc.property(domainGen.minimalConfig(), domainGen.integer(), (config, z) => {
         const gen = dev.Gen.integer().origin(z);
 
-        const checkResult = dev.check(dev.property(gen, f), config);
+        const min = dev.minimal(gen, config);
 
-        const expectedCounterexample: dev.Counterexample<[number]> = {
-          path: expect.anything(),
-          reason: expect.anything(),
-          complexity: 0,
-          value: [z],
-        };
-        if (checkResult.kind !== 'falsified') return failwith('expected falsified');
-        expect(checkResult.counterexample).toEqual(expectedCounterexample);
+        expect(min).toEqual(z);
       }),
     );
   });

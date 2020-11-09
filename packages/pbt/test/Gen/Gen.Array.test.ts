@@ -176,21 +176,13 @@ describe('errors', () => {
 describe('shrinks', () => {
   test('Gen.array(gen).ofMinLength(x) *produces* arrays that shrink to length = x', () => {
     fc.assert(
-      fc.property(
-        domainGen.checkConfig(),
-        domainGen.gen(),
-        genArrayLength(),
-        domainGen.faillingFunc(),
-        (config, gen, x, f) => {
-          const genArray = dev.Gen.array(gen).ofMinLength(x);
+      fc.property(domainGen.minimalConfig(), domainGen.gen(), genArrayLength(), (config, gen, x) => {
+        const genArray = dev.Gen.array(gen).ofMinLength(x);
 
-          const checkResult = dev.check(dev.property(genArray, f), config);
+        const min = dev.minimal(genArray, config);
 
-          if (checkResult.kind !== 'falsified') return failwith('expected falsified');
-          expect(checkResult.counterexample.value[0].length).toEqual(x);
-          expect(checkResult.counterexample.complexity).toEqual(0);
-        },
-      ),
+        expect(min).toHaveLength(x);
+      }),
     );
   });
 });
