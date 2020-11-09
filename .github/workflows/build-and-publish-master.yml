@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 3
     env:
       NODE_OPTIONS: --max_old_space_size=8192
 
@@ -24,9 +24,6 @@ jobs:
 
     - name: Prettier
       run: yarn prettier:check
-
-    - name: Test
-      run: yarn test
 
     - name: Configure NPM
       run: echo '//registry.npmjs.org/:_authToken=${NPM_AUTH_TOKEN}' >> .npmrc

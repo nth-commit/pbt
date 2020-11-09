@@ -1,7 +1,7 @@
-name: Build pull request
+name: Build and publish master
 
 on:
-  pull_request:
+  push:
     branches: [ master ]
 
 jobs:
@@ -13,15 +13,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: "0"
 
     - name: Restore packages
       run: yarn
 
-    - name: Build
-      run: yarn build
-
-    - name: Prettier
-      run: yarn prettier:check
-
     - name: Test
-      run: yarn test
+      run: yarn test:deep
+

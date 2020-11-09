@@ -14,6 +14,7 @@
     "build:watch": "lerna run build:watch --parallel --stream",
     "build:clean": "lerna run build:clean --stream",
     "test": "lerna run test --stream",
+    "test:deep": "lerna run test:deep --stream",
     "prettier:write": "prettier --write **/*.{ts,tsx}",
     "prettier:check": "prettier --check **/*.{ts,tsx}"
   },

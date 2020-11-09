@@ -36,6 +36,7 @@
     "build:clean": "rimraf lib",
     "test": "cross-env fastCheckRuns=25 jest --coverage --no-cache",
     "test:fast": "cross-env fastCheckRuns=5 jest --coverage --no-cache",
+    "test:deep": "cross-env fastCheckRuns=100 jest --coverage --no-cache",
     "test:watch": "cross-env fastCheckRuns=5 jest --watchAll --no-cache",
     "sandbox": "ts-node --project scripts/tsconfig.json scripts/sandbox"
   }
