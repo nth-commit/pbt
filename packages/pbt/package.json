@@ -21,6 +21,7 @@
     "cross-env": "^7.0.2",
     "fast-check": "^2.2.0",
     "jest": "^26.4.1",
+    "pbt-jest-vnext": "npm:pbt-jest@0.0.1-alpha.166",
     "pbt-vnext": "npm:pbt@0.0.1-alpha.163",
     "rimraf": "^3.0.2",
     "simple-statistics": "^7.3.0",
@@ -36,7 +37,7 @@
     "build:clean": "rimraf lib",
     "test": "cross-env fastCheckRuns=25 jest --coverage --no-cache",
     "test:fast": "cross-env fastCheckRuns=5 jest --coverage --no-cache",
-    "test:deep": "cross-env fastCheckRuns=100 jest --coverage --no-cache",
+    "test:deep": "cross-env fastCheckRuns=50 jest --coverage --no-cache",
     "test:watch": "cross-env fastCheckRuns=5 jest --watchAll --no-cache",
     "sandbox": "ts-node --project scripts/tsconfig.json scripts/sandbox"
   }
