@@ -55,6 +55,8 @@ export const checkConfig = (): fc.Arbitrary<dev.CheckConfig> =>
     .tuple(seed(), size(), integer(1, 100))
     .map(([seed, size, iterations]) => ({ seed, size, iterations, path: undefined }));
 
+export const minimalConfig = (): fc.Arbitrary<dev.MinimalConfig> => checkConfig();
+
 export const scaleMode = (): fc.Arbitrary<devGenRange.ScaleMode> => {
   const scaleModeExhaustive: { [P in devGenRange.ScaleMode]: P } = {
     constant: 'constant',

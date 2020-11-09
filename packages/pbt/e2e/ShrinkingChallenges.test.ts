@@ -2,7 +2,6 @@ import fc from 'fast-check';
 import { max } from 'ix/iterable';
 import { assert, property } from 'pbt-vnext';
 import * as dev from '../src';
-import { failwith } from '../test/Helpers/failwith';
 import * as domainGen from './domainGen';
 
 test('Fallacy: the array is in reverse order', () => {
@@ -10,19 +9,19 @@ test('Fallacy: the array is in reverse order', () => {
   assert(
     property(domainGen.seed(), domainGen.size(), (seed, size) => {
       const g = dev.Gen.integer().array();
+      const m = dev.minimal(
+        g,
+        (xs) => {
+          const xs0 = [...xs].sort((a, b) => b - a);
+          return xs.every((x, i) => x === xs0[i]);
+        },
+        { seed, size },
+      );
 
-      const p = dev.property(g, (xs) => {
-        expect(xs).toEqual([...xs].sort((a, b) => b - a));
-      });
-
-      const checkResult = dev.check(p, { seed, size });
-
-      if (checkResult.kind !== 'falsified') return failwith('expected falsified');
-      const expectedEither = [
+      expect([
         [0, 1],
         [-1, 0],
-      ];
-      expect(expectedEither).toContainEqual(checkResult.counterexample.value[0]);
+      ]).toContainEqual(m);
     }),
   );
 });
@@ -35,14 +34,9 @@ test('Fallacy: the array does not contain a value >= 900', () => {
         .between(1, 100)
         .flatMap((length) => dev.Gen.integer().between(0, 1000).array().ofLength(length));
 
-      const p = dev.property(g, (xs) => {
-        expect(max(xs)).toBeLessThan(900);
-      });
+      const m = dev.minimal(g, (xs) => max(xs) < 900, { seed, size });
 
-      const checkResult = dev.check(p, { seed, size });
-
-      if (checkResult.kind !== 'falsified') return failwith('expected falsified');
-      expect(checkResult.counterexample.value[0]).toEqual([900]);
+      expect(m).toEqual([900]);
     }),
   );
 });

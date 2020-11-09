@@ -6,6 +6,8 @@ export {
   check,
   CheckConfig,
   CheckResult,
+  minimal,
+  MinimalConfig,
   sample,
   sampleTrees,
   SampleConfig,
