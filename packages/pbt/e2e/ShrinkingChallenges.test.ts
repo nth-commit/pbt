@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { max } from 'ix/iterable';
 import { assert, property } from 'pbt-vnext';
 import * as dev from '../src';
@@ -26,14 +27,13 @@ test('Fallacy: the array is in reverse order', () => {
   );
 });
 
-test('Fallacy: the array does not contain a value >= x', () => {
+test('Fallacy: the array does not contain a value >= 900', () => {
   // Based on: https://github.com/jlink/shrinking-challenge/blob/main/challenges/lengthlist.md
   assert(
     property(domainGen.seed(), domainGen.size(), (seed, size) => {
       const g = dev.Gen.integer()
         .between(1, 100)
-        .growBy('constant')
-        .flatMap((length) => dev.Gen.integer().between(0, 1000).growBy('constant').array().ofLength(length));
+        .flatMap((length) => dev.Gen.integer().between(0, 1000).array().ofLength(length));
 
       const p = dev.property(g, (xs) => {
         expect(max(xs)).toBeLessThan(900);
