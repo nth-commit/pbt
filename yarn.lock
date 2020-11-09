@@ -5538,10 +5538,25 @@ path-type@^3.0.0:
   dependencies:
     pify "^3.0.0"
 
+"pbt-jest-vnext@npm:pbt-jest@0.0.1-alpha.166":
+  version "0.0.1-alpha.166"
+  resolved "https://registry.yarnpkg.com/pbt-jest/-/pbt-jest-0.0.1-alpha.166.tgz#a2531542acc4e06468b6d3934d871a023223a088"
+  integrity sha512-z3EHsprMJA45EDOMFca+RZtcQEZnpJbSFrm/RLPhW19IUyBj1aFx2PRy8XdPsfH8Hi22zxQKRL1pFffdVQkdSA==
+  dependencies:
+    jest "^26.4.1"
+    pbt "^0.0.1-alpha.166+4e82543"
+
 "pbt-vnext@npm:pbt@0.0.1-alpha.163":
   version "0.0.1-alpha.163"
   resolved "https://registry.yarnpkg.com/pbt/-/pbt-0.0.1-alpha.163.tgz#10a098d8d7862148759284de38a6362997800816"
   integrity sha512-R+WZLuoUEkFsTdHZaW5qO3MTn8KOVJoz95fb0VsvCIr8SYIwij9BaIXGhTiXykQuE58uWnBB4uhuY1x/SWNLjQ==
+  dependencies:
+    ix "^4.0.0"
+
+pbt@^0.0.1-alpha.166+4e82543:
+  version "0.0.1-alpha.167"
+  resolved "https://registry.yarnpkg.com/pbt/-/pbt-0.0.1-alpha.167.tgz#3a4264dd76fcf4226b78f2a66fc3d08207c478b7"
+  integrity sha512-YwRskYBtFFAcj2pzq+Ua4t4q5kHK62Ir5BOgdzajrIqHX7N/nDbyBe4bEG/ye9NV/XAoUZ7XLpNGDy/zejJ7pw==
   dependencies:
     ix "^4.0.0"
 
@@ -7227,9 +7242,9 @@ write-pkg@^3.1.0:
     write-json-file "^2.2.0"
 
 ws@^7.2.3:
-  version "7.3.1"
-  resolved "https://registry.yarnpkg.com/ws/-/ws-7.3.1.tgz#d0547bf67f7ce4f12a72dfe31262c68d7dc551c8"
-  integrity sha512-D3RuNkynyHmEJIpD2qrgVkc9DQ23OrN/moAwZX4L8DfvszsJxpjQuUq3LMx6HoYji9fbIOBY18XWBsAux1ZZUA==
+  version "7.4.0"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-7.4.0.tgz#a5dd76a24197940d4a8bb9e0e152bb4503764da7"
+  integrity sha512-kyFwXuV/5ymf+IXhS6f0+eAFvydbaBW3zjpT6hUdAh/hbVjTIB5EHBGi0bPoCLSK2wcuz3BrEkB9LrYv1Nm4NQ==
 
 xml-name-validator@^3.0.0:
   version "3.0.0"
@@ -7262,9 +7277,9 @@ yallist@^4.0.0:
   integrity sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==
 
 yargs-parser@20.x, yargs-parser@^20.2.3:
-  version "20.2.3"
-  resolved "https://registry.yarnpkg.com/yargs-parser/-/yargs-parser-20.2.3.tgz#92419ba867b858c868acf8bae9bf74af0dd0ce26"
-  integrity sha512-emOFRT9WVHw03QSvN5qor9QQT9+sw5vwxfYweivSMHTcAXPefwVae2FjO7JJjj8hCE4CzPOPeFM83VwT29HCww==
+  version "20.2.4"
+  resolved "https://registry.yarnpkg.com/yargs-parser/-/yargs-parser-20.2.4.tgz#b42890f14566796f85ae8e3a25290d205f154a54"
+  integrity sha512-WOkpgNhPTlE73h4VFAFsOnomJVaovO8VqLDzy5saChRBFQFBoMYirowyW+Q9HB4HFF4Z7VZTiG3iSzJJA29yRA==
 
 yargs-parser@^15.0.1:
   version "15.0.1"

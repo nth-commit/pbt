@@ -1,3 +1,4 @@
+require('pbt-jest-vnext');
 const fc = require('fast-check');
 const pbt = require('pbt-vnext');
 

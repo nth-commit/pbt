@@ -17,3 +17,10 @@ test
     expect(x).toEqual(717354021); // Saaaaaaahhhh rand0m
   })
   .config({ seed: 1, size: 50, iterations: 1 });
+
+test('it augments the other test fns', () => {
+  expect(typeof test.skip.property).toEqual('function');
+  expect(typeof test.only.property).toEqual('function');
+  expect(typeof test.todo.property).toEqual('function');
+  expect(typeof test.concurrent.property).toEqual('function');
+});

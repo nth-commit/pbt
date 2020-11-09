@@ -44,3 +44,7 @@ export const bind = (itLike: typeof it) => (...args: NullaryPropertyArgs | Varia
 };
 
 it.property = bind(it);
+it.skip.property = bind(it.skip);
+it.only.property = bind(it.only);
+it.todo.property = bind(it.todo);
+it.concurrent.property = bind(it.concurrent);
