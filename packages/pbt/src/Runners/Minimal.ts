@@ -22,13 +22,13 @@ export function minimal<T>(g: Gen<T>, predicate: (x: T) => boolean): T;
 export function minimal<T>(g: Gen<T>, predicate: (x: T) => boolean, config: Partial<MinimalConfig>): T;
 export function minimal<T>(...args: MinimalArgs<T>): T {
   const [g, predicateOrUndefined, configOrUndefined] = resolveArgs(args);
-  const predicate: (x: T) => boolean = predicateOrUndefined || (() => false);
+  const predicate = predicateOrUndefined || (() => true);
   const config: MinimalConfig = {
     ...getDefaultConfig({ size: 0 }),
     ...(configOrUndefined || {}),
   };
 
-  const p = property(g, predicate);
+  const p = property(g, (x) => !predicate(x));
   const c = check(p, config);
 
   if (c.kind !== 'falsified') {
