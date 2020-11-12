@@ -1,4 +1,4 @@
-import { assert, property, Gen } from 'pbt';
+import { Gen } from 'pbt';
 import * as dev from '../../src';
 import { DomainGenV2 } from '../Helpers/domainGenV2';
 import * as spies from '../Helpers/spies';
@@ -6,32 +6,29 @@ import * as spies from '../Helpers/spies';
 describe('sample', () => {
   afterEach(() => dev.defaultConfig({}));
 
-  it('respects default iterations', () => {
-    assert(
-      property(Gen.integer().between(1, 100), DomainGenV2.anything(), (iterations, value) => {
-        const g = dev.Gen.constant(value);
+  test.property(
+    'respects default iterations',
+    Gen.integer().between(1, 200),
+    DomainGenV2.anything(),
+    (iterations, value) => {
+      const g = dev.Gen.constant(value);
 
-        dev.defaultConfig({ iterations });
+      dev.defaultConfig({ iterations });
 
-        const s = dev.sample(g);
+      const s = dev.sample(g);
 
-        expect(s.values).toHaveLength(iterations);
-      }),
-    );
-  });
+      expect(s.values).toHaveLength(iterations);
+    },
+  );
 
-  it('respects default seed', () => {
-    assert(
-      property(DomainGenV2.seed(), DomainGenV2.anything(), (seed, value) => {
-        const g = dev.Gen.constant(value);
+  test.property('respects default seed', DomainGenV2.seed(), DomainGenV2.anything(), (seed, value) => {
+    const g = dev.Gen.constant(value);
 
-        dev.defaultConfig({ seed });
+    dev.defaultConfig({ seed });
 
-        const s = dev.sample(g);
+    const s = dev.sample(g);
 
-        expect(s.seed).toEqual(seed);
-      }),
-    );
+    expect(s.seed).toEqual(seed);
   });
 });
 
@@ -48,33 +45,25 @@ describe('check', () => {
     }
   }
 
-  it('respects default iterations', () => {
-    assert(
-      property(Gen.integer().between(1, 100), (iterations) => {
-        const p = dev.property(() => true);
+  test.property('respects default iterations', Gen.integer().between(1, 100), (iterations) => {
+    const p = dev.property(() => true);
 
-        dev.defaultConfig({ iterations });
+    dev.defaultConfig({ iterations });
 
-        const c = dev.check(p);
+    const c = dev.check(p);
 
-        expect(c.iterations).toEqual(iterations);
-      }),
-    );
+    expect(c.iterations).toEqual(iterations);
   });
 
-  it('respects default seed', () => {
-    assert(
-      property(DomainGenV2.seed(), (seed) => {
-        const run = spies.spyOn<RunFn>(() => []);
-        const p = new MockProperty(run);
+  test.property('respects default seed', DomainGenV2.seed(), (seed) => {
+    const run = spies.spyOn<RunFn>(() => []);
+    const p = new MockProperty(run);
 
-        dev.defaultConfig({ seed });
+    dev.defaultConfig({ seed });
 
-        dev.check(p);
+    dev.check(p);
 
-        const spiedSeed = spies.calls(run)[0][0];
-        expect(spiedSeed).toEqual(seed);
-      }),
-    );
+    const spiedSeed = spies.calls(run)[0][0];
+    expect(spiedSeed).toEqual(seed);
   });
 });
