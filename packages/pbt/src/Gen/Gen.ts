@@ -30,6 +30,10 @@ export namespace Gen {
     return new BaseGen(GenFunction.constant(x), genFactory);
   }
 
+  export function error<T>(message: string): Gen<T> {
+    return new BaseGen(GenFunction.error(message), genFactory);
+  }
+
   export function array<T>(elementGen: Gen<T>): ArrayGen<T> {
     return genFactory.array(elementGen);
   }
@@ -64,5 +68,26 @@ export namespace Gen {
     const fUnsafe = f as MapperFunction<any[], U>;
     const gensUnsafe = gens as Gens<any[]>;
     return zip(...gensUnsafe).map(([...xs]) => fUnsafe(...xs));
+  }
+
+  export function element<T>(collection: T[] | Record<any, T> | Set<T> | Map<unknown, T>): Gen<T> {
+    const elements = Array.isArray(collection)
+      ? collection
+      : collection instanceof Set
+      ? [...collection.values()]
+      : collection instanceof Map
+      ? [...collection.values()]
+      : Object.values(collection);
+
+    if (elements.length === 0) {
+      return error('Gen.element invoked with empty collection');
+    }
+
+    return integer()
+      .between(0, elements.length - 1)
+      .growBy('constant')
+      .map((i) => elements[i])
+      .noShrink()
+      .noComplexity();
   }
 }
