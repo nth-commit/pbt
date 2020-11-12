@@ -1,7 +1,6 @@
 import fc from 'fast-check';
 import * as dev from '../../src';
 import * as domainGen from '../Helpers/domainGen';
-import { failwith } from '../Helpers/failwith';
 
 const genArrayLength = () => domainGen.integer({ min: 0, max: 10 });
 

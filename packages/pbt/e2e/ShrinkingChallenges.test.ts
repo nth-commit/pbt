@@ -1,38 +1,30 @@
-import { max } from 'ix/iterable';
 import * as dev from '../src';
-import * as domainGen from './domainGen';
 
 // Based on: https://github.com/jlink/shrinking-challenge/blob/main/challenges/reverse.md
-test.property('Fallacy: the array is in reverse order', domainGen.seed(), domainGen.size(), (seed, size) => {
+test.property('Smallest array not in descending order', () => {
+  const numberArrayEquals = (as: number[], bs: number[]): boolean =>
+    as.length === bs.length && as.every((a, i) => a === bs[i]);
+
   const g = dev.Gen.integer().array();
 
-  const m = dev.minimal(
-    g,
-    (xs) => {
-      const xs0 = [...xs].sort((a, b) => b - a);
-      return xs.every((x, i) => x === xs0[i]);
-    },
-    { seed, size },
-  );
+  const m = dev.minimal(g, (xs) => {
+    const xsDescending = [...xs].sort((a, b) => b - a);
+    return !numberArrayEquals(xs, xsDescending);
+  });
 
-  expect([
+  expect(m).toBeOneOf([
     [0, 1],
     [-1, 0],
-  ]).toContainEqual(m);
+  ]);
 });
 
 // Based on: https://github.com/jlink/shrinking-challenge/blob/main/challenges/lengthlist.md
-test.property(
-  'Fallacy: the array does not contain a value >= 900',
-  domainGen.seed(),
-  domainGen.size(),
-  (seed, size) => {
-    const g = dev.Gen.integer()
-      .between(1, 100)
-      .flatMap((length) => dev.Gen.integer().between(0, 1000).array().ofLength(length));
+test.property('Smallest array containing element >= 900', () => {
+  const g = dev.Gen.integer()
+    .between(1, 100)
+    .flatMap((length) => dev.Gen.integer().between(0, 1000).array().ofLength(length));
 
-    const m = dev.minimal(g, (xs) => max(xs) < 900, { seed, size });
+  const m = dev.minimal(g, (xs) => xs.some((x) => x >= 900));
 
-    expect(m).toEqual([900]);
-  },
-);
+  expect(m).toEqual([900]);
+});
