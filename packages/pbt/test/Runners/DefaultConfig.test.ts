@@ -1,7 +1,7 @@
 import { assert, property, Gen } from 'pbt';
 import * as dev from '../../src';
 import { PropertyConfig } from '../../src/Property/Abstractions';
-import * as domainGen from '../Helpers/domainGenV2';
+import { DomainGenV2 } from '../Helpers/domainGenV2';
 import * as spies from '../Helpers/spies';
 
 describe('sample', () => {
@@ -9,7 +9,7 @@ describe('sample', () => {
 
   it('respects default iterations', () => {
     assert(
-      property(Gen.integer().between(1, 100), domainGen.anything(), (iterations, value) => {
+      property(Gen.integer().between(1, 100), DomainGenV2.anything(), (iterations, value) => {
         const g = dev.Gen.constant(value);
 
         dev.defaultConfig({ iterations });
@@ -23,7 +23,7 @@ describe('sample', () => {
 
   it('respects default seed', () => {
     assert(
-      property(domainGen.seed(), domainGen.anything(), (seed, value) => {
+      property(DomainGenV2.seed(), DomainGenV2.anything(), (seed, value) => {
         const g = dev.Gen.constant(value);
 
         dev.defaultConfig({ seed });
@@ -37,7 +37,7 @@ describe('sample', () => {
 
   it('respects default size', () => {
     assert(
-      property(domainGen.size(), domainGen.anything(), (size, value) => {
+      property(DomainGenV2.size(), DomainGenV2.anything(), (size, value) => {
         const g = dev.Gen.constant(value);
 
         dev.defaultConfig({ size });
@@ -79,7 +79,7 @@ describe('check', () => {
 
   it('respects default seed', () => {
     assert(
-      property(domainGen.seed(), (seed) => {
+      property(DomainGenV2.seed(), (seed) => {
         const run = spies.spyOn<RunFn>(() => []);
         const p = new MockProperty(run);
 
@@ -95,7 +95,7 @@ describe('check', () => {
 
   it('respects default size', () => {
     assert(
-      property(domainGen.size(), (size) => {
+      property(DomainGenV2.size(), (size) => {
         const run = spies.spyOn<RunFn>(() => []);
         const p = new MockProperty(run);
 
