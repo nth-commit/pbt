@@ -7,7 +7,7 @@ import { Exhaustible, ExhaustionStrategy } from './ExhaustionStrategy';
 
 export type CheckConfig = {
   seed: number;
-  size: Size;
+  size: Size | undefined;
   iterations: number;
   path: string | undefined;
 };
@@ -50,9 +50,19 @@ export type CheckResult<Ts extends any[]> =
 export const check = <Ts extends any[]>(property: Property<Ts>, config: Partial<CheckConfig> = {}): CheckResult<Ts> => {
   const resolvedConfig: CheckConfig = {
     path: undefined,
-    ...getDefaultConfig({ size: 0 }),
+    size: undefined,
+    ...getDefaultConfig(),
     ...config,
   };
+
+  // TODO: Clean up this
+  if (resolvedConfig.iterations === 0) {
+    return {
+      kind: 'unfalsified',
+      discards: 0,
+      iterations: 0,
+    };
+  }
 
   const iterationAccumulator = accumulateIterations<Ts>(property, resolvedConfig);
 
@@ -106,7 +116,7 @@ type IterationAccumulator<Ts extends any[]> = {
 const accumulateIterations = <Ts extends any[]>(property: Property<Ts>, config: CheckConfig) =>
   last(
     pipe(
-      property.run(config.seed, config.size, { path: config.path }),
+      property.run(config.seed, config.iterations, { size: config.size, path: config.path }),
       ExhaustionStrategy.apply(ExhaustionStrategy.defaultStrategy(), (iteration) => iteration.kind === 'discard'),
       scan<Exhaustible<PropertyIteration<Ts>>, IterationAccumulator<Ts>>({
         seed: {
@@ -114,8 +124,8 @@ const accumulateIterations = <Ts extends any[]>(property: Property<Ts>, config: 
             kind: 'pass',
             initRng: Rng.create(config.seed),
             nextRng: Rng.create(config.seed),
-            initSize: config.size,
-            nextSize: config.size,
+            initSize: config.size || 0,
+            nextSize: config.size || 0,
           },
           iterationCount: 0,
           discardCount: 0,

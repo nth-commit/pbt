@@ -45,7 +45,7 @@ export const func = <T, TArgs extends any[] = unknown[]>(
 
 export const seed = (): fc.Arbitrary<number> => fc.nat().noShrink();
 
-export const size = (): fc.Arbitrary<devCore.Size> => fc.integer(0, 100);
+export const size = (): fc.Arbitrary<devCore.Size> => fc.integer(0, 99);
 
 export const sampleConfig = (): fc.Arbitrary<dev.SampleConfig> =>
   fc.tuple(seed(), size(), integer(1, 100)).map(([seed, size, iterations]) => ({ seed, size, iterations }));

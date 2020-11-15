@@ -1,4 +1,4 @@
-import { RandomStream } from '../Core';
+import { Size } from '../Core';
 import { Complexity } from '../GenTree';
 import { GenIteration } from '../Gen';
 
@@ -84,7 +84,10 @@ export namespace PropertyFunction {
 }
 
 export type PropertyConfig = {
-  path: string;
+  path?: string;
+  size?: Size;
 };
 
-export type Property<Ts extends any[]> = RandomStream<PropertyIteration<Ts>, Partial<PropertyConfig>>;
+export type Property<Ts extends any[]> = {
+  run(seed: number, iterations: number, config?: PropertyConfig): Iterable<PropertyIteration<Ts>>;
+};
