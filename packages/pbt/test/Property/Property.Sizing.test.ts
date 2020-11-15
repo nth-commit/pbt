@@ -1,34 +1,9 @@
-import { count, first, last, pipe, repeatValue } from 'ix/iterable';
-import { flatMap, take } from 'ix/iterable/operators';
+import { count, first, last } from 'ix/iterable';
 import { Gen } from 'pbt';
 import * as dev from '../../src';
+import { calculatePropertySizes } from '../../src/Property/calculatePropertySizes';
 import { DomainGenV2 } from '../Helpers/domainGenV2';
-
-const arrayRange = (n: number): number[] => [...Array(n).keys()];
-
-const calculatePropertySizes = (iterations: number, requestedSize?: dev.Size): Iterable<dev.Size> => {
-  if (iterations < 0 || !Number.isInteger(iterations)) throw new Error('Fatal: Iterations must be positive integer');
-
-  if (requestedSize !== undefined) {
-    if (requestedSize < 0 || requestedSize > 99 || !Number.isInteger(requestedSize))
-      throw new Error('Fatal: Size must integer in [0 .. 99]');
-
-    return pipe(repeatValue(requestedSize), take(iterations));
-  }
-
-  if (iterations === 0) return [];
-  if (iterations === 1) return [0];
-  if (iterations <= 99) {
-    const sizeIncrement = Math.round(100 / (iterations - 1));
-    return [0, ...arrayRange(iterations - 2).map((n) => sizeIncrement * (n + 1)), 99];
-  }
-
-  return pipe(
-    repeatValue(null),
-    flatMap(() => arrayRange(100)),
-    take(iterations),
-  );
-};
+import * as spies from '../Helpers/spies';
 
 describe('unit tests', () => {
   test.each([
@@ -54,7 +29,7 @@ describe('unit tests', () => {
     },
   );
 
-  test.property('first(sizes) = 0', Gen.integer().between(1, 1000), (iterations) => {
+  test.property('first(sizes) = 0', Gen.integer().between(1, 200), (iterations) => {
     const sizes = calculatePropertySizes(iterations);
 
     expect(first(sizes)).toEqual(0);
@@ -72,13 +47,19 @@ describe('unit tests', () => {
     expect(count(sizes)).toEqual(iterations);
   });
 
-  test.property('if iterations >= 100, count(sizes) = 100', Gen.integer().between(100, 1000), (iterations) => {
+  test.property('if iterations >= 100, count(sizes) = 100', Gen.integer().between(100, 200), (iterations) => {
     const sizes = calculatePropertySizes(iterations);
 
     expect(count(sizes)).toEqual(iterations);
   });
 
-  test.property('sizes ∈ [0 .. 99]', () => {});
+  test.property('sizes ∈ [0 .. 99]', Gen.integer().between(0, 200), (iterations) => {
+    const sizes = calculatePropertySizes(iterations);
+
+    for (const size of sizes) {
+      expect(size).toBeWithin(0, 100);
+    }
+  });
 
   describe('requestedSize', () => {
     test.property(
@@ -98,7 +79,7 @@ describe('unit tests', () => {
 
     test.property(
       'requestedSize is repeated for iterations',
-      Gen.integer().between(0, 1000),
+      Gen.integer().between(0, 200),
       DomainGenV2.size(),
       (iterations, requestedSize) => {
         const sizes = Array.from(calculatePropertySizes(iterations, requestedSize));
@@ -110,4 +91,36 @@ describe('unit tests', () => {
       },
     );
   });
+});
+
+describe('integration tests', () => {
+  test.property(
+    'properties behave with respect to calculatePropertySizes',
+    Gen.integer().between(0, 200),
+    DomainGenV2.choose(Gen.constant(undefined), DomainGenV2.size()),
+    (iterations, requestedSize) => {
+      const expectedSizes = Array.from(calculatePropertySizes(iterations, requestedSize));
+
+      const f = spies.spyOn<(sz: dev.Size) => boolean>(() => true);
+      const g = dev.Gen.create((_, size) => size, dev.Shrink.none());
+      const p = dev.property(g, f);
+      dev.check(p, { iterations, size: requestedSize });
+
+      const calls = spies.calls(f);
+      const actualSizes = calls.map(([s]) => s);
+      expect(actualSizes).toEqual(expectedSizes);
+    },
+  );
+
+  test.property(
+    'if iterations > 1, and property fails when size >= 99, then it is falsified',
+    Gen.integer().greaterThanEqual(2),
+    (iterations) => {
+      const genOfSize = dev.Gen.create((_, size) => size, dev.Shrink.none());
+      const p = dev.property(genOfSize, (size) => size < 99);
+      const c = dev.check(p, { iterations });
+
+      expect(c.kind).toEqual('falsified');
+    },
+  );
 });

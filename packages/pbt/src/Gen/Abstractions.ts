@@ -1,13 +1,13 @@
-import { RandomStream, Rng } from '../Core';
+import { Rng, Size } from '../Core';
 import { GenFunction } from './GenFunction';
 import { GenIteration } from './GenIteration';
 import { ScaleMode } from './Range';
 
-export type GenConfig = Partial<{
-  makeRng: (seed: number) => Rng;
-}>;
+export type GenConfig = {
+  makeRng?: (seed: number) => Rng;
+};
 
-export interface Gen<T> extends RandomStream<GenIteration<T>, GenConfig> {
+export interface Gen<T> {
   /**
    * @description The underlying function that is built up by all operations on a Gen.
    * @private
@@ -19,6 +19,7 @@ export interface Gen<T> extends RandomStream<GenIteration<T>, GenConfig> {
   filter(predicate: (x: T) => boolean): Gen<T>;
   noShrink(): Gen<T>;
   noComplexity(): Gen<T>;
+  run(seed: number, size: Size, config?: GenConfig): Iterable<GenIteration<T>>;
 }
 
 export type ArrayGen<T> = Gen<T[]> & {

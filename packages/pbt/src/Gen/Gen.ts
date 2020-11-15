@@ -21,7 +21,7 @@ export namespace Gen {
   export function create<T>(
     f: GenInstanceStatefulFunction<T>,
     shrink: Shrinker<T>,
-    calculateComplexity: CalculateComplexity<T>,
+    calculateComplexity: CalculateComplexity<T> = () => 0,
   ): Gen<T> {
     return new BaseGen(GenFunction.create(f, shrink, calculateComplexity), genFactory);
   }

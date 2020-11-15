@@ -6,6 +6,7 @@ import { indexed, Size } from '../Core';
 import { Gen, Gens, GenIteration } from '../Gen';
 import { GenTree } from '../GenTree';
 import { Property, PropertyConfig, PropertyFunction, PropertyIteration, ShrinkIteration } from './Abstractions';
+import { calculatePropertySizes } from './calculatePropertySizes';
 
 export type PropertyArgs<Ts extends [any, ...any[]]> = [...Gens<Ts>, PropertyFunction<Ts>];
 
@@ -19,9 +20,11 @@ export function property<Ts extends [any, ...any[]]>(...args: PropertyArgs<Ts>):
 class PropertyImpl<Ts extends any[]> implements Property<Ts> {
   constructor(private readonly f: PropertyFunction<Ts>, private readonly gens: Gens<Ts>) {}
 
-  run(seed: number, size: Size, config: Partial<PropertyConfig> = {}): Iterable<PropertyIteration<Ts>> {
+  run(seed: number, iterationCount: number, config: PropertyConfig = {}): Iterable<PropertyIteration<Ts>> {
     const gen = Gen.zip<Ts>(...this.gens);
-    return config.path === undefined ? explore(this.f, gen, seed, size) : repeat(this.f, gen, seed, size, config.path);
+    return config.path === undefined
+      ? explore(this.f, gen, seed, config.size, iterationCount)
+      : repeat(this.f, gen, seed, config.size || 0, config.path);
   }
 }
 
@@ -29,23 +32,38 @@ const explore = function* <Ts extends any[]>(
   f: PropertyFunction<Ts>,
   gen: Gen<Ts>,
   seed: number,
-  size: Size,
+  requestedSize: Size | undefined,
+  iterationCount: number,
 ): Iterable<PropertyIteration<Ts>> {
-  let iteration: PropertyIteration<Ts> | null = null;
+  for (const size of calculatePropertySizes(iterationCount, requestedSize)) {
+    let hasSeenTerminator = false;
 
-  while (iteration === null || iteration.kind === 'pass') {
-    for (const genIteration of gen.run(seed, size)) {
-      iteration = mapGenIterationToPropertyIteration(f, genIteration as GenIteration<any>);
+    const iterations = pipe(
+      gen.run(seed, size),
+      map((iteration) => mapGenIterationToPropertyIteration(f, iteration)),
+    );
 
+    for (const iteration of iterations) {
       yield iteration;
 
-      if (iteration.kind !== 'discard') {
+      seed = iteration.nextRng.seed;
+
+      if (iteration.kind === 'pass') {
         break;
+      } else if (iteration.kind === 'discard') {
+        continue;
+      } else if (iteration.kind === 'fail' || iteration.kind === 'error') {
+        hasSeenTerminator = true;
+        break;
+      } else {
+        const n: never = iteration;
+        throw new Error(`Fatal: Unexpected iteration ${JSON.stringify(n, null, 2)}`);
       }
     }
 
-    size = Size.increment(size);
-    seed = iteration?.nextRng?.seed || seed;
+    if (hasSeenTerminator) {
+      break;
+    }
   }
 };
 

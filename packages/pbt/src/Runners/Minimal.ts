@@ -6,7 +6,7 @@ import { getDefaultConfig } from './DefaultConfig';
 
 export type MinimalConfig = {
   seed: number;
-  size: Size;
+  size: Size | undefined;
   iterations: number;
 };
 
@@ -21,10 +21,11 @@ export function minimal<T>(g: Gen<T>, config: Partial<MinimalConfig>): T;
 export function minimal<T>(g: Gen<T>, predicate: (x: T) => boolean): T;
 export function minimal<T>(g: Gen<T>, predicate: (x: T) => boolean, config: Partial<MinimalConfig>): T;
 export function minimal<T>(...args: MinimalArgs<T>): T {
-  const [g, predicateOrUndefined, configOrUndefined] = resolveArgs(args);
+  const [g, predicateOrUndefined, configOrUndefined] = normalizeArgs(args);
   const predicate = predicateOrUndefined || (() => true);
   const config: MinimalConfig = {
-    ...getDefaultConfig({ size: 0 }),
+    size: undefined,
+    ...getDefaultConfig(),
     ...(configOrUndefined || {}),
   };
 
@@ -38,7 +39,7 @@ export function minimal<T>(...args: MinimalArgs<T>): T {
   return c.counterexample.value[0];
 }
 
-const resolveArgs = <T>(
+const normalizeArgs = <T>(
   args: MinimalArgs<T>,
 ): [Gen<T>, ((x: T) => boolean) | undefined, Partial<MinimalConfig> | undefined] => {
   switch (args.length) {

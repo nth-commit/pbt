@@ -52,7 +52,8 @@ type SampleAccumulator<T> = {
 
 export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): SampleResult<GenTree<T>> => {
   const { seed, size, iterations: iterationCount }: SampleConfig = {
-    ...getDefaultConfig({ size: 30 }),
+    size: 0,
+    ...getDefaultConfig(),
     ...config,
   };
 
