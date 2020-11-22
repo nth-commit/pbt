@@ -23,5 +23,6 @@ module.exports = {
     'src/Core',
     'src/GenTree',
     'src/Runners',
+    'src/Gen/GenStream'
   ]
 };

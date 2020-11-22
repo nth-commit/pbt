@@ -57,14 +57,6 @@ export const checkConfig = (): fc.Arbitrary<dev.CheckConfig> =>
 
 export const minimalConfig = (): fc.Arbitrary<dev.MinimalConfig> => checkConfig();
 
-export const scaleMode = (): fc.Arbitrary<devGenRange.ScaleMode> => {
-  const scaleModeExhaustive: { [P in devGenRange.ScaleMode]: P } = {
-    constant: 'constant',
-    linear: 'linear',
-  };
-  return fc.constantFrom(...Object.values(scaleModeExhaustive));
-};
-
 export const shuffle = <T>(arr: T[]): fc.Arbitrary<T[]> =>
   fc.array(fc.nat(), arr.length, arr.length).map((orders) =>
     arr
@@ -102,7 +94,13 @@ const firstOrderGen = (): fc.Arbitrary<dev.Gen<unknown>> =>
   element([augmentGenWithToString(dev.Gen.integer(), 'Gen.integer()')]);
 
 const arrayGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown[]>> =>
-  scaleMode().map((s) => augmentGenWithToString(gen.array().growBy(s), `${gen}.array().growBy(${s})`));
+  fc
+    .boolean()
+    .map((shouldBias) =>
+      shouldBias
+        ? augmentGenWithToString(gen.array(), `${gen}.array()`)
+        : augmentGenWithToString(gen.array().noBias(), `${gen}.array().noBias()`),
+    );
 
 const mapGen = (gen: dev.Gen<unknown>): fc.Arbitrary<dev.Gen<unknown>> =>
   func(fc.anything()).map((f) => augmentGenWithToString(gen.map(f), `${gen}.map(f)`));
@@ -154,7 +152,7 @@ export const predicate = (trueWeight: number = 3) =>
     .noShrink()
     .noBias();
 
-export const faillingFunc = (): fc.Arbitrary<dev.PropertyFunction<any[]>> =>
+export const faillingFunc = (): fc.Arbitrary<dev.Property.PropertyFunction<any[]>> =>
   fc.oneof(
     fc.anything().map((x) => () => {
       throw x;
@@ -162,13 +160,13 @@ export const faillingFunc = (): fc.Arbitrary<dev.PropertyFunction<any[]>> =>
     fc.constant(() => false),
   );
 
-export const passingFunc = (): fc.Arbitrary<dev.PropertyFunction<any[]>> =>
+export const passingFunc = (): fc.Arbitrary<dev.Property.PropertyFunction<any[]>> =>
   fc.constantFrom(
     () => {},
     () => true,
   );
 
-export const fallibleFunc = (): fc.Arbitrary<dev.PropertyFunction<any[]>> => {
+export const fallibleFunc = (): fc.Arbitrary<dev.Property.PropertyFunction<any[]>> => {
   return zip(func(integer()), passingFunc(), faillingFunc()).map(([f, passF, failF]) => (...args) => {
     const x = f(...args);
     return x % 2 === 0 ? failF() : passF();

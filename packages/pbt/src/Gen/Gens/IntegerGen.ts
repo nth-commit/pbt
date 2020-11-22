@@ -1,13 +1,13 @@
-import { GenFactory, IntegerGen } from './Abstractions';
-import { BaseGen } from './BaseGen';
-import { ScaleMode, Range } from './Range';
-import { GenFunction } from './GenFunction';
-import { Shrink } from './Shrink';
+import { GenFactory, IntegerGen } from '../Abstractions';
+import { GenImpl } from './GenImpl';
+import { Range, ScaleMode } from '../Range';
+import { Shrink } from '../Shrink';
+import { GenStreamer, GenStreamerTransformation } from '../GenStream';
 
 const MAX_INT_32 = Math.pow(2, 31);
 const MIN_INT_32 = -MAX_INT_32;
 
-type IntegerGenArgs = Readonly<{
+type IntegerGenConfig = Readonly<{
   min: number | null;
   max: number | null;
   origin: number | null;
@@ -15,44 +15,35 @@ type IntegerGenArgs = Readonly<{
 }>;
 
 export const integer = (genFactory: GenFactory): IntegerGen => {
-  class IntegerGenImpl extends BaseGen<number> implements IntegerGen {
-    constructor(private readonly args: Readonly<IntegerGenArgs>) {
-      super((seed, size) => integerFunction(args)(seed, size), genFactory);
+  class IntegerGenImpl extends GenImpl<number> implements IntegerGen {
+    constructor(private readonly config: Readonly<IntegerGenConfig>) {
+      super(() => integerStreamer(config), GenStreamerTransformation.none(), genFactory);
     }
 
     greaterThanEqual(min: number): IntegerGen {
-      return new IntegerGenImpl({
-        ...this.args,
-        min,
-      });
+      return this.withConfig({ min });
     }
 
     lessThanEqual(max: number): IntegerGen {
-      return new IntegerGenImpl({
-        ...this.args,
-        max,
-      });
+      return this.withConfig({ max });
     }
 
     between(min: number, max: number): IntegerGen {
-      return new IntegerGenImpl({
-        ...this.args,
-        min,
-        max,
-      });
-    }
-
-    growBy(scale: ScaleMode): IntegerGen {
-      return new IntegerGenImpl({
-        ...this.args,
-        scale,
-      });
+      return this.withConfig({ min, max });
     }
 
     origin(origin: number): IntegerGen {
+      return this.withConfig({ origin });
+    }
+
+    noBias(): IntegerGen {
+      return this.withConfig({ scale: 'constant' });
+    }
+
+    private withConfig(config: Partial<IntegerGenConfig>): IntegerGen {
       return new IntegerGenImpl({
-        ...this.args,
-        origin,
+        ...this.config,
+        ...config,
       });
     }
   }
@@ -65,29 +56,31 @@ export const integer = (genFactory: GenFactory): IntegerGen => {
   });
 };
 
-const integerFunction = (args: IntegerGenArgs): GenFunction<number> => {
+const integerStreamer = (args: IntegerGenConfig): GenStreamer<number> => {
   const min = tryDeriveMin(args.min);
   if (typeof min === 'string') {
-    return GenFunction.error(min);
+    return GenStreamer.error(min);
   }
 
   const max = tryDeriveMax(args.max);
   if (typeof max === 'string') {
-    return GenFunction.error(max);
+    return GenStreamer.error(max);
   }
 
   const origin = tryDeriveOrigin(min, max, args.origin);
   if (typeof origin === 'string') {
-    return GenFunction.error(origin);
+    return GenStreamer.error(origin);
   }
 
   const scale = args.scale === null ? 'linear' : args.scale;
   const range = Range.createFrom(min, max, origin, scale);
 
-  return GenFunction.create(
-    (useNextInt, size) => useNextInt(...range.getSizedBounds(size)),
-    Shrink.towardsNumber(range.origin),
-    range.getProportionalDistance,
+  return GenStreamerTransformation.repeat<number>()(
+    GenStreamer.create(
+      (useNextInt, size) => useNextInt(...range.getSizedBounds(size)),
+      Shrink.towardsNumber(range.origin),
+      range.getProportionalDistance,
+    ),
   );
 };
 

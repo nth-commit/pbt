@@ -2,14 +2,12 @@ import fc from 'fast-check';
 import { mean } from 'simple-statistics';
 import * as dev from '../../src';
 import * as domainGen from '../Helpers/domainGen';
-import { mockSeed } from '../Helpers/mocks';
-import { failwith } from '../Helpers/failwith';
 
 test('snapshot', () => {
   for (let i = 0; i <= 10; i++) {
     const gen = dev.Gen.integer().between(0, 10);
 
-    const sample = dev.sampleTrees(gen, { iterations: 1, advanced: { makeRng: () => mockSeed(i) } });
+    const sample = dev.sampleTrees(gen, { iterations: 1, seed: i });
 
     expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot(i.toString());
   }
@@ -18,7 +16,7 @@ test('snapshot', () => {
 test('snapshot, positive range', () => {
   const gen = dev.Gen.integer().between(1, 10);
 
-  const sample = dev.sampleTrees(gen, { iterations: 1, advanced: { makeRng: () => mockSeed(10) } });
+  const sample = dev.sampleTrees(gen, { iterations: 1, seed: 0 });
 
   expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot();
 });
@@ -26,20 +24,20 @@ test('snapshot, positive range', () => {
 test('snapshot, negative range', () => {
   const gen = dev.Gen.integer().between(-10, -1);
 
-  const sample = dev.sampleTrees(gen, { iterations: 1, advanced: { makeRng: () => mockSeed(-10) } });
+  const sample = dev.sampleTrees(gen, { iterations: 1, seed: 0 });
 
   expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot();
 });
 
-test('Gen.integer().between(x, y).growBy(s) *produces* integers in the range [x, y]', () => {
+test('Gen.integer().between(x, y) *produces* integers in the range [x, y]', () => {
   fc.assert(
     fc.property(
       domainGen.sampleConfig(),
       domainGen.setOfSize(domainGen.integer(), 2),
-      domainGen.scaleMode(),
-      (config, [a, b], s) => {
+      fc.boolean(),
+      (config, [a, b], shouldBias) => {
         const [x, y] = [a, b].sort((a, b) => a - b);
-        const gen = dev.Gen.integer().between(x, y).growBy(s);
+        const gen = shouldBias ? dev.Gen.integer().between(x, y) : dev.Gen.integer().between(x, y).noBias();
 
         const sample = dev.sample(gen, config);
 
@@ -87,7 +85,7 @@ test('Gen.integer().between(x, y), x < 0, y <= x = Gen.integer().between(x, y).o
   );
 });
 
-test('Gen.integer().between(x, y).growBy(constant) *produces* integers that are uniformly distributed across the range [x, y]', () => {
+test('Gen.integer().between(x, y).noBias() *produces* integers that are uniformly distributed across the range [x, y]', () => {
   const [config, [a, b]] = fc.sample(
     domainGen.zip(domainGen.sampleConfig(), domainGen.setOfSize(domainGen.integer({ min: -100, max: 100 }), 2)),
     {
@@ -95,7 +93,7 @@ test('Gen.integer().between(x, y).growBy(constant) *produces* integers that are 
     },
   )[0];
   const [x, y] = [a, b].sort((a, b) => a - b);
-  const gen = dev.Gen.integer().between(x, y).growBy('constant');
+  const gen = dev.Gen.integer().between(x, y).noBias();
 
   const sample = dev.sample(gen, { ...config, iterations: 10000 });
 
@@ -105,11 +103,11 @@ test('Gen.integer().between(x, y).growBy(constant) *produces* integers that are 
   expect(ratioDifference).toBeCloseTo(1, 0);
 });
 
-test('Gen.integer().between(x, y).origin(z).growBy(linear), size = 0 *produces* integers equal to z', () => {
+test('Gen.integer().between(x, y).origin(z), size = 0 *produces* integers equal to z', () => {
   fc.assert(
     fc.property(domainGen.sampleConfig(), domainGen.setOfSize(domainGen.integer(), 3), (config, [a, b, c]) => {
       const [x, z, y] = [a, b, c].sort((a, b) => a - b);
-      const gen = dev.Gen.integer().between(x, y).origin(z).growBy('linear');
+      const gen = dev.Gen.integer().between(x, y).origin(z);
 
       const sample = dev.sample(gen, { ...config, size: 0 });
 
@@ -120,14 +118,14 @@ test('Gen.integer().between(x, y).origin(z).growBy(linear), size = 0 *produces* 
   );
 });
 
-test('Gen.integer().between(x, y).origin(z).growBy(linear), size = 50 *produces* integers in the lower half of the range', () => {
+test('Gen.integer().between(x, y).origin(z), size = 50 *produces* integers in the lower half of the range', () => {
   fc.assert(
     fc.property(
       domainGen.sampleConfig(),
       domainGen.setOfSize(domainGen.integer({ min: -100, max: 100 }), 3),
       (config, [a, b, c]) => {
         const [x, z, y] = [a, b, c].sort((a, b) => a - b);
-        const gen = dev.Gen.integer().between(x, y).origin(z).growBy('linear');
+        const gen = dev.Gen.integer().between(x, y).origin(z);
 
         const sample = dev.sample(gen, { ...config, size: 50 });
 
@@ -142,7 +140,7 @@ test('Gen.integer().between(x, y).origin(z).growBy(linear), size = 50 *produces*
   );
 });
 
-test('Gen.integer().between(x, y).growBy(linear), size = 100 *produces* integers that are uniformly distributed across the range [x, y]', () => {
+test('Gen.integer().between(x, y), size = 100 *produces* integers that are uniformly distributed across the range [x, y]', () => {
   const [config, [a, b]] = fc.sample(
     domainGen.zip(domainGen.sampleConfig(), domainGen.setOfSize(domainGen.integer({ min: -100, max: 100 }), 3)),
     {
@@ -150,7 +148,7 @@ test('Gen.integer().between(x, y).growBy(linear), size = 100 *produces* integers
     },
   )[0];
   const [x, y] = [a, b].sort((a, b) => a - b);
-  const gen = dev.Gen.integer().between(x, y).growBy('linear');
+  const gen = dev.Gen.integer().between(x, y);
 
   const sample = dev.sample(gen, { ...config, size: 100, iterations: 10000 });
 
@@ -188,17 +186,6 @@ describe('defaults', () => {
       fc.property(domainGen.sampleConfig(), (config) => {
         const genDefault = dev.Gen.integer();
         const genLinear = dev.Gen.integer().origin(0);
-
-        expect(dev.sample(genDefault, config)).toEqual(dev.sample(genLinear, config));
-      }),
-    );
-  });
-
-  test('default(scale) = linear', () => {
-    fc.assert(
-      fc.property(domainGen.sampleConfig(), (config) => {
-        const genDefault = dev.Gen.integer();
-        const genLinear = dev.Gen.integer().growBy('linear');
 
         expect(dev.sample(genDefault, config)).toEqual(dev.sample(genLinear, config));
       }),

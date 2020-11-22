@@ -15,25 +15,18 @@ test('snapshot', () => {
   }
 });
 
-test('Gen.array(gen).ofMaxLength(x).growBy(s) *produces* arrays with length equal to *oracle* Gen.integer().between(0, x).growBy(s)', () => {
+test('Gen.array(gen).ofMaxLength(x) *produces* arrays with length equal to *oracle* Gen.integer().between(0, x)', () => {
   fc.assert(
-    fc.property(
-      domainGen.sampleConfig(),
-      domainGen.gen(),
-      genArrayLength(),
-      domainGen.scaleMode(),
-      (config, elementGen, x, s) => {
-        const genArray = dev.Gen.array(elementGen)
-          .ofMaxLength(x)
-          .growBy(s)
-          .map((arr) => arr.length);
-        const genInteger = dev.Gen.integer().between(0, x).growBy(s);
+    fc.property(domainGen.sampleConfig(), domainGen.gen(), genArrayLength(), (config, elementGen, x) => {
+      const genArray = dev.Gen.array(elementGen)
+        .ofMaxLength(x)
+        .map((arr) => arr.length);
+      const genInteger = dev.Gen.integer().between(0, x);
 
-        expect(dev.sample(genArray, { ...config, iterations: 1 })).toEqual(
-          dev.sample(genInteger, { ...config, iterations: 1 }),
-        );
-      },
-    ),
+      expect(dev.sample(genArray, { ...config, iterations: 1 })).toEqual(
+        dev.sample(genInteger, { ...config, iterations: 1 }),
+      );
+    }),
   );
 });
 
@@ -54,17 +47,6 @@ describe('defaults', () => {
       fc.property(domainGen.sampleConfig(), domainGen.gen(), (config, elementGen) => {
         const genDefault = dev.Gen.array(elementGen);
         const genAlt = dev.Gen.array(elementGen).ofMaxLength(10);
-
-        expect(dev.sample(genDefault, config)).toEqual(dev.sample(genAlt, config));
-      }),
-    );
-  });
-
-  test('default(scale) = linear', () => {
-    fc.assert(
-      fc.property(domainGen.sampleConfig(), domainGen.gen(), (config, elementGen) => {
-        const genDefault = dev.Gen.array(elementGen);
-        const genAlt = dev.Gen.array(elementGen).growBy('linear');
 
         expect(dev.sample(genDefault, config)).toEqual(dev.sample(genAlt, config));
       }),

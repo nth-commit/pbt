@@ -11,7 +11,7 @@ test.each([[], {}, new Map(), new Set()])('Gen.element(c), c = %p *produces* err
 });
 
 test.property(
-  "Gen.element(Array) *produces* elements like *oracle* Gen.integer().between(0, size - 1).growBy('constant')",
+  'Gen.element(Array) *produces* elements like *oracle* Gen.integer().between(0, size - 1).noBias()',
   DomainGenV2.seed(),
   DomainGenV2.size(),
   Gen.integer().between(1, 10),
@@ -20,7 +20,7 @@ test.property(
     const genElement = dev.Gen.element(a);
     const genInteger = dev.Gen.integer()
       .between(0, length - 1)
-      .growBy('constant');
+      .noBias();
 
     const sample0 = <T>(g: dev.Gen<T>) => dev.sample(g, { seed, size, iterations: 1 });
     expect(sample0(genElement)).toEqual(sample0(genInteger));
@@ -28,7 +28,7 @@ test.property(
 );
 
 test.property(
-  "Gen.element(Object) *produces* elements like *oracle* Gen.integer().between(0, size - 1).growBy('constant')",
+  'Gen.element(Object) *produces* elements like *oracle* Gen.integer().between(0, size - 1).noBias()',
   DomainGenV2.seed(),
   DomainGenV2.size(),
   Gen.integer().between(1, 10),
@@ -37,7 +37,7 @@ test.property(
     const genElement = dev.Gen.element(o);
     const genInteger = dev.Gen.integer()
       .between(0, length - 1)
-      .growBy('constant');
+      .noBias();
 
     const sample0 = <T>(g: dev.Gen<T>) => dev.sample(g, { seed, size, iterations: 1 });
     expect(sample0(genElement)).toEqual(sample0(genInteger));
@@ -45,7 +45,7 @@ test.property(
 );
 
 test.property(
-  "Gen.element(Set), *produces* elements like *oracle* Gen.integer().between(0, size - 1).growBy('constant')",
+  'Gen.element(Set), *produces* elements like *oracle* Gen.integer().between(0, size - 1).noBias()',
   DomainGenV2.seed(),
   DomainGenV2.size(),
   Gen.integer().between(1, 10),
@@ -54,7 +54,7 @@ test.property(
     const genElement = dev.Gen.element(s);
     const genInteger = dev.Gen.integer()
       .between(0, length - 1)
-      .growBy('constant');
+      .noBias();
 
     const sample0 = <T>(g: dev.Gen<T>) => dev.sample(g, { seed, size, iterations: 1 });
     expect(sample0(genElement)).toEqual(sample0(genInteger));
@@ -62,7 +62,7 @@ test.property(
 );
 
 test.property(
-  "Gen.element(Map), *produces* elements like *oracle* Gen.integer().between(0, size - 1).growBy('constant')",
+  'Gen.element(Map), *produces* elements like *oracle* Gen.integer().between(0, size - 1).noBias()',
   DomainGenV2.seed(),
   DomainGenV2.size(),
   Gen.integer().between(1, 10),
@@ -71,7 +71,7 @@ test.property(
     const genElement = dev.Gen.element(m);
     const genInteger = dev.Gen.integer()
       .between(0, length - 1)
-      .growBy('constant');
+      .noBias();
 
     const sample0 = <T>(g: dev.Gen<T>) => dev.sample(g, { seed, size, iterations: 1 });
     expect(sample0(genElement)).toEqual(sample0(genInteger));

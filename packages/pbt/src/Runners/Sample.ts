@@ -12,9 +12,6 @@ export type SampleConfig = {
   seed: number;
   size: Size;
   iterations: number;
-  advanced?: Partial<{
-    makeRng: (seed: number) => Rng;
-  }>;
 };
 
 export namespace SampleResult {
@@ -52,14 +49,16 @@ type SampleAccumulator<T> = {
 
 export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): SampleResult<GenTree<T>> => {
   const { seed, size, iterations: iterationCount }: SampleConfig = {
-    size: 0,
+    size: 50,
     ...getDefaultConfig(),
     ...config,
   };
 
+  const rng = Rng.create(seed);
+
   const sampleAccumulator = last(
     pipe(
-      gen.run(seed, size, { makeRng: config?.advanced?.makeRng }),
+      gen.run(rng, size),
       ExhaustionStrategy.apply(ExhaustionStrategy.defaultStrategy(), (iteration) => iteration.kind === 'discard'),
       scan<Exhaustible<GenIteration<T>>, SampleAccumulator<T>>({
         seed: {
@@ -68,8 +67,8 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
           discardCount: 0,
           lastIteration: {
             kind: 'instance',
-            initRng: Rng.create(seed),
-            nextRng: Rng.create(seed),
+            initRng: rng,
+            nextRng: rng,
             initSize: size,
             nextSize: size,
             tree: null as any,
@@ -99,7 +98,7 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
         },
       }),
       takeWhileInclusive((acc) => {
-        if (acc.lastIteration.kind === 'exhausted') return false;
+        if (acc.lastIteration.kind === 'exhausted' || acc.lastIteration.kind === 'error') return false;
         return acc.instanceCount < iterationCount;
       }),
     ),
@@ -107,6 +106,7 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
 
   switch (sampleAccumulator.lastIteration.kind) {
     case 'instance':
+    case 'discard':
       return Result.ofValue({
         values: sampleAccumulator.trees,
         discards: sampleAccumulator.discardCount,
@@ -119,8 +119,6 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
       return Result.ofError(
         `Exhausted after ${sampleAccumulator.instanceCount} instance(s), (${sampleAccumulator.discardCount} discard(s))`,
       );
-    default:
-      throw new Error('Unhandled: ' + JSON.stringify(sampleAccumulator));
   }
 };
 

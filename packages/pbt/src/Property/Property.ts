@@ -2,25 +2,25 @@
 
 import { pipe } from 'ix/iterable';
 import { map } from 'ix/iterable/operators';
-import { indexed, Size } from '../Core';
+import { indexed, Rng, Size } from '../Core';
 import { Gen, Gens, GenIteration } from '../Gen';
 import { GenTree } from '../GenTree';
-import { Property, PropertyConfig, PropertyFunction, PropertyIteration, ShrinkIteration } from './Abstractions';
+import { Property, PropertyConfig } from './Abstractions';
 import { calculatePropertySizes } from './calculatePropertySizes';
 
-export type PropertyArgs<Ts extends [any, ...any[]]> = [...Gens<Ts>, PropertyFunction<Ts>];
+export type PropertyArgs<Ts extends [any, ...any[]]> = [...Gens<Ts>, Property.PropertyFunction<Ts>];
 
-export function property(f: PropertyFunction<[]>): Property<[]>;
+export function property(f: Property.PropertyFunction<[]>): Property<[]>;
 export function property<Ts extends [any, ...any[]]>(...args: PropertyArgs<Ts>): Property<Ts>;
 export function property<Ts extends [any, ...any[]]>(...args: PropertyArgs<Ts>): Property<Ts> {
   const [f, ...gens] = args.reverse();
-  return new PropertyImpl(f as PropertyFunction<Ts>, gens.reverse() as Gens<Ts>);
+  return new PropertyImpl(f as Property.PropertyFunction<Ts>, gens.reverse() as Gens<Ts>);
 }
 
 class PropertyImpl<Ts extends any[]> implements Property<Ts> {
-  constructor(private readonly f: PropertyFunction<Ts>, private readonly gens: Gens<Ts>) {}
+  constructor(private readonly f: Property.PropertyFunction<Ts>, private readonly gens: Gens<Ts>) {}
 
-  run(seed: number, iterationCount: number, config: PropertyConfig = {}): Iterable<PropertyIteration<Ts>> {
+  run(seed: number, iterationCount: number, config: PropertyConfig = {}): Iterable<Property.PropertyIteration<Ts>> {
     const gen = Gen.zip<Ts>(...this.gens);
     return config.path === undefined
       ? explore(this.f, gen, seed, config.size, iterationCount)
@@ -29,17 +29,17 @@ class PropertyImpl<Ts extends any[]> implements Property<Ts> {
 }
 
 const explore = function* <Ts extends any[]>(
-  f: PropertyFunction<Ts>,
+  f: Property.PropertyFunction<Ts>,
   gen: Gen<Ts>,
   seed: number,
   requestedSize: Size | undefined,
   iterationCount: number,
-): Iterable<PropertyIteration<Ts>> {
+): Iterable<Property.PropertyIteration<Ts>> {
   for (const size of calculatePropertySizes(iterationCount, requestedSize)) {
     let hasSeenTerminator = false;
 
     const iterations = pipe(
-      gen.run(seed, size),
+      gen.run(Rng.create(seed), size),
       map((iteration) => mapGenIterationToPropertyIteration(f, iteration)),
     );
 
@@ -68,13 +68,13 @@ const explore = function* <Ts extends any[]>(
 };
 
 const mapGenIterationToPropertyIteration = <Ts extends any[]>(
-  f: PropertyFunction<Ts>,
+  f: Property.PropertyFunction<Ts>,
   genIteration: GenIteration<Ts>,
-): PropertyIteration<Ts> => {
+): Property.PropertyIteration<Ts> => {
   switch (genIteration.kind) {
     case 'instance': {
       const { node, shrinks } = genIteration.tree;
-      const fResult = PropertyFunction.invoke(f, node.value);
+      const fResult = Property.PropertyFunction.invoke(f, node.value);
       switch (fResult.kind) {
         case 'success':
           return {
@@ -108,11 +108,11 @@ const mapGenIterationToPropertyIteration = <Ts extends any[]>(
 };
 
 const exploreForest = function* <Ts extends any[]>(
-  f: PropertyFunction<Ts>,
+  f: Property.PropertyFunction<Ts>,
   forest: Iterable<GenTree<Ts>>,
-): Iterable<ShrinkIteration<Ts>> {
+): Iterable<Property.ShrinkIteration<Ts>> {
   for (const { value: tree, index } of pipe(forest, indexed())) {
-    const appendCurrentIndex = (treeShrink: ShrinkIteration<Ts>): ShrinkIteration<Ts> => {
+    const appendCurrentIndex = (treeShrink: Property.ShrinkIteration<Ts>): Property.ShrinkIteration<Ts> => {
       switch (treeShrink.kind) {
         case 'pass':
           return treeShrink;
@@ -146,16 +146,16 @@ const exploreForest = function* <Ts extends any[]>(
 };
 
 const exploreTree = function* <Ts extends any[]>(
-  f: PropertyFunction<Ts>,
+  f: Property.PropertyFunction<Ts>,
   tree: GenTree<Ts>,
-): Iterable<ShrinkIteration<Ts>> {
-  const fResult = PropertyFunction.invoke(f, tree.node.value);
+): Iterable<Property.ShrinkIteration<Ts>> {
+  const fResult = Property.PropertyFunction.invoke(f, tree.node.value);
   if (fResult.kind === 'success') {
     yield {
       kind: 'pass',
     };
   } else {
-    const shrinkIteration: ShrinkIteration<Ts> = {
+    const shrinkIteration: Property.ShrinkIteration<Ts> = {
       kind: 'fail',
       counterexample: {
         path: '',
@@ -172,13 +172,13 @@ const exploreTree = function* <Ts extends any[]>(
 };
 
 const repeat = function* <Ts extends any[]>(
-  f: PropertyFunction<Ts>,
+  f: Property.PropertyFunction<Ts>,
   gen: Gen<Ts>,
   seed: number,
   size: Size,
   path: string,
-): Iterable<PropertyIteration<Ts>> {
-  for (const genIteration of gen.run(seed, size)) {
+): Iterable<Property.PropertyIteration<Ts>> {
+  for (const genIteration of gen.run(Rng.create(seed), size)) {
     if (genIteration.kind === 'discard' || genIteration.kind === 'error') {
       yield genIteration;
     } else {
@@ -188,7 +188,7 @@ const repeat = function* <Ts extends any[]>(
         throw new Error('Invalid shrink path: ' + path);
       }
 
-      const fResult = PropertyFunction.invoke(f, shrunkTree.node.value);
+      const fResult = Property.PropertyFunction.invoke(f, shrunkTree.node.value);
       if (fResult.kind === 'failure') {
         yield {
           kind: 'fail',

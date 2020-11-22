@@ -13,5 +13,6 @@ it('is repeatable', () => {
 
       expect(sample1).toEqual(sample0);
     }),
+    { seed: 132884087, path: '0:0:0:1:0:0:0', endOnFailure: true },
   );
 });
