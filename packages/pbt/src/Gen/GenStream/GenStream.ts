@@ -1,6 +1,6 @@
 import { Rng, Size } from '../../Core';
 import { GenTree } from '../../GenTree';
-import { GenConfig } from '../Abstractions';
+import { Gen, GenConfig } from '../Abstractions';
 import { GenIteration } from '../GenIteration';
 import { Shrink } from '../Shrink';
 
@@ -43,6 +43,8 @@ export const GenStreamer = {
   constant: <T>(value: T): GenStreamer<T> => (rng, size) => [
     GenIteration.instance(GenTree.create({ value, complexity: 0 }, []), rng, rng, size, size),
   ],
+
+  fromGen: <T>(gen: Gen<T>): GenStreamer<T> => (rng, size, config) => gen.run(rng, size, config),
 };
 
 export type GenStreamerTransformation<T, U> = (streamer: GenStreamer<T>) => GenStreamer<U>;

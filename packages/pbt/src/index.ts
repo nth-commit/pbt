@@ -9,6 +9,7 @@ export {
   minimal,
   MinimalConfig,
   sample,
+  singleSample,
   sampleTrees,
   SampleConfig,
   Sample,

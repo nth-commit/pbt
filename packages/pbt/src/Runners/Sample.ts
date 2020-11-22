@@ -38,6 +38,13 @@ export type Sample<T> = {
   size: number;
 };
 
+export type OneSample<T> = {
+  value: T;
+  discards: number;
+  seed: number;
+  size: number;
+};
+
 export type SampleResult<T> = Result<Sample<T>, string>;
 
 type SampleAccumulator<T> = {
@@ -134,3 +141,11 @@ export const sampleTrees = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}):
 
 export const sample = <T>(gen: Gen<T>, config: Partial<SampleConfig> = {}): Sample<T> =>
   sampleInternal(gen, config).asOk((message) => new Error(message));
+
+export const singleSample = <T>(gen: Gen<T>, config: Partial<Omit<SampleConfig, 'iterations'>> = {}): OneSample<T> => {
+  const sampleResult = sample(gen, { ...config, iterations: 1 });
+  return {
+    ...sampleResult,
+    value: sampleResult.values[0],
+  };
+};

@@ -1,13 +1,15 @@
 import { GenTree } from '../GenTree';
-import { ArrayGen, Gen as G, GenFactory, IntegerGen } from './Abstractions';
-import { array, integer } from './Gens';
+import { Gen as G, GenFactory, ArrayGen, IntegerGen, ElementGen } from './Abstractions';
+import { array, integer, element } from './Gens';
 import { GenImpl } from './Gens/GenImpl';
+import { RawGenImpl } from './Gens/RawGenImpl';
 import { GenStreamer, GenStreamerTransformation, StatefulGenFunction } from './GenStream';
 import { Shrink } from './Shrink';
 
 const genFactory: GenFactory = {
   integer: () => integer(genFactory),
   array: (elementGen) => array(elementGen, genFactory),
+  element: (collection) => element(collection, genFactory),
 };
 
 export type Gen<T> = G<T>;
@@ -47,8 +49,8 @@ export namespace Gen {
    *
    * @param message
    */
-  export const error = <T>(message: string): Gen<T> =>
-    new GenImpl(() => GenStreamer.error<T>(message), GenStreamerTransformation.none(), genFactory);
+  /* istanbul ignore next */
+  export const error = <T>(message: string): Gen<T> => new RawGenImpl(() => GenStreamer.error<T>(message), genFactory);
 
   /**
    * Creates a generator for integers.
@@ -106,24 +108,5 @@ export namespace Gen {
    *
    * @param collection
    */
-  export const element = <T>(collection: T[] | Record<any, T> | Set<T> | Map<unknown, T>): Gen<T> => {
-    const elements = Array.isArray(collection)
-      ? collection
-      : collection instanceof Set
-      ? [...collection.values()]
-      : collection instanceof Map
-      ? [...collection.values()]
-      : Object.values(collection);
-
-    if (elements.length === 0) {
-      return error('Gen.element invoked with empty collection');
-    }
-
-    return integer()
-      .between(0, elements.length - 1)
-      .noBias()
-      .map((i) => elements[i])
-      .noShrink()
-      .noComplexity();
-  };
+  export const element = <T>(collection: ElementGen.Collection<T>): ElementGen<T> => genFactory.element(collection);
 }
