@@ -79,7 +79,14 @@ export type ArrayGen<T> = Gen<T[]> & {
   noBias(): ArrayGen<T>;
 };
 
+export type ElementGen<T> = Gen<T>;
+
+export namespace ElementGen {
+  export type Collection<T> = Readonly<T[] | Record<any, T> | Set<T> | Map<unknown, T>>;
+}
+
 export type GenFactory = {
   array: <T>(elementGen: Gen<T>) => ArrayGen<T>;
   integer: () => IntegerGen;
+  element: <T>(collection: ElementGen.Collection<T>) => ElementGen<T>;
 };

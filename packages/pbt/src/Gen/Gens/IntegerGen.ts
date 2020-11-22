@@ -1,8 +1,8 @@
 import { GenFactory, IntegerGen } from '../Abstractions';
-import { GenImpl } from './GenImpl';
 import { Range, ScaleMode } from '../Range';
 import { Shrink } from '../Shrink';
 import { GenStreamer, GenStreamerTransformation } from '../GenStream';
+import { RawGenImpl } from './RawGenImpl';
 
 const MAX_INT_32 = Math.pow(2, 31);
 const MIN_INT_32 = -MAX_INT_32;
@@ -15,9 +15,9 @@ type IntegerGenConfig = Readonly<{
 }>;
 
 export const integer = (genFactory: GenFactory): IntegerGen => {
-  class IntegerGenImpl extends GenImpl<number> implements IntegerGen {
+  class IntegerGenImpl extends RawGenImpl<number> implements IntegerGen {
     constructor(private readonly config: Readonly<IntegerGenConfig>) {
-      super(() => integerStreamer(config), GenStreamerTransformation.none(), genFactory);
+      super(() => integerStreamer(config), genFactory);
     }
 
     greaterThanEqual(min: number): IntegerGen {

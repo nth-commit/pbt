@@ -77,3 +77,18 @@ test.property(
     expect(sample0(genElement)).toEqual(sample0(genInteger));
   },
 );
+
+/*
+test.property('Gen.element(...), *produces* elements with a bias', DomainGenV2.seed(), (seed) => {
+  const xs0 = ['a', 'b', 'c', 'd'];
+  const xs1 = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+
+  const gen0 = dev.Gen.element(xs0);
+  const gen1 = dev.Gen.element(xs1);
+
+  const val0 = dev.singleSample(gen0, { seed });
+  const val1 = dev.singleSample(gen1, { seed });
+
+  expect(val0).toEqual(val1);
+});
+*/
