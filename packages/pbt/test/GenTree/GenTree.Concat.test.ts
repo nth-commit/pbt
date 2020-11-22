@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import { count } from 'ix/iterable';
 import * as domainGen from './Helpers/domainGen';
-import { GenTree, GenTreeNode } from '../../src/GenTree';
+import { GenTree } from '../../src/GenTree';
 import { Shrink } from '../../src';
 
 test('GenTree.concat([], concatComplexity, <shrink>) => the root node contains the concatComplexity', () => {
@@ -9,7 +9,7 @@ test('GenTree.concat([], concatComplexity, <shrink>) => the root node contains t
     fc.property(domainGen.naturalNumber(), (concatComplexity) => {
       const genTreeConcat = GenTree.concat<unknown>([], () => concatComplexity, Shrink.none());
 
-      const expectedNode: GenTreeNode<unknown[]> = {
+      const expectedNode: GenTree.Node<unknown[]> = {
         value: [],
         complexity: concatComplexity,
       };
@@ -23,7 +23,7 @@ test('GenTree.concat([tree], <calculateComplexity>, <shrink>) => the root node c
     fc.property(domainGen.anyTree(), domainGen.naturalNumber(), (tree, concatComplexity) => {
       const treeConcat = GenTree.concat([tree], () => concatComplexity, Shrink.none());
 
-      const expectedNode: GenTreeNode<unknown[]> = {
+      const expectedNode: GenTree.Node<unknown[]> = {
         value: [tree.node.value],
         complexity: tree.node.complexity + concatComplexity,
       };
@@ -41,7 +41,7 @@ test('GenTree.concat([tree1, tree2], <calculateComplexity>, <shrink>) => the roo
       (tree1, tree2, concatComplexity) => {
         const treeConcat = GenTree.concat([tree1, tree2], () => concatComplexity, Shrink.none());
 
-        const expectedNode: GenTreeNode<unknown[]> = {
+        const expectedNode: GenTree.Node<unknown[]> = {
           value: [tree1.node.value, tree2.node.value],
           complexity: tree1.node.complexity + tree2.node.complexity + concatComplexity,
         };

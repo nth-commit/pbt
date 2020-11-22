@@ -40,7 +40,7 @@ describe('check', () => {
   class MockProperty implements dev.Property<any[]> {
     constructor(private runFn: RunFn) {}
 
-    run(seed: number, iterations: number): Iterable<dev.PropertyIteration<any[]>> {
+    run(seed: number, iterations: number): Iterable<dev.Property.PropertyIteration<any[]>> {
       return this.runFn(seed, iterations);
     }
   }

@@ -1,7 +1,7 @@
 export { Rng, Size } from './Core';
-export { GenTree, GenTreeNode, Complexity, CalculateComplexity } from './GenTree';
-export { Gen, Shrink, Shrinker, GenIteration } from './Gen';
-export { property, Property, PropertyIteration, PropertyFunction, ShrinkIteration, Counterexample } from './Property';
+export { GenTree } from './GenTree';
+export { Gen, Shrink } from './Gen';
+export { property, Property } from './Property';
 export {
   check,
   CheckConfig,

@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import * as sharedDomainGen from '../../Helpers/domainGen';
-import { GenTree, GenTreeNode } from '../../../src/GenTree';
+import { GenTree } from '../../../src/GenTree';
 
 export const func = sharedDomainGen.func;
 
@@ -15,15 +15,15 @@ export const array = fc.array;
 const internalTree = <T>(
   valueGen: fc.Arbitrary<T>,
 ): {
-  node: fc.Arbitrary<GenTreeNode<T>>;
+  node: fc.Arbitrary<GenTree.Node<T>>;
   shrinks: fc.Arbitrary<GenTree<T>[]>;
 } =>
   fc.letrec((tieUnsafe) => {
-    type Tie = ((key: 'node') => fc.Arbitrary<GenTreeNode<T>>) &
+    type Tie = ((key: 'node') => fc.Arbitrary<GenTree.Node<T>>) &
       ((key: 'shrinks') => fc.Arbitrary<Iterable<GenTree<T>>>);
     const tie = tieUnsafe as Tie;
 
-    const node: fc.Arbitrary<GenTreeNode<T>> = fc
+    const node: fc.Arbitrary<GenTree.Node<T>> = fc
       .tuple(valueGen, naturalNumber())
       .map(([value, complexity]) => ({ value, complexity }));
 
@@ -51,7 +51,7 @@ const internalTree = <T>(
     };
   });
 
-export const node = <T>(valueGen: fc.Arbitrary<T>): fc.Arbitrary<GenTreeNode<T>> => internalTree<T>(valueGen).node;
+export const node = <T>(valueGen: fc.Arbitrary<T>): fc.Arbitrary<GenTree.Node<T>> => internalTree<T>(valueGen).node;
 
 export const shrinks = <T>(valueGen: fc.Arbitrary<T>): fc.Arbitrary<Iterable<GenTree<T>>> =>
   internalTree<T>(valueGen).shrinks;

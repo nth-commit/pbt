@@ -1,6 +1,16 @@
 import fc from 'fast-check';
-import { Bounds, Range } from '../../src/Gen/Range';
+import { Bounds, Range, ScaleMode } from '../../src/Gen/Range';
 import * as domainGen from '../Helpers/domainGen';
+
+namespace LocalGen {
+  export const scaleMode = (): fc.Arbitrary<ScaleMode> => {
+    const scaleModeExhaustive: { [P in ScaleMode]: P } = {
+      constant: 'constant',
+      linear: 'linear',
+    };
+    return fc.constantFrom(...Object.values(scaleModeExhaustive));
+  };
+}
 
 type RangeParams = {
   min: number;
@@ -36,7 +46,7 @@ const genShuffledRangeParams = (): fc.Arbitrary<{ ordered: RangeParams; unordere
 
 it('reflects [min, max, origin]', () => {
   fc.assert(
-    fc.property(genRangeParams(), domainGen.scaleMode(), ({ min, max, origin }, scaleMode) => {
+    fc.property(genRangeParams(), LocalGen.scaleMode(), ({ min, max, origin }, scaleMode) => {
       const range = Range.createFrom(min, max, origin, scaleMode);
 
       const expectedRange: Partial<Range> = {
@@ -50,7 +60,7 @@ it('reflects [min, max, origin]', () => {
 
 it('has resilience to parameter ordering', () => {
   fc.assert(
-    fc.property(genShuffledRangeParams(), domainGen.scaleMode(), ({ ordered, unordered }, scaleMode) => {
+    fc.property(genShuffledRangeParams(), LocalGen.scaleMode(), ({ ordered, unordered }, scaleMode) => {
       const range1 = Range.createFrom(ordered.min, ordered.max, ordered.origin, scaleMode);
       const range2 = Range.createFrom(unordered.x, unordered.y, unordered.z, scaleMode);
 
@@ -65,7 +75,7 @@ describe('getProportionalDistance', () => {
     fc.assert(
       fc.property(
         genRangeParams(),
-        domainGen.scaleMode().filter((s) => s === 'constant'),
+        LocalGen.scaleMode().filter((s) => s === 'constant'),
         ({ min, max, origin }, scaleMode) => {
           const range = Range.createFrom(min, max, origin, scaleMode);
 
@@ -82,7 +92,7 @@ describe('getProportionalDistance', () => {
     fc.assert(
       fc.property(
         genRangeParams().filter((x) => x.min < x.origin),
-        domainGen.scaleMode(),
+        LocalGen.scaleMode(),
         ({ min, max, origin }, scaleMode) => {
           const range = Range.createFrom(min, max, origin, scaleMode);
 
@@ -99,7 +109,7 @@ describe('getProportionalDistance', () => {
     fc.assert(
       fc.property(
         genRangeParams().filter((x) => x.max > x.origin),
-        domainGen.scaleMode(),
+        LocalGen.scaleMode(),
         ({ min, max, origin }, scaleMode) => {
           const range = Range.createFrom(min, max, origin, scaleMode);
 
@@ -119,7 +129,7 @@ describe('getProportionalDistance', () => {
     { min: -15, max: 5, origin: -5, n: -10, expectedDistance: 50 },
   ])('examples', ({ min, max, origin, n, expectedDistance }) => {
     fc.assert(
-      fc.property(domainGen.scaleMode(), (scaleMode) => {
+      fc.property(LocalGen.scaleMode(), (scaleMode) => {
         const range = Range.createFrom(min, max, origin, scaleMode);
 
         const distance = range.getProportionalDistance(n);

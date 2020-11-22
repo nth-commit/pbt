@@ -1,33 +1,66 @@
 import { Rng, Size } from '../Core';
-import { GenFunction } from './GenFunction';
-import { GenIteration } from './GenIteration';
-import { ScaleMode } from './Range';
+import { GenStream } from './GenStream';
 
-export type GenConfig = {
-  makeRng?: (seed: number) => Rng;
-};
+export type GenConfig = {};
 
-export interface Gen<T> {
+export type Gen<T> = {
   /**
-   * @description The underlying function that is built up by all operations on a Gen.
-   * @private
+   * Creates a new generator of type T[], using the source generator to generate the elements of the array.
    */
-  readonly genFunction: GenFunction<T>;
   array(): ArrayGen<T>;
-  map<U>(f: (x: T) => U): Gen<U>;
-  flatMap<U>(k: (x: T) => Gen<U>): Gen<U>;
-  filter(predicate: (x: T) => boolean): Gen<T>;
-  noShrink(): Gen<T>;
-  noComplexity(): Gen<T>;
-  run(seed: number, size: Size, config?: GenConfig): Iterable<GenIteration<T>>;
-}
 
-export type ArrayGen<T> = Gen<T[]> & {
-  betweenLengths(min: number, max: number): ArrayGen<T>;
-  ofLength(length: number): ArrayGen<T>;
-  ofMinLength(min: number): ArrayGen<T>;
-  ofMaxLength(max: number): ArrayGen<T>;
-  growBy(scale: ScaleMode): ArrayGen<T>;
+  /**
+   * Creates a new generator, where the instances of the source generator are transformed by a mapper function. The
+   * generator calls the mapper function for each iteration of the source generator.
+   *
+   * @param mapper The mapper function.
+   */
+  map<U>(mapper: (x: T) => U): Gen<U>;
+
+  /**
+   * Creates a new generator, which is dependent on the instances of the source generator. The generator calls the
+   * mapper function for each successful iteration of the source generator, and pipes those instances into the stream
+   * of the resultant generator.
+   *
+   * @param mapper The mapper function.
+   */
+  flatMap<U>(mapper: (x: T) => Gen<U>): Gen<U>;
+
+  /**
+   * Creates a new generator, whose instances have been filtered by a predicate. The generator calls the predicate for
+   * each iteration of the source generator.
+   *
+   * @param predicate
+   */
+  filter(predicate: (x: T) => boolean): Gen<T>;
+
+  /**
+   * Creates a new generator, whose instances do not shrink. Useful for creating generators for data that doesn't have
+   * a natural order or size.
+   */
+  noShrink(): Gen<T>;
+
+  /**
+   * Advanced usage only.
+   *
+   * Creates a new generator, whose instances do not have an associated complexity metric. The complexity metric helps
+   * to inform pbt about what the smallest counterexample is, so this function essentially switches this feature off
+   * for the source generator.
+   */
+  noComplexity(): Gen<T>;
+
+  /**
+   * Advanced usage only.
+   *
+   * Runs the generator with the given seed and size. Using an built-in runner is the recommended pattern for receiving
+   * instances from a generator. For example `sample` or `minimal`.
+   *
+   * @param rng The random number generator to start the generation process with.
+   * @param size The size of the instances to generate. A size should be within 0-99. A larger size tells the generator
+   * to produce more complex instances.
+   * @param config Super advanced usage only. An optional configuration object.
+   */
+  run(rng: Rng, size: Size, config?: GenConfig): GenStream<T>;
 };
 
 export type IntegerGen = Gen<number> & {
@@ -35,7 +68,15 @@ export type IntegerGen = Gen<number> & {
   greaterThanEqual(min: number): IntegerGen;
   lessThanEqual(max: number): IntegerGen;
   origin(origin: number): IntegerGen;
-  growBy(scale: ScaleMode): IntegerGen;
+  noBias(): IntegerGen;
+};
+
+export type ArrayGen<T> = Gen<T[]> & {
+  betweenLengths(min: number, max: number): ArrayGen<T>;
+  ofLength(length: number): ArrayGen<T>;
+  ofMinLength(min: number): ArrayGen<T>;
+  ofMaxLength(max: number): ArrayGen<T>;
+  noBias(): ArrayGen<T>;
 };
 
 export type GenFactory = {

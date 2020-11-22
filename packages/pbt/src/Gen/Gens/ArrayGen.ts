@@ -1,29 +1,24 @@
-import { GenTree } from '../GenTree';
-import { GenFunction } from './GenFunction';
-import { ScaleMode, Range } from './Range';
-import { Shrink } from './Shrink';
-import { Gen, ArrayGen, GenFactory } from './Abstractions';
-import { BaseGen } from './BaseGen';
+import { GenTree } from '../../GenTree';
+import { ScaleMode, Range } from '../Range';
+import { Shrink } from '../Shrink';
+import { Gen, ArrayGen, GenFactory } from '../Abstractions';
+import { GenImpl } from './GenImpl';
+import { GenStreamer, GenStreamerTransformation } from '../GenStream';
 
-type ArrayGenArgs<T> = Readonly<{
-  gen: Gen<T>;
+type ArrayGenConfig = Readonly<{
   min: number | null;
   max: number | null;
   scale: ScaleMode | null;
 }>;
 
 export const array = <T>(elementGen: Gen<T>, genFactory: GenFactory): ArrayGen<T> => {
-  class ArrayGenImpl<T> extends BaseGen<T[]> implements ArrayGen<T> {
-    constructor(private args: ArrayGenArgs<T>) {
-      super((seed, size) => arrayFunction(args)(seed, size), genFactory);
+  class ArrayGenImpl extends GenImpl<T, T[]> implements ArrayGen<T> {
+    constructor(private config: ArrayGenConfig) {
+      super(() => (rng, size, config) => elementGen.run(rng, size, config), arrayTransformation(config), genFactory);
     }
 
     betweenLengths(min: number, max: number): ArrayGen<T> {
-      return new ArrayGenImpl({
-        ...this.args,
-        min,
-        max,
-      });
+      return this.withConfig({ min, max });
     }
 
     ofLength(length: number): ArrayGen<T> {
@@ -31,40 +26,38 @@ export const array = <T>(elementGen: Gen<T>, genFactory: GenFactory): ArrayGen<T
     }
 
     ofMinLength(min: number): ArrayGen<T> {
-      return new ArrayGenImpl({
-        ...this.args,
-        min,
-      });
+      return this.withConfig({ min });
     }
 
     ofMaxLength(max: number): ArrayGen<T> {
-      return new ArrayGenImpl({
-        ...this.args,
-        max,
-      });
+      return this.withConfig({ max });
     }
 
-    growBy(scale: ScaleMode): ArrayGen<T> {
+    noBias(): ArrayGen<T> {
+      return this.withConfig({ scale: 'constant' });
+    }
+
+    private withConfig(config: Partial<ArrayGenConfig>): ArrayGen<T> {
       return new ArrayGenImpl({
-        ...this.args,
-        scale,
+        ...this.config,
+        ...config,
       });
     }
   }
 
-  return new ArrayGenImpl<T>({ gen: elementGen, min: null, max: null, scale: null });
+  return new ArrayGenImpl({ min: null, max: null, scale: null });
 };
 
-const arrayFunction = <T>(args: ArrayGenArgs<T>): GenFunction<T[]> => {
-  const min = tryDeriveMin(args.min);
-  if (typeof min === 'string') return GenFunction.error(min);
+const arrayTransformation = <T>(config: ArrayGenConfig): GenStreamerTransformation<T, T[]> => {
+  const min = tryDeriveMin(config.min);
+  if (typeof min === 'string') return () => GenStreamer.error(min);
 
-  const max = tryDeriveMax(args.max);
-  if (typeof max === 'string') return GenFunction.error(max);
+  const max = tryDeriveMax(config.max);
+  if (typeof max === 'string') return () => GenStreamer.error(max);
 
-  const { gen, scale } = args;
-  const range = Range.createFrom(min, max, Math.min(min, max), scale || 'linear');
-  return GenFunction.collect(gen.genFunction, range, Shrink.array(range.origin, getOrderOfTree));
+  const range = Range.createFrom(min, max, Math.min(min, max), config.scale || 'linear');
+
+  return GenStreamerTransformation.collect(range, Shrink.array(range.origin, getOrderOfTree));
 };
 
 const tryDeriveMin = (min: number | null): number | string => {

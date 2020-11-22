@@ -1,7 +1,7 @@
 import { last, pipe } from 'ix/iterable';
 import { scan } from 'ix/iterable/operators';
 import { Rng, Size, takeWhileInclusive } from '../Core';
-import { Property, PropertyIteration, Counterexample, ShrinkIteration } from '../Property';
+import { Property } from '../Property';
 import { getDefaultConfig } from './DefaultConfig';
 import { Exhaustible, ExhaustionStrategy } from './ExhaustionStrategy';
 
@@ -21,7 +21,7 @@ export namespace CheckResult {
 
   export type Falsified<Ts extends any[]> = {
     kind: 'falsified';
-    counterexample: Counterexample<Ts>;
+    counterexample: Property.Counterexample<Ts>;
     iterations: number;
     shrinkIterations: number;
     discards: number;
@@ -108,7 +108,7 @@ export const check = <Ts extends any[]>(property: Property<Ts>, config: Partial<
 };
 
 type IterationAccumulator<Ts extends any[]> = {
-  lastIteration: Exhaustible<PropertyIteration<Ts>>;
+  lastIteration: Exhaustible<Property.PropertyIteration<Ts>>;
   iterationCount: number;
   discardCount: number;
 };
@@ -118,7 +118,7 @@ const accumulateIterations = <Ts extends any[]>(property: Property<Ts>, config: 
     pipe(
       property.run(config.seed, config.iterations, { size: config.size, path: config.path }),
       ExhaustionStrategy.apply(ExhaustionStrategy.defaultStrategy(), (iteration) => iteration.kind === 'discard'),
-      scan<Exhaustible<PropertyIteration<Ts>>, IterationAccumulator<Ts>>({
+      scan<Exhaustible<Property.PropertyIteration<Ts>>, IterationAccumulator<Ts>>({
         seed: {
           lastIteration: {
             kind: 'pass',
@@ -164,7 +164,9 @@ const accumulateIterations = <Ts extends any[]>(property: Property<Ts>, config: 
 
 type ShrinkAccumulator<Ts extends any[]> = Pick<CheckResult.Falsified<Ts>, 'counterexample' | 'shrinkIterations'>;
 
-const accumulateShrinks = <Ts extends any[]>(failIteration: PropertyIteration.Fail<Ts>): ShrinkAccumulator<Ts> => {
+const accumulateShrinks = <Ts extends any[]>(
+  failIteration: Property.PropertyIteration.Fail<Ts>,
+): ShrinkAccumulator<Ts> => {
   const initialShrink: ShrinkAccumulator<Ts> = {
     shrinkIterations: 0,
     counterexample: failIteration.counterexample,
@@ -174,7 +176,7 @@ const accumulateShrinks = <Ts extends any[]>(failIteration: PropertyIteration.Fa
     last(
       pipe(
         failIteration.shrinks,
-        scan<ShrinkIteration<Ts>, ShrinkAccumulator<Ts>>({
+        scan<Property.ShrinkIteration<Ts>, ShrinkAccumulator<Ts>>({
           seed: { shrinkIterations: 0, counterexample: failIteration.counterexample },
           callback: (acc, curr) => {
             switch (curr.kind) {

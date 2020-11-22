@@ -2,7 +2,7 @@ import { concat, empty, generate, of, pipe } from 'ix/iterable';
 import { flatMap, map, skip } from 'ix/iterable/operators';
 import { indexed } from '../Core/iterableOperators';
 
-export type Shrinker<T> = (value: T) => Iterable<T>;
+export type Shrink<T> = (value: T) => Iterable<T>;
 
 export namespace Shrink {
   const halves = (value: number): Iterable<number> => {
@@ -24,13 +24,13 @@ export namespace Shrink {
     );
   };
 
-  export const towardsNumber = (target: number): Shrinker<number> => (value) =>
+  export const towardsNumber = (target: number): Shrink<number> => (value) =>
     pipe(
       halves(value - target),
       map((x) => value - x),
     );
 
-  export const combinations = <T>(k0: number): Shrinker<T[]> => (arr0) => {
+  export const combinations = <T>(k0: number): Shrink<T[]> => (arr0) => {
     const headCombinations = function* (k: number, arr: T[]): Iterable<T[]> {
       const [head, ...tail] = arr;
 
@@ -55,7 +55,7 @@ export namespace Shrink {
     return allCombinations(k0, arr0);
   };
 
-  const arrayUnsorted = <T>(targetLength: number): Shrinker<T[]> => (arr) => {
+  const arrayUnsorted = <T>(targetLength: number): Shrink<T[]> => (arr) => {
     const { length } = arr;
 
     const shrunkLengths = pipe(
@@ -89,7 +89,7 @@ export namespace Shrink {
    * shrink to normalize to a certain result. The second pass simply drops elements from the end of the original array.
    * The third pass generates arrays of the same lengths, but will attempt all possible combinations at each length.
    */
-  export const array = <T>(minLength: number, order?: (x: T) => number): Shrinker<T[]> => {
+  export const array = <T>(minLength: number, order?: (x: T) => number): Shrink<T[]> => {
     const innerShrink = arrayUnsorted<T>(minLength);
     return (arr) => {
       if (!order) {
@@ -111,7 +111,7 @@ export namespace Shrink {
     };
   };
 
-  export const elements = <T>(shrinker: Shrinker<T>): Shrinker<T[]> => (arr) => {
+  export const elements = <T>(shrinker: Shrink<T>): Shrink<T[]> => (arr) => {
     if (arr.length === 0) return empty();
 
     return pipe(
@@ -127,5 +127,5 @@ export namespace Shrink {
   };
 
   /* istanbul ignore next */
-  export const none = <T>(): Shrinker<T> => empty;
+  export const none = <T>(): Shrink<T> => empty;
 }
