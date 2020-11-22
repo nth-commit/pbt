@@ -1,14 +1,14 @@
 import 'jest';
-import { property, assert, PropertyFunction, Gen, AssertConfig } from 'pbt';
+import { property, assert, Property, Gen, AssertConfig } from 'pbt';
 
 type Gens<Ts extends any[]> = { [P in keyof Ts]: Gen<Ts[P]> };
 
-type NullaryPropertyArgs = [propertyName: string, f: PropertyFunction<[]>];
+type NullaryPropertyArgs = [propertyName: string, f: Property.PropertyFunction<[]>];
 
 type VariadicPropertyArgs<Ts extends [any, ...any[]]> = [
   propertyName: string,
   ...gens: Gens<Ts>,
-  f: PropertyFunction<Ts>,
+  f: Property.PropertyFunction<Ts>,
 ];
 
 type Configurable = {
@@ -31,7 +31,7 @@ export const bind = (itLike: typeof it) => (...args: NullaryPropertyArgs | Varia
 
   itLike(propertyName, () => {
     const gens = rest.slice(0, rest.length - 1) as Gens<any[]>;
-    const f = rest.slice(rest.length - 1, rest.length)[0] as PropertyFunction<any>;
+    const f = rest.slice(rest.length - 1, rest.length)[0] as Property.PropertyFunction<any>;
     const p = property(...gens, f);
     return assert(p, config);
   });
