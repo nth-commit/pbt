@@ -3,7 +3,7 @@ import { Gen } from 'pbt';
 export namespace DomainGenV2 {
   export const anything = (): Gen<unknown> => Gen.constant({});
 
-  export const seed = (): Gen<number> => Gen.integer().growBy('constant').noShrink();
+  export const seed = (): Gen<number> => Gen.integer().noBias().noShrink();
 
   export const size = (): Gen<number> => Gen.integer().between(0, 99);
 
@@ -15,7 +15,7 @@ export namespace DomainGenV2 {
 
     return Gen.integer()
       .between(0, numberOfGens - 1)
-      .growBy('constant')
+      .noBias()
       .flatMap((i) => gens[i]);
   };
 }
