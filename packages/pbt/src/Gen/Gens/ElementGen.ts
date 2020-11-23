@@ -1,18 +1,17 @@
-import { ElementGen, GenFactory } from '../Abstractions';
-import { GenStreamer } from '../GenStream';
+import { ElementGen, GenFactory, GenLite } from '../Abstractions';
 import { RawGenImpl } from './RawGenImpl';
 
 export const element = <T>(collection: ElementGen.Collection<T>, genFactory: GenFactory): ElementGen<T> => {
   class ElementGenImpl extends RawGenImpl<T> implements ElementGen<T> {
     constructor() {
-      super(() => elementStreamer(collection, genFactory), genFactory);
+      super(elementGen(collection, genFactory), genFactory);
     }
   }
 
   return new ElementGenImpl();
 };
 
-export const elementStreamer = <T>(collection: ElementGen.Collection<T>, genFactory: GenFactory): GenStreamer<T> => {
+export const elementGen = <T>(collection: ElementGen.Collection<T>, genFactory: GenFactory): GenLite<T> => {
   const elements = Array.isArray(collection)
     ? collection
     : collection instanceof Set
@@ -22,16 +21,13 @@ export const elementStreamer = <T>(collection: ElementGen.Collection<T>, genFact
     : Object.values(collection);
 
   if (elements.length === 0) {
-    return GenStreamer.error('Gen.element invoked with empty collection');
+    return genFactory.error('Gen.element invoked with empty collection');
   }
 
-  return GenStreamer.fromGen(
-    genFactory
-      .integer()
-      .between(0, elements.length - 1)
-      .noBias()
-      .map((i) => elements[i])
-      .noShrink()
-      .noComplexity(),
-  );
+  return genFactory
+    .integer()
+    .between(0, elements.length - 1)
+    .noBias()
+    .map((i) => elements[i])
+    .noShrink();
 };

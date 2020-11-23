@@ -1,12 +1,13 @@
 import { GenTree } from '../GenTree';
 import { Gen as G, GenFactory, ArrayGen, IntegerGen, ElementGen } from './Abstractions';
-import { array, integer, element } from './Gens';
-import { GenImpl } from './Gens/GenImpl';
+import { GenIteration } from './GenIteration';
+import { array, integer, element, primitive } from './Gens';
 import { RawGenImpl } from './Gens/RawGenImpl';
-import { GenStreamer, GenStreamerTransformation, StatefulGenFunction } from './GenStream';
 import { Shrink } from './Shrink';
 
 const genFactory: GenFactory = {
+  error: (message: string) =>
+    RawGenImpl.fromRunFunction((rng, size) => [GenIteration.error(message, rng, rng, size, size)], genFactory),
   integer: () => integer(genFactory),
   array: (elementGen) => array(elementGen, genFactory),
   element: (collection) => element(collection, genFactory),
@@ -17,6 +18,9 @@ export type Gen<T> = G<T>;
 export type Gens<Ts extends any[]> = { [P in keyof Ts]: Gen<Ts[P]> };
 
 export namespace Gen {
+  export type StatefulGenFunction<T> = primitive.StatefulGenFunction<T>;
+  export type NextIntFunction = primitive.NextIntFunction;
+
   /**
    * Creates a generator from a series of functions.
    *
@@ -28,12 +32,7 @@ export namespace Gen {
     statefulGenFunction: StatefulGenFunction<T>,
     shrink: Shrink<T>,
     calculateComplexity: GenTree.CalculateComplexity<T> = GenTree.CalculateComplexity.none(),
-  ): Gen<T> =>
-    new GenImpl(
-      () => GenStreamer.create(statefulGenFunction, shrink, calculateComplexity),
-      GenStreamerTransformation.repeat(),
-      genFactory,
-    );
+  ): Gen<T> => primitive(statefulGenFunction, shrink, calculateComplexity, genFactory);
 
   /**
    * Creates a generator that always returns the given value, and does not shrink.
@@ -50,7 +49,7 @@ export namespace Gen {
    * @param message
    */
   /* istanbul ignore next */
-  export const error = <T>(message: string): Gen<T> => new RawGenImpl(() => GenStreamer.error<T>(message), genFactory);
+  export const error = <T>(message: string): Gen<T> => genFactory.error(message);
 
   /**
    * Creates a generator for integers.

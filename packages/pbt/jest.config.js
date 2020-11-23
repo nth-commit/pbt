@@ -22,7 +22,6 @@ module.exports = {
     'src/index.ts',
     'src/Core',
     'src/GenTree',
-    'src/Runners',
-    'src/Gen/GenStream'
+    'src/Runners'
   ]
 };

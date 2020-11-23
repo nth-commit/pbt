@@ -3,7 +3,7 @@ import { ScaleMode, Range } from '../Range';
 import { Shrink } from '../Shrink';
 import { Gen, ArrayGen, GenFactory } from '../Abstractions';
 import { GenImpl } from './GenImpl';
-import { GenStreamer, GenStreamerTransformation } from '../GenStream';
+import { GenTransformation } from './GenTransformation';
 
 type ArrayGenConfig = Readonly<{
   min: number | null;
@@ -14,7 +14,7 @@ type ArrayGenConfig = Readonly<{
 export const array = <T>(elementGen: Gen<T>, genFactory: GenFactory): ArrayGen<T> => {
   class ArrayGenImpl extends GenImpl<T, T[]> implements ArrayGen<T> {
     constructor(private config: ArrayGenConfig) {
-      super(() => (rng, size, config) => elementGen.run(rng, size, config), arrayTransformation(config), genFactory);
+      super(elementGen, arrayTransformation(config, genFactory), genFactory);
     }
 
     betweenLengths(min: number, max: number): ArrayGen<T> {
@@ -48,16 +48,16 @@ export const array = <T>(elementGen: Gen<T>, genFactory: GenFactory): ArrayGen<T
   return new ArrayGenImpl({ min: null, max: null, scale: null });
 };
 
-const arrayTransformation = <T>(config: ArrayGenConfig): GenStreamerTransformation<T, T[]> => {
+const arrayTransformation = <T>(config: ArrayGenConfig, genFactory: GenFactory): GenTransformation<T, T[]> => {
   const min = tryDeriveMin(config.min);
-  if (typeof min === 'string') return () => GenStreamer.error(min);
+  if (typeof min === 'string') return () => genFactory.error(min);
 
   const max = tryDeriveMax(config.max);
-  if (typeof max === 'string') return () => GenStreamer.error(max);
+  if (typeof max === 'string') return () => genFactory.error(max);
 
   const range = Range.createFrom(min, max, Math.min(min, max), config.scale || 'linear');
 
-  return GenStreamerTransformation.collect(range, Shrink.array(range.origin, getOrderOfTree));
+  return GenTransformation.collect(range, Shrink.array(range.origin, getOrderOfTree));
 };
 
 const tryDeriveMin = (min: number | null): number | string => {

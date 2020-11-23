@@ -1,8 +1,9 @@
-import { GenFactory, IntegerGen } from '../Abstractions';
+import { GenFactory, GenLite, IntegerGen } from '../Abstractions';
 import { Range, ScaleMode } from '../Range';
 import { Shrink } from '../Shrink';
-import { GenStreamer, GenStreamerTransformation } from '../GenStream';
 import { RawGenImpl } from './RawGenImpl';
+import { GenTransformation } from './GenTransformation';
+import { primitive } from './PrimitiveGen';
 
 const MAX_INT_32 = Math.pow(2, 31);
 const MIN_INT_32 = -MAX_INT_32;
@@ -17,7 +18,7 @@ type IntegerGenConfig = Readonly<{
 export const integer = (genFactory: GenFactory): IntegerGen => {
   class IntegerGenImpl extends RawGenImpl<number> implements IntegerGen {
     constructor(private readonly config: Readonly<IntegerGenConfig>) {
-      super(() => integerStreamer(config), genFactory);
+      super(integerGen(config, genFactory), genFactory);
     }
 
     greaterThanEqual(min: number): IntegerGen {
@@ -56,30 +57,34 @@ export const integer = (genFactory: GenFactory): IntegerGen => {
   });
 };
 
-const integerStreamer = (args: IntegerGenConfig): GenStreamer<number> => {
+const integerGen = (args: IntegerGenConfig, genFactory: GenFactory): GenLite<number> => {
   const min = tryDeriveMin(args.min);
   if (typeof min === 'string') {
-    return GenStreamer.error(min);
+    return genFactory.error(min);
   }
 
   const max = tryDeriveMax(args.max);
   if (typeof max === 'string') {
-    return GenStreamer.error(max);
+    return genFactory.error(max);
   }
 
   const origin = tryDeriveOrigin(min, max, args.origin);
   if (typeof origin === 'string') {
-    return GenStreamer.error(origin);
+    return genFactory.error(origin);
   }
 
   const scale = args.scale === null ? 'linear' : args.scale;
   const range = Range.createFrom(min, max, origin, scale);
 
-  return GenStreamerTransformation.repeat<number>()(
-    GenStreamer.create(
-      (useNextInt, size) => useNextInt(...range.getSizedBounds(size)),
-      Shrink.towardsNumber(range.origin),
-      range.getProportionalDistance,
+  return GenTransformation.repeat<number>()(
+    new RawGenImpl(
+      primitive(
+        (useNextInt, size) => useNextInt(...range.getSizedBounds(size)),
+        Shrink.towardsNumber(range.origin),
+        range.getProportionalDistance,
+        genFactory,
+      ),
+      genFactory,
     ),
   );
 };
