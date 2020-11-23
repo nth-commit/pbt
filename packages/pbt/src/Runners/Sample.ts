@@ -65,7 +65,7 @@ export const sampleTreesInternal = <T>(gen: Gen<T>, config: Partial<SampleConfig
 
   const sampleAccumulator = last(
     pipe(
-      gen.run(rng, size),
+      gen.run(rng, size, {}),
       ExhaustionStrategy.apply(ExhaustionStrategy.defaultStrategy(), (iteration) => iteration.kind === 'discard'),
       scan<Exhaustible<GenIteration<T>>, SampleAccumulator<T>>({
         seed: {

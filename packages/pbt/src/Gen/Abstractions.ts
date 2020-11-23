@@ -1,9 +1,26 @@
 import { Rng, Size } from '../Core';
-import { GenStream } from './GenStream';
+import { GenIteration } from './GenIteration';
+
+export type GenStream<T> = Iterable<GenIteration<T>>;
 
 export type GenConfig = {};
 
-export type Gen<T> = {
+export type GenLite<T> = {
+  /**
+   * Advanced usage only.
+   *
+   * Runs the generator with the given seed and size. Using an built-in runner is the recommended pattern for receiving
+   * instances from a generator. For example `sample` or `minimal`.
+   *
+   * @param rng The random number generator to start the generation process with.
+   * @param size The size of the instances to generate. A size should be within 0-99. A larger size tells the generator
+   * to produce more complex instances.
+   * @param config Super advanced usage only. An optional configuration object.
+   */
+  run(rng: Rng, size: Size, config: GenConfig): GenStream<T>;
+};
+
+export type Gen<T> = GenLite<T> & {
   /**
    * Creates a new generator of type T[], using the source generator to generate the elements of the array.
    */
@@ -39,28 +56,6 @@ export type Gen<T> = {
    * a natural order or size.
    */
   noShrink(): Gen<T>;
-
-  /**
-   * Advanced usage only.
-   *
-   * Creates a new generator, whose instances do not have an associated complexity metric. The complexity metric helps
-   * to inform pbt about what the smallest counterexample is, so this function essentially switches this feature off
-   * for the source generator.
-   */
-  noComplexity(): Gen<T>;
-
-  /**
-   * Advanced usage only.
-   *
-   * Runs the generator with the given seed and size. Using an built-in runner is the recommended pattern for receiving
-   * instances from a generator. For example `sample` or `minimal`.
-   *
-   * @param rng The random number generator to start the generation process with.
-   * @param size The size of the instances to generate. A size should be within 0-99. A larger size tells the generator
-   * to produce more complex instances.
-   * @param config Super advanced usage only. An optional configuration object.
-   */
-  run(rng: Rng, size: Size, config?: GenConfig): GenStream<T>;
 };
 
 export type IntegerGen = Gen<number> & {
@@ -86,6 +81,7 @@ export namespace ElementGen {
 }
 
 export type GenFactory = {
+  error: <T>(message: string) => Gen<T>;
   array: <T>(elementGen: Gen<T>) => ArrayGen<T>;
   integer: () => IntegerGen;
   element: <T>(collection: ElementGen.Collection<T>) => ElementGen<T>;

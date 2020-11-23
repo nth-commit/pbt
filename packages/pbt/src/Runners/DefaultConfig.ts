@@ -1,5 +1,3 @@
-import { Size } from '../Core';
-
 export type DefaultConfig = {
   seed: number;
   iterations: number;

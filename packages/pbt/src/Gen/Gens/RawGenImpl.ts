@@ -1,15 +1,17 @@
-import { GenFactory } from '../Abstractions';
-import { GenStreamer, GenStreamerTransformation } from '../GenStream';
+import { Rng, Size } from '../../Core';
+import { GenConfig, GenFactory, GenLite, GenStream } from '../Abstractions';
 import { GenImpl } from './GenImpl';
+import { GenTransformation } from './GenTransformation';
 
 export class RawGenImpl<T> extends GenImpl<T, T> {
-  /**
-   * @param makeStreamer A unit function that returns a streamer function. This is a function, because the fluent
-   * interfaces for creating generators can be quite chatty, otherwise doing a lot of unnecessary initialisation of the
-   * streamer.
-   * @param genFactory Functional hooks for creating generators, whilst avoiding circular deps.
-   */
-  constructor(makeStreamer: () => GenStreamer<T>, genFactory: GenFactory) {
-    super(makeStreamer, GenStreamerTransformation.none(), genFactory);
+  static fromRunFunction<T>(
+    run: (rng: Rng, size: Size, config: GenConfig) => GenStream<T>,
+    genFactory: GenFactory,
+  ): RawGenImpl<T> {
+    return new RawGenImpl({ run }, genFactory);
+  }
+
+  constructor(gen: GenLite<T>, genFactory: GenFactory) {
+    super(gen, GenTransformation.none(), genFactory);
   }
 }

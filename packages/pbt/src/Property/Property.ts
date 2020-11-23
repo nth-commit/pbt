@@ -39,7 +39,7 @@ const explore = function* <Ts extends any[]>(
     let hasSeenTerminator = false;
 
     const iterations = pipe(
-      gen.run(Rng.create(seed), size),
+      gen.run(Rng.create(seed), size, {}),
       map((iteration) => mapGenIterationToPropertyIteration(f, iteration)),
     );
 
@@ -178,7 +178,7 @@ const repeat = function* <Ts extends any[]>(
   size: Size,
   path: string,
 ): Iterable<Property.PropertyIteration<Ts>> {
-  for (const genIteration of gen.run(Rng.create(seed), size)) {
+  for (const genIteration of gen.run(Rng.create(seed), size, {})) {
     if (genIteration.kind === 'discard' || genIteration.kind === 'error') {
       yield genIteration;
     } else {
