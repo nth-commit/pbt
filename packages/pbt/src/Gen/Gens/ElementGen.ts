@@ -28,6 +28,8 @@ export const elementGen = <T>(collection: ElementGen.Collection<T>, genFactory: 
     .integer()
     .between(0, elements.length - 1)
     .noBias()
-    .map((i) => elements[i])
-    .noShrink();
+    .noShrink()
+    .map((i) => elements[i]);
 };
+
+// [0, 1, 2]

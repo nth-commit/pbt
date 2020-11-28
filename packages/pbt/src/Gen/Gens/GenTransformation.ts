@@ -55,7 +55,7 @@ export namespace GenTransformation {
     }));
 
   export const collect = <T>(range: Range, shrink: Shrink<GenTree<T>[]>): GenTransformation<T, T[]> => (gen0) => {
-    const transform0 = GenTransformation.repeat<T>();
+    const transform0 = GenTransformation.repeat<T[]>();
 
     const transform1: GenTransformation<T, T[]> = (gen1) => ({
       run: (rng, size, config) => {
@@ -68,7 +68,7 @@ export namespace GenTransformation {
       },
     });
 
-    return transform1(transform0(gen0));
+    return transform0(transform1(gen0));
   };
 
   const collectNone = <T>(lengthRng: Rng, size: Size): GenStream<T[]> => [
