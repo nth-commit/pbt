@@ -4,12 +4,23 @@ import * as domainGen from '../Helpers/domainGen';
 
 const genArrayLength = () => domainGen.integer({ min: 0, max: 10 });
 
-test('snapshot', () => {
-  for (let i = 0; i <= 10; i++) {
+test('sample values', () => {
+  for (let i = 1; i <= 10; i++) {
     const seed = 0;
     const gen = dev.Gen.array(dev.Gen.integer().between(0, 10));
 
-    const sample = dev.sampleTrees(gen, { seed, size: i * 10, iterations: 1 });
+    const sample = dev.sample(gen, { seed, size: i * 10 - 1, iterations: 10 });
+
+    expect(sample.values).toMatchSnapshot(i.toString());
+  }
+});
+
+test('sample trees', () => {
+  for (let i = 1; i <= 10; i++) {
+    const seed = 0;
+    const gen = dev.Gen.array(dev.Gen.integer().between(0, 10));
+
+    const sample = dev.sampleTrees(gen, { seed, size: i * 10 - 1, iterations: 1 });
 
     expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot(i.toString());
   }
