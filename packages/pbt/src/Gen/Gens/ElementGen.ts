@@ -1,15 +1,8 @@
 import { ElementGen, GenFactory, GenLite } from '../Abstractions';
 import { RawGenImpl } from './RawGenImpl';
 
-export const element = <T>(collection: ElementGen.Collection<T>, genFactory: GenFactory): ElementGen<T> => {
-  class ElementGenImpl extends RawGenImpl<T> implements ElementGen<T> {
-    constructor() {
-      super(elementGen(collection, genFactory), genFactory);
-    }
-  }
-
-  return new ElementGenImpl();
-};
+export const element = <T>(collection: ElementGen.Collection<T>, genFactory: GenFactory): ElementGen<T> =>
+  new RawGenImpl<T>(elementGen(collection, genFactory), genFactory);
 
 export const elementGen = <T>(collection: ElementGen.Collection<T>, genFactory: GenFactory): GenLite<T> => {
   const elements = Array.isArray(collection)
@@ -31,5 +24,3 @@ export const elementGen = <T>(collection: ElementGen.Collection<T>, genFactory: 
     .noShrink()
     .map((i) => elements[i]);
 };
-
-// [0, 1, 2]

@@ -7,7 +7,7 @@ test.property('Smallest array not in descending order', () => {
 
   const g = dev.Gen.integer().array();
 
-  const m = dev.minimal(g, (xs) => {
+  const m = dev.minimalValue(g, (xs) => {
     const xsDescending = [...xs].sort((a, b) => b - a);
     return !numberArrayEquals(xs, xsDescending);
   });
@@ -24,7 +24,7 @@ test.property('Smallest array containing element >= 900', () => {
     .between(1, 100)
     .flatMap((length) => dev.Gen.integer().between(0, 1000).array().ofLength(length));
 
-  const m = dev.minimal(g, (xs) => xs.some((x) => x >= 900));
+  const m = dev.minimalValue(g, (xs) => xs.some((x) => x >= 900));
 
   expect(m).toEqual([900]);
 });

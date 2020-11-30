@@ -171,7 +171,7 @@ describe('shrinks', () => {
       fc.property(domainGen.minimalConfig(), domainGen.gen(), genArrayLength(), (config, gen, x) => {
         const genArray = dev.Gen.array(gen).ofMinLength(x);
 
-        const min = dev.minimal(genArray, config);
+        const min = dev.minimalValue(genArray, config);
 
         expect(min).toHaveLength(x);
       }),

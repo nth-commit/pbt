@@ -8,7 +8,7 @@ test('gen.flatMap(k), where right gen is based on left', () => {
       .map((y) => [x, y]),
   );
 
-  const min = dev.minimal(genFlatMapped);
+  const min = dev.minimalValue(genFlatMapped);
 
   expect(min).toEqual([0, 1]);
 });
@@ -17,7 +17,7 @@ test('gen.flatMap(k), where right gen is non-trivially based on left', () => {
   const genLeft = dev.Gen.integer().between(1, 100);
   const genFlatMapped = genLeft.flatMap((x) => dev.Gen.integer().between(0, 100).array().ofLength(x));
 
-  const min = dev.minimal(genFlatMapped, (xs) => xs.some((x) => x >= 90));
+  const min = dev.minimalValue(genFlatMapped, (xs) => xs.some((x) => x >= 90));
 
   expect(min).toEqual([90]);
 });

@@ -27,6 +27,7 @@ export namespace CheckResult {
     discards: number;
     seed: number;
     size: number;
+    shrinks: Ts[];
   };
 
   export type Exhausted = {
@@ -162,7 +163,9 @@ const accumulateIterations = <Ts extends any[]>(property: Property<Ts>, config: 
     ),
   );
 
-type ShrinkAccumulator<Ts extends any[]> = Pick<CheckResult.Falsified<Ts>, 'counterexample' | 'shrinkIterations'>;
+type ShrinkAccumulator<Ts extends any[]> = Pick<CheckResult.Falsified<Ts>, 'counterexample' | 'shrinkIterations'> & {
+  shrinks: Ts[];
+};
 
 const accumulateShrinks = <Ts extends any[]>(
   failIteration: Property.PropertyIteration.Fail<Ts>,
@@ -170,6 +173,7 @@ const accumulateShrinks = <Ts extends any[]>(
   const initialShrink: ShrinkAccumulator<Ts> = {
     shrinkIterations: 0,
     counterexample: failIteration.counterexample,
+    shrinks: [],
   };
 
   return (
@@ -177,13 +181,18 @@ const accumulateShrinks = <Ts extends any[]>(
       pipe(
         failIteration.shrinks,
         scan<Property.ShrinkIteration<Ts>, ShrinkAccumulator<Ts>>({
-          seed: { shrinkIterations: 0, counterexample: failIteration.counterexample },
+          seed: {
+            shrinkIterations: 0,
+            counterexample: failIteration.counterexample,
+            shrinks: [],
+          },
           callback: (acc, curr) => {
             switch (curr.kind) {
               case 'fail':
                 return {
                   counterexample: curr.counterexample,
                   shrinkIterations: acc.shrinkIterations + 1,
+                  shrinks: [...acc.shrinks, curr.counterexample.value],
                 };
               case 'pass':
                 return {
