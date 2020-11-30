@@ -273,7 +273,7 @@ describe('shrinks', () => {
       fc.property(domainGen.minimalConfig(), domainGen.integer(), (config, z) => {
         const gen = dev.Gen.integer().origin(z);
 
-        const min = dev.minimal(gen, config);
+        const min = dev.minimalValue(gen, config);
 
         expect(min).toEqual(z);
       }),

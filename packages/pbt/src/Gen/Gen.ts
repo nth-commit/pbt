@@ -1,16 +1,20 @@
 import { GenTree } from '../GenTree';
-import { Gen as G, GenFactory, ArrayGen, IntegerGen, ElementGen } from './Abstractions';
+import { Gen as G, GenFactory, ArrayGen, IntegerGen, ElementGen, StateMachineGen, PrimitiveGen } from './Abstractions';
 import { GenIteration } from './GenIteration';
-import { array, integer, element, primitive } from './Gens';
+import { array, integer, element, primitive, stateMachine } from './Gens';
 import { RawGenImpl } from './Gens/RawGenImpl';
 import { Shrink } from './Shrink';
 
 const genFactory: GenFactory = {
+  primitive: (generate, shrink, measure) => primitive(generate, shrink, measure, genFactory),
+  constant: (value) => genFactory.primitive(() => value, Shrink.none(), GenTree.CalculateComplexity.none()),
   error: (message: string) =>
     RawGenImpl.fromRunFunction((rng, size) => [GenIteration.error(message, rng, rng, size, size)], genFactory),
   integer: () => integer(genFactory),
   array: (elementGen) => array(elementGen, genFactory),
   element: (collection) => element(collection, genFactory),
+  stateMachine: (initialState, generateTransition, applyTransition) =>
+    stateMachine(genFactory, initialState, generateTransition, applyTransition),
 };
 
 export type Gen<T> = G<T>;
@@ -18,28 +22,28 @@ export type Gen<T> = G<T>;
 export type Gens<Ts extends any[]> = { [P in keyof Ts]: Gen<Ts[P]> };
 
 export namespace Gen {
-  export type StatefulGenFunction<T> = primitive.StatefulGenFunction<T>;
-  export type NextIntFunction = primitive.NextIntFunction;
+  export type StatefulGenFunction<T> = PrimitiveGen.StatefulGenFunction<T>;
+  export type NextIntFunction = PrimitiveGen.NextIntFunction;
 
   /**
    * Creates a generator from a series of functions.
    *
-   * @param statefulGenFunction
+   * @param generate
    * @param shrink
-   * @param calculateComplexity
+   * @param measure
    */
   export const create = <T>(
-    statefulGenFunction: StatefulGenFunction<T>,
+    generate: StatefulGenFunction<T>,
     shrink: Shrink<T>,
-    calculateComplexity: GenTree.CalculateComplexity<T> = GenTree.CalculateComplexity.none(),
-  ): Gen<T> => primitive(statefulGenFunction, shrink, calculateComplexity, genFactory);
+    measure: GenTree.CalculateComplexity<T> = GenTree.CalculateComplexity.none(),
+  ): Gen<T> => genFactory.primitive(generate, shrink, measure);
 
   /**
    * Creates a generator that always returns the given value, and does not shrink.
    *
-   * @param x
+   * @param value
    */
-  export const constant = <T>(x: T): Gen<T> => create(() => x, Shrink.none());
+  export const constant = <T>(value: T): Gen<T> => genFactory.constant(value);
 
   /**
    * Creates a generator that produces a single error signal, then terminates. This is the recommended way to exit from
@@ -108,4 +112,24 @@ export namespace Gen {
    * @param collection
    */
   export const element = <T>(collection: ElementGen.Collection<T>): ElementGen<T> => genFactory.element(collection);
+
+  export type GenerateTransitionFunction<State, Transition> = StateMachineGen.GenerateTransitionFunction<
+    State,
+    Transition
+  >;
+
+  export type ApplyTransitionFunction<State, Transition> = StateMachineGen.ApplyTransitionFunction<State, Transition>;
+
+  /**
+   * Creates a generator, where the values are states of a finite state machine. The state machine is defined by two
+   * functions, the first produces
+   * @param initialState
+   * @param generateTransition
+   * @param applyTransition
+   */
+  export const stateMachine = <State, Transition>(
+    initialState: State,
+    generateTransition: GenerateTransitionFunction<State, Transition>,
+    applyTransition: ApplyTransitionFunction<State, Transition>,
+  ): StateMachineGen<State> => genFactory.stateMachine(initialState, generateTransition, applyTransition);
 }

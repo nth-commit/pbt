@@ -1,5 +1,7 @@
 import { Rng, Size } from '../Core';
+import { GenTree } from '../GenTree';
 import { GenIteration } from './GenIteration';
+import { Shrink } from './Shrink';
 
 export type GenStream<T> = Iterable<GenIteration<T>>;
 
@@ -58,6 +60,14 @@ export type Gen<T> = GenLite<T> & {
   noShrink(): Gen<T>;
 };
 
+export type PrimitiveGen<T> = Gen<T>;
+
+export namespace PrimitiveGen {
+  export type NextIntFunction = (min: number, max: number) => number;
+
+  export type StatefulGenFunction<T> = (useNextInt: NextIntFunction, size: Size) => T;
+}
+
 export type IntegerGen = Gen<number> & {
   between(min: number, max: number): IntegerGen;
   greaterThanEqual(min: number): IntegerGen;
@@ -80,9 +90,28 @@ export namespace ElementGen {
   export type Collection<T> = Readonly<T[] | Record<any, T> | Set<T> | Map<unknown, T>>;
 }
 
+export type StateMachineGen<State> = Gen<State[]>;
+
+export namespace StateMachineGen {
+  export type GenerateTransitionFunction<State, Transition> = (state: State) => Gen<Transition>;
+
+  export type ApplyTransitionFunction<State, Transition> = (state: State, transition: Transition) => State;
+}
+
 export type GenFactory = {
+  primitive: <T>(
+    generate: PrimitiveGen.StatefulGenFunction<T>,
+    shrink: Shrink<T>,
+    measure: GenTree.CalculateComplexity<T>,
+  ) => PrimitiveGen<T>;
+  constant: <T>(value: T) => Gen<T>;
   error: <T>(message: string) => Gen<T>;
   array: <T>(elementGen: Gen<T>) => ArrayGen<T>;
   integer: () => IntegerGen;
   element: <T>(collection: ElementGen.Collection<T>) => ElementGen<T>;
+  stateMachine: <State, Transition>(
+    initialState: State,
+    generateTransition: StateMachineGen.GenerateTransitionFunction<State, Transition>,
+    applyTransition: StateMachineGen.ApplyTransitionFunction<State, Transition>,
+  ) => StateMachineGen<State>;
 };

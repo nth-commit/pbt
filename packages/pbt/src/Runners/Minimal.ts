@@ -16,11 +16,30 @@ type MinimalArgs<T> =
   | [Gen<T>, (x: T) => boolean]
   | [Gen<T>, (x: T) => boolean, Partial<MinimalConfig>];
 
-export function minimal<T>(g: Gen<T>): T;
-export function minimal<T>(g: Gen<T>, config: Partial<MinimalConfig>): T;
-export function minimal<T>(g: Gen<T>, predicate: (x: T) => boolean): T;
-export function minimal<T>(g: Gen<T>, predicate: (x: T) => boolean, config: Partial<MinimalConfig>): T;
-export function minimal<T>(...args: MinimalArgs<T>): T {
+export function minimalValue<T>(g: Gen<T>): T;
+export function minimalValue<T>(g: Gen<T>, config: Partial<MinimalConfig>): T;
+export function minimalValue<T>(g: Gen<T>, predicate: (x: T) => boolean): T;
+export function minimalValue<T>(g: Gen<T>, predicate: (x: T) => boolean, config: Partial<MinimalConfig>): T;
+export function minimalValue<T>(...args: MinimalArgs<T>): T {
+  return minimalInternal(args).value;
+}
+
+export type MinimalResult<T> = {
+  value: T;
+  shrinks: T[];
+  seed: number;
+  size: Size;
+};
+
+export function minimal<T>(g: Gen<T>): MinimalResult<T>;
+export function minimal<T>(g: Gen<T>, config: Partial<MinimalConfig>): MinimalResult<T>;
+export function minimal<T>(g: Gen<T>, predicate: (x: T) => boolean): MinimalResult<T>;
+export function minimal<T>(g: Gen<T>, predicate: (x: T) => boolean, config: Partial<MinimalConfig>): MinimalResult<T>;
+export function minimal<T>(...args: MinimalArgs<T>): MinimalResult<T> {
+  return minimalInternal(args);
+}
+
+const minimalInternal = <T>(args: MinimalArgs<T>): MinimalResult<T> => {
   const [g, predicateOrUndefined, configOrUndefined] = normalizeArgs(args);
   const predicate = predicateOrUndefined || (() => true);
   const config: MinimalConfig = {
@@ -36,8 +55,13 @@ export function minimal<T>(...args: MinimalArgs<T>): T {
     throw new Error('Unable to find counterexample');
   }
 
-  return c.counterexample.value[0];
-}
+  return {
+    value: c.counterexample.value[0],
+    seed: c.seed,
+    size: c.size,
+    shrinks: c.shrinks.map((value) => value[0]),
+  };
+};
 
 const normalizeArgs = <T>(
   args: MinimalArgs<T>,
