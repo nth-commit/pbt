@@ -15,10 +15,32 @@ test('sample values', () => {
   }
 });
 
-test('sample trees', () => {
+test('sample trees (default)', () => {
   for (let i = 1; i <= 10; i++) {
     const seed = 0;
     const gen = dev.Gen.array(dev.Gen.integer().between(0, 10));
+
+    const sample = dev.sampleTrees(gen, { seed, size: i * 10 - 1, iterations: 1 });
+
+    expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot(i.toString());
+  }
+});
+
+test('sample trees (ofMinLength(1))', () => {
+  for (let i = 1; i <= 10; i++) {
+    const seed = 0;
+    const gen = dev.Gen.array(dev.Gen.integer().between(1, 10)).ofMinLength(1);
+
+    const sample = dev.sampleTrees(gen, { seed, size: i * 10 - 1, iterations: 1 });
+
+    expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot(i.toString());
+  }
+});
+
+test('sample trees (ofMinLength(2))', () => {
+  for (let i = 1; i <= 10; i++) {
+    const seed = 0;
+    const gen = dev.Gen.array(dev.Gen.integer().between(1, 10)).ofMinLength(2);
 
     const sample = dev.sampleTrees(gen, { seed, size: i * 10 - 1, iterations: 1 });
 
