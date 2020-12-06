@@ -5,7 +5,10 @@ import {
   filter as filterIter,
   skip as skipIter,
   take as takeIter,
+  scan as scanIter,
 } from 'ix/iterable/operators';
+import { NodeId } from './NodeId';
+import { NodeIdSet } from './NodeIdSet';
 
 export type GenTree<Value> = {
   node: GenTree.Node<Value>;
@@ -16,6 +19,7 @@ export namespace GenTree {
   export type Complexity = number;
 
   export type Node<Value> = {
+    id: NodeId;
     value: Value;
     complexity: Complexity;
   };
@@ -31,6 +35,9 @@ export namespace GenTree {
     shrinks,
   });
 
+  export const singleton = <Value>(value: Value): GenTree<Value> =>
+    create({ id: NodeId.EMPTY, value, complexity: 0 }, []);
+
   export const traverse = function* <Value>(tree: GenTree<Value>): Iterable<Node<Value>> {
     yield tree.node;
     yield* pipe(tree.shrinks, flatMapIter(traverse));
@@ -41,25 +48,57 @@ export namespace GenTree {
 
   export const unfold = <Value, Accumulator>(
     acc: Accumulator,
-    accToValue: (acc: Accumulator) => Value,
-    accExpander: (acc: Accumulator) => Iterable<Accumulator>,
-    calculateComplexity: (value: Accumulator) => Complexity,
+    map: (acc: Accumulator) => Value,
+    shrink: (acc: Accumulator) => Iterable<Accumulator>,
+    measure: (value: Accumulator) => Complexity,
+  ): GenTree<Value> => unfoldInternal(acc, map, shrink, measure, (acc0) => JSON.stringify(acc0), NodeIdSet.create());
+
+  const unfoldInternal = <Value, Accumulator>(
+    acc: Accumulator,
+    map: (acc: Accumulator) => Value,
+    shrink: (acc: Accumulator) => Iterable<Accumulator>,
+    measure: (acc: Accumulator) => Complexity,
+    identify: (acc: Accumulator) => string,
+    encountered: NodeIdSet,
   ): GenTree<Value> => {
-    const value = accToValue(acc);
-    const complexity = calculateComplexity(acc);
-    return create({ value, complexity }, unfoldForest(acc, accToValue, accExpander, calculateComplexity));
+    const value = map(acc);
+    const complexity = measure(acc);
+    const id = NodeId.create(identify(acc));
+    return create({ id, value, complexity }, unfoldForestInternal(acc, map, shrink, measure, identify, encountered));
   };
 
-  export const unfoldForest = <Value, Accumulator>(
+  const unfoldForestInternal = <Value, Accumulator>(
     acc: Accumulator,
-    accToValue: (acc: Accumulator) => Value,
-    accExpander: (acc: Accumulator) => Iterable<Accumulator>,
-    calculateComplexity: (value: Accumulator) => Complexity,
-  ): Iterable<GenTree<Value>> =>
-    pipe(
-      accExpander(acc),
-      mapIter((acc0) => unfold(acc0, accToValue, accExpander, calculateComplexity)),
+    map: (acc: Accumulator) => Value,
+    shrink: (acc: Accumulator) => Iterable<Accumulator>,
+    measure: (acc: Accumulator) => Complexity,
+    identify: (acc: Accumulator) => string,
+    encountered: NodeIdSet,
+  ): Iterable<GenTree<Value>> => {
+    type UnfoldForestState = {
+      acc0: Accumulator | undefined;
+      encountered0: NodeIdSet;
+    };
+
+    return pipe(
+      shrink(acc),
+      scanIter<Accumulator, UnfoldForestState>({
+        seed: {
+          acc0: undefined,
+          encountered0: encountered,
+        },
+        callback: ({ encountered0 }, acc0) => {
+          const id = NodeId.create(identify(acc0));
+          const hasBeenEncountered = encountered0.has(id);
+          return hasBeenEncountered ? { acc0: undefined, encountered0 } : { acc0, encountered0: encountered0.add(id) };
+        },
+      }),
+      mapIter(({ acc0, encountered0 }): GenTree<Value> | undefined =>
+        acc0 === undefined ? undefined : unfoldInternal(acc0, map, shrink, measure, identify, encountered0),
+      ),
+      filterIter(isNotUndefined),
     );
+  };
 
   /* istanbul ignore next */
   export const fold = <Value, FoldedTree, FoldedForest>(
@@ -99,6 +138,7 @@ export namespace GenTree {
   ): GenTree<DestinationValue> =>
     create(
       {
+        id: tree.node.id,
         value: f(tree.node.value),
         complexity: tree.node.complexity,
       },
@@ -108,57 +148,95 @@ export namespace GenTree {
       ),
     );
 
-  export function filterForest<T>(forest: Iterable<GenTree<T>>, pred: (x: T) => boolean): Iterable<GenTree<T>> {
+  export const filterForest = <T>(forest: Iterable<GenTree<T>>, pred: (x: T) => boolean): Iterable<GenTree<T>> => {
     return pipe(
       forest,
       filterIter((shrink) => pred(shrink.node.value)),
       mapIter((shrink) => create(shrink.node, filterForest(shrink.shrinks, pred))),
     );
-  }
+  };
 
-  export const merge = <ElementValue, MergedValue>(
+  export const concat = <Value>(
+    forest: GenTree<Value>[],
+    cost: (length: number) => Complexity,
+    shrink: (arr: GenTree<Value>[]) => Iterable<GenTree<Value>[]>,
+  ): GenTree<Value[]> =>
+    merge<Value, Value[]>(
+      forest,
+      (values) => values,
+      (nodes) => {
+        const mergeComplexity = cost(nodes.length);
+        return nodes.map((node) => node.complexity).reduce((acc, curr) => acc + curr, mergeComplexity);
+      },
+      shrink,
+      NodeIdSet.create(),
+    )!;
+
+  const merge = <ElementValue, MergedValue>(
     forest: GenTree<ElementValue>[],
-    fMerge: (values: ElementValue[]) => MergedValue,
-    fMergeComplexity: (nodes: Node<ElementValue>[]) => Complexity,
-    shrinkArray: (arr: GenTree<ElementValue>[]) => Iterable<GenTree<ElementValue>[]>,
-  ): GenTree<MergedValue> => {
+    map: (values: ElementValue[]) => MergedValue,
+    measure: (nodes: Node<ElementValue>[]) => Complexity,
+    shrink: (arr: GenTree<ElementValue>[]) => Iterable<GenTree<ElementValue>[]>,
+    encountered: NodeIdSet,
+  ): GenTree<MergedValue> | undefined => {
     const node = mergeNode(
       forest.map((tree) => tree.node),
-      fMerge,
-      fMergeComplexity,
+      map,
+      measure,
     );
 
-    const treeCullingShrinks = shrinkArray(forest);
+    const treeCullingShrinks = shrink(forest);
 
     const treeMergingShrinks = pipe(
       forest.map((tree) => tree.shrinks),
-      mapIter((shrinks, index) => replaceTreeWithShrinks(forest, shrinks, index)),
+      mapIter((shrinks, index) => insertShrinksIntoForest(forest, shrinks, index)),
       flatMapIter((x) => x),
     );
 
-    return create(
-      node,
-      pipe(
-        concatIter(treeCullingShrinks, treeMergingShrinks),
-        mapIter((forest0) => merge(forest0, fMerge, fMergeComplexity, shrinkArray)),
+    type MergeForestState = {
+      forest0: GenTree<ElementValue>[] | undefined;
+      encountered0: NodeIdSet;
+    };
+
+    const shrinks = pipe(
+      concatIter(treeCullingShrinks, treeMergingShrinks),
+      scanIter<GenTree<ElementValue>[], MergeForestState>({
+        seed: {
+          forest0: undefined,
+          encountered0: encountered,
+        },
+        callback: ({ encountered0 }, forest0) => {
+          const id = NodeId.concat(forest0.map((tree) => tree.node.id));
+          const hasBeenEncountered = encountered0.has(id);
+          return hasBeenEncountered
+            ? { forest0: undefined, encountered0 }
+            : { forest0, encountered0: encountered0.add(id) };
+        },
+      }),
+      mapIter(({ forest0, encountered0 }): GenTree<MergedValue> | undefined =>
+        forest0 === undefined ? undefined : merge(forest0, map, measure, shrink, encountered0),
       ),
+      filterIter(isNotUndefined),
     );
+
+    return create(node, shrinks);
   };
 
   const mergeNode = <ElementValue, MergedValue>(
     elementNodes: Node<ElementValue>[],
-    fMerge: (values: ElementValue[]) => MergedValue,
-    fMergeComplexity: (nodes: Node<ElementValue>[]) => Complexity,
+    map: (values: ElementValue[]) => MergedValue,
+    measure: (nodes: Node<ElementValue>[]) => Complexity,
   ): Node<MergedValue> => ({
-    value: fMerge(elementNodes.map((node) => node.value)),
-    complexity: fMergeComplexity(elementNodes),
+    id: NodeId.concat(elementNodes.map((node) => node.id)),
+    value: map(elementNodes.map((node) => node.value)),
+    complexity: measure(elementNodes),
   });
 
   /**
    * Within a forest, replaces the tree at the index with shrinks. Shrinks are substituted individually, resulting in
    * a distinct forest being returned for each shrink given.
    */
-  const replaceTreeWithShrinks = <ElementValue>(
+  const insertShrinksIntoForest = <ElementValue>(
     forest: GenTree<ElementValue>[],
     shrinks: Iterable<GenTree<ElementValue>>,
     index: number,
@@ -171,27 +249,13 @@ export namespace GenTree {
     );
   };
 
-  export const concat = <Value>(
-    forest: GenTree<Value>[],
-    calculateConcatComplexity: (length: number) => Complexity,
-    shrinkArray: (arr: GenTree<Value>[]) => Iterable<GenTree<Value>[]>,
-  ): GenTree<Value[]> =>
-    merge<Value, Value[]>(
-      forest,
-      (values) => values,
-      (nodes) => {
-        const mergeComplexity = calculateConcatComplexity(nodes.length);
-        return nodes.map((node) => node.complexity).reduce((acc, curr) => acc + curr, mergeComplexity);
-      },
-      shrinkArray,
-    );
-
   export const navigate = <Value>(tree: GenTree<Value>, path: number[]): GenTree<Value> | null => {
     if (path.length === 0) return tree;
 
     const [x, ...xs] = path;
     const nextTree = firstIter(pipe(tree.shrinks, skipIter(x - 1)));
 
+    /* istanbul ignore next */
     if (!nextTree) {
       return null;
     }
@@ -227,3 +291,5 @@ export namespace GenTree {
       pipe(formatLines(tree, 0, { maxNodes: 100, indentation: '.', ...config }), takeIter(config.maxNodes || 100)),
     ).join('\n');
 }
+
+const isNotUndefined = <T>(x: T | undefined): x is T => x !== undefined;

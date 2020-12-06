@@ -8,6 +8,7 @@ import {
 } from 'ix/iterable/operators';
 import { Rng, Size, takeWhileInclusive as takeWhileInclusiveIter } from '../../Core';
 import { GenTree } from '../../GenTree';
+import { NodeId } from '../../GenTree/NodeId';
 import { ArrayGen, Gen, GenLite, GenConfig, GenFactory, GenStream } from '../Abstractions';
 import { GenIteration } from '../GenIteration';
 import { GenTransformation } from './GenTransformation';
@@ -36,9 +37,7 @@ export class GenImpl<TInit, TCurr> implements Gen<TCurr> {
   }
 
   noShrink(): Gen<TCurr> {
-    return this.transform(
-      GenTransformation.mapTreesOfStream((tree) => GenTree.create({ value: tree.node.value, complexity: 0 }, [])),
-    );
+    return this.transform(GenTransformation.mapTreesOfStream((tree) => GenTree.singleton(tree.node.value)));
   }
 
   run(rng: Rng, size: number, config: GenConfig): GenStream<TCurr> {
@@ -145,6 +144,7 @@ const flatMapTreeToIterations = <T, U>(
       if (GenIteration.isNotInstance(iteration)) return iteration;
 
       const rightTree = GenTree.mapNode(iteration.tree, (node) => ({
+        id: NodeId.join(leftTree.node.id, node.id),
         value: node.value,
         complexity: leftTree.node.complexity + node.complexity,
       }));

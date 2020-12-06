@@ -21,7 +21,6 @@ module.exports = {
   coveragePathIgnorePatterns: [
     'src/index.ts',
     'src/Core',
-    'src/GenTree',
     'src/Runners'
   ]
 };

@@ -1,6 +1,7 @@
 import { GenTree } from '../../src';
 
 const makeNode = (valueAndComplexity: number): GenTree.Node<number> => ({
+  id: [valueAndComplexity.toString()],
   value: valueAndComplexity,
   complexity: valueAndComplexity,
 });

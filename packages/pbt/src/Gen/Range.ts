@@ -33,8 +33,6 @@ export namespace Range {
     else return ((x - origin) / (max - origin)) * 100;
   };
 
-  // const clamp = (min: number, max: number, n: number): number => Math.min(max, Math.max(min, n));
-
   const constantFrom = (x: number, y: number, z: number): Range => {
     const { min, max, origin } = labelParams(x, y, z);
 
@@ -52,9 +50,6 @@ export namespace Range {
     return {
       getSizedBounds: (size) => {
         if (size === 0) return [origin, origin];
-
-        // const min0 = clamp(min, origin, scaleLinear(size, origin, min));
-        // const max0 = clamp(max, origin, scaleLinear(size, origin, max));
 
         const min0 = scaleLinear(size, origin, min);
         const max0 = scaleLinear(size, origin, max);

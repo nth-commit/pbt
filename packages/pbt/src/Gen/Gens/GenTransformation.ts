@@ -72,7 +72,7 @@ export namespace GenTransformation {
   };
 
   const collectNone = <T>(lengthRng: Rng, size: Size): GenStream<T[]> => [
-    GenIteration.instance(GenTree.create({ value: [], complexity: 0 }, []), lengthRng, lengthRng.next(), size, size),
+    GenIteration.instance(GenTree.singleton([]), lengthRng, lengthRng.next(), size, size),
   ];
 
   const collectLength = function* <T>(
