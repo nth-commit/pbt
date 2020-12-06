@@ -199,7 +199,8 @@ const repeat = function* <Ts extends any[]>(
           counterexample: {
             path,
             reason: fResult.reason,
-            ...shrunkTree.node,
+            complexity: shrunkTree.node.complexity,
+            value: shrunkTree.node.value,
           },
           shrinks: [],
         };

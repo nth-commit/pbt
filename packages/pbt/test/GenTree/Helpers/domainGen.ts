@@ -25,7 +25,7 @@ const internalTree = <T>(
 
     const node: fc.Arbitrary<GenTree.Node<T>> = fc
       .tuple(valueGen, naturalNumber())
-      .map(([value, complexity]) => ({ value, complexity }));
+      .map(([value, complexity]) => ({ id: [JSON.stringify(value)], value, complexity }));
 
     const shrinks = fc.frequency(
       {
