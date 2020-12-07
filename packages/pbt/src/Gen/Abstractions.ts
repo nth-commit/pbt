@@ -76,6 +76,17 @@ export type IntegerGen = Gen<number> & {
   noBias(): IntegerGen;
 };
 
+export type FloatGen = Gen<number> & {
+  between(min: number, max: number): FloatGen;
+  greaterThanEqual(min: number): FloatGen;
+  lessThanEqual(max: number): FloatGen;
+  betweenPrecision(min: number, max: number): FloatGen;
+  ofMinPrecision(max: number): FloatGen;
+  ofMaxPrecision(max: number): FloatGen;
+  origin(origin: number): FloatGen;
+  noBias(): FloatGen;
+};
+
 export type ArrayGen<T> = Gen<T[]> & {
   betweenLengths(min: number, max: number): ArrayGen<T>;
   ofLength(length: number): ArrayGen<T>;
@@ -108,6 +119,7 @@ export type GenFactory = {
   error: <T>(message: string) => Gen<T>;
   array: <T>(elementGen: Gen<T>) => ArrayGen<T>;
   integer: () => IntegerGen;
+  float: () => FloatGen;
   element: <T>(collection: ElementGen.Collection<T>) => ElementGen<T>;
   stateMachine: <State, Transition>(
     initialState: State,
