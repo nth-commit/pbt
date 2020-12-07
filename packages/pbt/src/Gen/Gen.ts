@@ -89,21 +89,61 @@ export namespace Gen {
     }
   };
 
+  /**
+   * @description Repeats values from a source generator into a tuple of length 2.
+   *
+   * @example Gen.two(Gen.integer()); // [0, 1], [5, 42], [-1, 1] ...
+   *
+   * @param gen The source generator
+   */
+  export const two = <T>(gen: Gen<T>): Gen<[T, T]> => zip(gen, gen);
+
+  /**
+   * @description Repeats values from a source generator into a tuple of length 3.
+   *
+   * @example Gen.three(Gen.integer()); // [0, 1, 2], [5, 42, 8], [-1, 1, 0] ...
+   *
+   * @param gen The source generator
+   */
+  export const three = <T>(gen: Gen<T>): Gen<[T, T, T]> => zip(gen, gen, gen);
+
+  /**
+   * @description Repeats values from a source generator into a tuple of length 4.
+   *
+   * @example Gen.four(Gen.integer()); // [0, 1, 2, 3], [5, 42, 8, -160], [-1, 1, 0, 11] ...
+   *
+   * @param gen The source generator
+   */
+  export const four = <T>(gen: Gen<T>): Gen<[T, T, T, T]> => zip(gen, gen, gen, gen);
+
   export type VariadicMapper<Ts extends any[], U> = (...xs: { [P in keyof Ts]: Ts[P] }) => U;
 
   /**
    * Creates a generator, where the values of the given generators are provided as arguments for the mapper function,
    * and the results of the mapper function become the values for the resultant generator.
    *
-   * @example Gen2.map(Gen2.constant('Hello'), Gen2.constant('World'), (greeting, subject) => `${greeting}, ${subject}`);
+   * @example Gen.map(Gen.constant('Hello'), Gen.constant('World'), (greeting, subject) => `${greeting}, ${subject}`); // 'Hello, World' ...
    *
    * @param args
    */
   export const map = <Ts extends any[], U>(...args: [...Gens<Ts>, VariadicMapper<Ts, U>]): Gen<U> => {
-    const [f, ...gens] = args.reverse();
-    const fUnsafe = f as VariadicMapper<any[], U>;
-    const gensUnsafe = gens as Gens<any[]>;
-    return zip(...gensUnsafe).map(([...xs]) => fUnsafe(...xs));
+    const gens = args.slice(0, args.length - 1) as Gens<Ts>;
+    const mapper = args[args.length - 1] as VariadicMapper<Ts, U>;
+    return zip<Ts>(...gens).map((xs) => mapper(...xs));
+  };
+
+  export type VariadicFlatMapper<Ts extends any[], U> = (...xs: { [P in keyof Ts]: Ts[P] }) => Gen<U>;
+
+  /**
+   * Creates a generator, where the values of the given generators are provided as arguments for the mapper function,
+   * and the results of the mapper function become the values for the resultant generator.
+   *
+   * @param args
+   */
+  export const flatMap = <Ts extends any[], U>(...args: [...Gens<Ts>, VariadicFlatMapper<Ts, U>]): Gen<U> => {
+    const gens = args.slice(0, args.length - 1) as Gens<Ts>;
+    const mapper = args[args.length - 1] as VariadicFlatMapper<Ts, U>;
+    return zip<Ts>(...gens).flatMap((xs) => mapper(...xs));
   };
 
   /**

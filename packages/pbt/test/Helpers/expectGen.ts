@@ -3,6 +3,8 @@ import * as dev from '../../src';
 export type GenExpectations<T> = {
   toHaveMinimum: (value: T, predicate: (x: T) => boolean, config?: Partial<dev.MinimalConfig>) => void;
   onMinimum: (predicate: (x: T) => boolean, assertFn: (x: T) => void, config?: Partial<dev.MinimalConfig>) => void;
+  toEqual: (expectedGen: dev.Gen<T>) => void;
+  toEqualConstant: (value: T) => void;
 };
 
 export const expectGen = <T>(gen: dev.Gen<T>): GenExpectations<T> => {
@@ -25,6 +27,25 @@ export const expectGen = <T>(gen: dev.Gen<T>): GenExpectations<T> => {
         throw e;
       }
     },
+    toEqual: (expectedGen) => {
+      const actualSample = dev.sample(gen, { iterations: 1 });
+      const expectedSample = dev.sample(expectedGen, { seed: actualSample.seed, iterations: 1 });
+      try {
+        expect(actualSample.values[0]).toEqual(expectedSample.values[0]);
+      } catch (e: unknown) {
+        augmentError(e, renderRepeatConfig(actualSample.seed, actualSample.size));
+        throw e;
+      }
+    },
+    toEqualConstant: (value) => {
+      const actualSample = dev.sample(gen, { iterations: 1 });
+      try {
+        expect(actualSample.values[0]).toEqual(value);
+      } catch (e: unknown) {
+        augmentError(e, renderRepeatConfig(actualSample.seed, actualSample.size));
+        throw e;
+      }
+    },
   };
 };
 
@@ -37,13 +58,19 @@ const findMinimum = <T>(
 ): dev.MinimalResult<T> => dev.minimal(gen, predicate, config || {});
 
 const augmentErrorWithDiagnostics = (e: unknown, minimum: dev.MinimalResult<unknown>): void => {
+  augmentError(
+    e,
+    [
+      renderRepeatConfig(minimum.seed, minimum.size),
+      `Shrinks: ${minimum.shrinks.map((s) => (s as any).toString()).join(', ')}`,
+    ].join('\n\n'),
+  );
+};
+
+const renderRepeatConfig = (seed: number, size: number) => `Repeat configuration: { seed: ${seed}, size: ${size} }`;
+
+const augmentError = (e: unknown, message: string): void => {
   if (typeof e === 'object' && e !== null) {
-    const minimumDetails = `
-
-Repeat configuration: { seed: ${minimum.seed}, size: ${minimum.size} }
-
-Shrinks: ${minimum.shrinks.map((s) => (s as any).toString()).join(', ')}`;
-
-    (e as { message: string }).message += minimumDetails;
+    (e as { message: string }).message += '\n\n' + message;
   }
 };
