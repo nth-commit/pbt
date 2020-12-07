@@ -2,7 +2,7 @@ import { pipe, isEmpty, toArray } from 'ix/iterable';
 import { take } from 'ix/iterable/operators';
 import * as dev from '../../src';
 
-type LocatedGenTreeNode<T> = { path: number[]; node: dev.GenTreeNode<T> };
+type LocatedGenTreeNode<T> = { path: number[]; node: dev.GenTree.Node<T> };
 
 const traverseBreadthFirst = function* <T>(tree: dev.GenTree<T>): Iterable<LocatedGenTreeNode<T>> {
   let nextTraversals: Array<[LocatedGenTreeNode<T>, Iterable<dev.GenTree<T>>]> = [
@@ -28,7 +28,10 @@ const traverseBreadthFirst = function* <T>(tree: dev.GenTree<T>): Iterable<Locat
   }
 };
 
-const unfoldLocatedNodes = <T>(rootNode: dev.GenTreeNode<T>, locatedNodes: LocatedGenTreeNode<T>[]): dev.GenTree<T> => {
+const unfoldLocatedNodes = <T>(
+  rootNode: dev.GenTree.Node<T>,
+  locatedNodes: LocatedGenTreeNode<T>[],
+): dev.GenTree<T> => {
   const result: dev.GenTree<T> = {
     node: rootNode,
     shrinks: [],

@@ -5,6 +5,7 @@ export type GenExpectations<T> = {
   onMinimum: (predicate: (x: T) => boolean, assertFn: (x: T) => void, config?: Partial<dev.MinimalConfig>) => void;
   toEqual: (expectedGen: dev.Gen<T>) => void;
   toEqualConstant: (value: T) => void;
+  toError: (message: string) => void;
 };
 
 export const expectGen = <T>(gen: dev.Gen<T>): GenExpectations<T> => {
@@ -43,6 +44,16 @@ export const expectGen = <T>(gen: dev.Gen<T>): GenExpectations<T> => {
         expect(actualSample.values[0]).toEqual(value);
       } catch (e: unknown) {
         augmentError(e, renderRepeatConfig(actualSample.seed, actualSample.size));
+        throw e;
+      }
+    },
+    toError: (message) => {
+      const seed = Date.now();
+      const size = 50;
+      try {
+        expect(() => dev.sample(gen, { seed, size })).toThrow(message);
+      } catch (e: unknown) {
+        augmentError(e, renderRepeatConfig(seed, size));
         throw e;
       }
     },

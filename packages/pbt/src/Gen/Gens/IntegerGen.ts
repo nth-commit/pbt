@@ -76,16 +76,11 @@ const integerGen = (args: IntegerGenConfig, genFactory: GenFactory): GenLite<num
   const scale = args.scale === null ? 'linear' : args.scale;
   const range = Range.createFrom(min, max, origin, scale);
 
-  return GenTransformation.repeat<number>()(
-    new RawGenImpl(
-      primitive(
-        (useNextInt, size) => useNextInt(...range.getSizedBounds(size)),
-        Shrink.towardsNumber(range.origin),
-        range.getProportionalDistance,
-        genFactory,
-      ),
-      genFactory,
-    ),
+  return primitive(
+    (useNextInt, size) => useNextInt(...range.getSizedBounds(size)),
+    Shrink.towardsNumber(range.origin),
+    range.getProportionalDistance,
+    genFactory,
   );
 };
 

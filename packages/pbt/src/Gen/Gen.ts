@@ -1,7 +1,16 @@
 import { GenTree } from '../GenTree';
-import { Gen as G, GenFactory, ArrayGen, IntegerGen, ElementGen, StateMachineGen, PrimitiveGen } from './Abstractions';
+import {
+  Gen as G,
+  GenFactory,
+  ArrayGen,
+  IntegerGen,
+  ElementGen,
+  StateMachineGen,
+  PrimitiveGen,
+  FloatGen,
+} from './Abstractions';
 import { GenIteration } from './GenIteration';
-import { array, integer, element, primitive, stateMachine } from './Gens';
+import { array, integer, element, primitive, stateMachine, float } from './Gens';
 import { RawGenImpl } from './Gens/RawGenImpl';
 import { Shrink } from './Shrink';
 
@@ -11,6 +20,7 @@ const genFactory: GenFactory = {
   error: (message: string) =>
     RawGenImpl.fromRunFunction((rng, size) => [GenIteration.error(message, rng, rng, size, size)], genFactory),
   integer: () => integer(genFactory),
+  float: () => float(genFactory),
   array: (elementGen) => array(elementGen, genFactory),
   element: (collection) => element(collection, genFactory),
   stateMachine: (initialState, generateTransition, applyTransition) =>
@@ -59,6 +69,11 @@ export namespace Gen {
    * Creates a generator for integers.
    */
   export const integer = (): IntegerGen => genFactory.integer();
+
+  /**
+   * Creates a generator for floats.
+   */
+  export const float = (): FloatGen => genFactory.float();
 
   /**
    * Creates a generator for arrays, where the elements of the array are values from the given generator.

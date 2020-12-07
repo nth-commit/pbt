@@ -2,11 +2,6 @@ import { Gen } from 'pbt';
 import * as dev from '../../src';
 import { expectGen } from '../Helpers/expectGen';
 
-namespace LocalGen {
-  export const two = <T>(gen: Gen<T>): Gen<[T, T]> => Gen.zip(gen, gen);
-  export const four = <T>(gen: Gen<T>): Gen<[T, T, T, T]> => Gen.zip(gen, gen, gen, gen);
-}
-
 describe('Gen.zip', () => {
   test('nullary invocation', () => {
     const gen = dev.Gen.zip();
@@ -14,13 +9,13 @@ describe('Gen.zip', () => {
     expectGen(gen).toEqualConstant([]);
   });
 
-  test.property('unary invocation', LocalGen.two(Gen.integer()), ([a, b]) => {
+  test.property('unary invocation', Gen.two(Gen.integer()), ([a, b]) => {
     const gen = dev.Gen.integer().between(a, b);
 
     expectGen(dev.Gen.zip(gen)).toEqual(gen.map((x) => [x]));
   });
 
-  test.property('binary invocation', LocalGen.four(Gen.integer()), ([a, b, c, d]) => {
+  test.property('binary invocation', Gen.four(Gen.integer()), ([a, b, c, d]) => {
     const gen0 = dev.Gen.integer().between(a, b);
     const gen1 = dev.Gen.integer().between(c, d);
 
@@ -28,19 +23,19 @@ describe('Gen.zip', () => {
   });
 });
 
-test.property('Gen.two(g) = Gen.zip(g, g)', LocalGen.two(Gen.integer()), ([a, b]) => {
+test.property('Gen.two(g) = Gen.zip(g, g)', Gen.two(Gen.integer()), ([a, b]) => {
   const gen = dev.Gen.integer().between(a, b);
 
   expectGen(dev.Gen.two(gen)).toEqual(dev.Gen.zip(gen, gen));
 });
 
-test.property('Gen.three(g) = Gen.zip(g, g, g)', LocalGen.two(Gen.integer()), ([a, b]) => {
+test.property('Gen.three(g) = Gen.zip(g, g, g)', Gen.two(Gen.integer()), ([a, b]) => {
   const gen = dev.Gen.integer().between(a, b);
 
   expectGen(dev.Gen.three(gen)).toEqual(dev.Gen.zip(gen, gen, gen));
 });
 
-test.property('Gen.four(g) = Gen.zip(g, g, g, g)', LocalGen.two(Gen.integer()), ([a, b]) => {
+test.property('Gen.four(g) = Gen.zip(g, g, g, g)', Gen.two(Gen.integer()), ([a, b]) => {
   const gen = dev.Gen.integer().between(a, b);
 
   expectGen(dev.Gen.four(gen)).toEqual(dev.Gen.zip(gen, gen, gen, gen));
@@ -53,13 +48,13 @@ describe('Gen.map', () => {
     expectGen(dev.Gen.map(toTuple)).toEqualConstant([]);
   });
 
-  test.property('unary invocation', LocalGen.two(Gen.integer()), ([a, b]) => {
+  test.property('unary invocation', Gen.two(Gen.integer()), ([a, b]) => {
     const gen = dev.Gen.integer().between(a, b);
 
     expectGen(dev.Gen.map(gen, toTuple)).toEqual(dev.Gen.zip(gen));
   });
 
-  test.property('binary invocation', LocalGen.four(Gen.integer()), ([a, b, c, d]) => {
+  test.property('binary invocation', Gen.four(Gen.integer()), ([a, b, c, d]) => {
     const gen0 = dev.Gen.integer().between(a, b);
     const gen1 = dev.Gen.integer().between(c, d);
 
@@ -74,13 +69,13 @@ describe('Gen.flatMap', () => {
     expectGen(dev.Gen.flatMap(toGenOfTuple)).toEqualConstant([]);
   });
 
-  test.property('unary invocation', LocalGen.two(Gen.integer()), ([a, b]) => {
+  test.property('unary invocation', Gen.two(Gen.integer()), ([a, b]) => {
     const gen = dev.Gen.integer().between(a, b);
 
     expectGen(dev.Gen.flatMap(gen, toGenOfTuple)).toEqual(dev.Gen.zip(gen));
   });
 
-  test.property('binary invocation', LocalGen.four(Gen.integer()), ([a, b, c, d]) => {
+  test.property('binary invocation', Gen.four(Gen.integer()), ([a, b, c, d]) => {
     const gen0 = dev.Gen.integer().between(a, b);
     const gen1 = dev.Gen.integer().between(c, d);
 
