@@ -42,23 +42,39 @@ export class NodeIdSet {
       stack.push({ parent, child, nodeIdPart });
     }
 
-    return stack
-      .toArray()
-      .reduceRight(
-        (current, { parent, nodeIdPart }) =>
-          new NodeIdSet(immutableMapSet(parent.children, nodeIdPart, current), parent.containsExact),
-        new NodeIdSet(new Map(), true),
-      );
+    return stack.toArray().reduceRight((current, { parent, nodeIdPart }) => {
+      const newParent = new NodeIdSet(new Map([[nodeIdPart, current]]), false);
+      return NodeIdSet.merge(newParent, parent);
+    }, new NodeIdSet(new Map(), true));
+  }
+
+  private static merge(a: NodeIdSet, b: NodeIdSet): NodeIdSet {
+    const result = new NodeIdSet(new Map(), a.containsExact || b.containsExact);
+
+    const aKeys = new Set(a.children.keys());
+    const bKeys = new Set(b.children.keys());
+
+    // Disparate keys can be safely added without risk of collision at the current level, or any lower level
+    SetUtils.difference(aKeys, bKeys).forEach((aKey) => result.children.set(aKey, a.children.get(aKey)!));
+    SetUtils.difference(bKeys, aKeys).forEach((bKey) => result.children.set(bKey, b.children.get(bKey)!));
+
+    // Intersecting keys need to be merged, recursively
+    SetUtils.intersection(aKeys, bKeys).forEach((key) => {
+      const aChild = a.children.get(key)!;
+      const bChild = b.children.get(key)!;
+      const mergedChild = NodeIdSet.merge(aChild, bChild);
+      result.children.set(key, mergedChild);
+    });
+
+    return result;
   }
 }
 
-const immutableMapSet = <K, V>(map: Map<K, V>, key: K, value: V): Map<K, V> =>
-  new Map<K, V>(
-    (function* () {
-      yield* map;
-      yield [key, value] as const;
-    })(),
-  );
+namespace SetUtils {
+  export const intersection = <T>(a: Set<T>, b: Set<T>): Set<T> => new Set([...a].filter((x) => b.has(x)));
+
+  export const difference = <T>(a: Set<T>, b: Set<T>): Set<T> => new Set([...a].filter((x) => !b.has(x)));
+}
 
 class MutableStack<T> {
   static empty<T>(): MutableStack<T> {
