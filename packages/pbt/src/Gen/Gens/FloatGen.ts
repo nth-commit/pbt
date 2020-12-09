@@ -1,9 +1,7 @@
 import { GenFactory, GenLite, FloatGen } from '../Abstractions';
-import { Range, ScaleMode } from '../Range';
-import { Shrink } from '../Shrink';
+import { Gen } from '../Gen';
+import { ScaleMode } from '../Range';
 import { RawGenImpl } from './RawGenImpl';
-import { GenTransformation } from './GenTransformation';
-import { primitive } from './PrimitiveGen';
 
 const FLOAT_BITS = 16;
 const DEFAULT_MIN_PRECISION = 0;
@@ -19,13 +17,18 @@ type FloatGenConfig = Readonly<{
   scale: ScaleMode | null;
 }>;
 
+// TODO: Origin validation (defer to genFactory.integer())
+// TODO: Handle decimal min/max by destructuring into min/max integer component and min/max fractional component
+// TODO: Handle a min/max range of less than 2
+// TODO: Negative ranges do not shrink to the origin e.g. Gen.float().between(-10, -1) does not minimise to -1 (it minimises to -2, off-by-one)
+// TODO: Memoize powers of 10
+
 export const float = (genFactory: GenFactory): FloatGen => {
   class FloatGenImpl extends RawGenImpl<number> implements FloatGen {
     constructor(private readonly config: Readonly<FloatGenConfig>) {
-      super(floatGen(config, genFactory), genFactory);
+      super(floatGen(config), genFactory);
     }
 
-    /* istanbul ignore next */
     between(min: number, max: number): FloatGen {
       return this.withConfig({ min, max });
     }
@@ -43,7 +46,6 @@ export const float = (genFactory: GenFactory): FloatGen => {
       return this.withConfig({ origin });
     }
 
-    /* istanbul ignore next */
     betweenPrecision(min: number, max: number): FloatGen {
       return this.withConfig({ minPrecision: min, maxPrecision: max });
     }
@@ -79,28 +81,76 @@ export const float = (genFactory: GenFactory): FloatGen => {
   });
 };
 
-const floatGen = (args: FloatGenConfig, genFactory: GenFactory): GenLite<number> => {
+const floatGen = (args: FloatGenConfig): GenLite<number> => {
   const minPrecision = tryDeriveMinPrecision(args.minPrecision);
   if (typeof minPrecision === 'string') {
-    return genFactory.error(minPrecision);
+    return Gen.error(minPrecision);
   }
 
   const maxPrecision = tryDeriveMaxPrecision(args.maxPrecision);
   if (typeof maxPrecision === 'string') {
-    return genFactory.error(maxPrecision);
+    return Gen.error(maxPrecision);
   }
 
   const min = tryDeriveMin(args.min, minPrecision, maxPrecision);
   if (typeof min === 'string') {
-    return genFactory.error(min);
+    return Gen.error(min);
   }
 
   const max = tryDeriveMax(args.max, minPrecision, maxPrecision);
   if (typeof max === 'string') {
-    return genFactory.error(max);
+    return Gen.error(max);
   }
 
-  return genFactory.error('Not implemented');
+  /**
+   * Generate integers between the given min and max, with some padding allocated, so that the integers can be combined
+   * with some fractional component to produce decimals that are still within the range.
+   */
+  const genIntegerComponent = Gen.integer().between(min + 1, max - 1);
+
+  /**
+   * Don't shrink the precision - the shrink vector for the right-side of the decimal is the fractional component
+   * itself.
+   */
+  const genPrecision = Gen.integer().between(minPrecision, maxPrecision).noShrink();
+
+  /**
+   * Create an integer generator from a given precision. The integers are ranged so that they express the full range of
+   * the precision. It is intended that the integers produced by the resultant generator are scaled down to be the
+   * fractional component of a decimal.
+   *    Ex 1. Precision = 1, Integers ∉ [0, 9], Fractional components ∉ [0.0, 0.9]
+   *    Ex 2. Precision = 2, Integers ∉ [0, 99], Fractional components ∉ [0.0, 0.99]
+   *
+   * The integers produced are not biased - the bias is determined by the precision. For smaller sizes, smaller
+   * precisions will be generated, producing "less complex" fractions.
+   */
+  const genFractionalComponent = (precision: number): Gen<number> => {
+    const maxFractionalComponentAsInteger = Math.pow(10, precision) - 1;
+    return Gen.integer().between(0, maxFractionalComponentAsInteger).noBias();
+  };
+
+  return Gen.flatMap(genIntegerComponent, genPrecision, (integerComponent, precision) =>
+    genFractionalComponent(precision)
+      .map((fractionalComponentAsInteger) => makeDecimal(integerComponent, fractionalComponentAsInteger, precision))
+      .filter((x) => minPrecision === 0 || measurePrecision(x) >= minPrecision),
+  );
+};
+
+const makeDecimal = (integerComponent: number, fractionalComponentAsInteger: number, precision: number): number => {
+  const integerToFractionRatio = Math.pow(10, precision);
+  const fractionalComponent = fractionalComponentAsInteger / integerToFractionRatio;
+  switch (Math.sign(integerComponent)) {
+    /* istanbul ignore next */
+    case 0:
+      return fractionalComponent;
+    case 1:
+      return integerComponent + fractionalComponent;
+    case -1:
+      return integerComponent - fractionalComponent;
+    /* istanbul ignore next */
+    default:
+      throw new Error('Fatal: Unhandled result from Math.sign');
+  }
 };
 
 const tryDeriveMinPrecision = (minPrecision: number | null): number | string => {
@@ -144,7 +194,7 @@ const tryDeriveMaxPrecision = (maxPrecision: number | null): number | string => 
 };
 
 const tryDeriveMin = (min: number | null, minPrecision: number, maxPrecision: number): number | string => {
-  if (min === null) return -MAX_INT_32;
+  if (min === null) return -MAX_INT_32; // TODO: Ensure this fits into minPrecision
 
   const precisionOfMin = measurePrecision(min);
   if (precisionOfMin > maxPrecision) {
@@ -160,7 +210,7 @@ const tryDeriveMin = (min: number | null, minPrecision: number, maxPrecision: nu
 };
 
 const tryDeriveMax = (max: number | null, minPrecision: number, maxPrecision: number): number | string => {
-  if (max === null) return MAX_INT_32;
+  if (max === null) return MAX_INT_32; // TODO: Ensure this fits into minPrecision
 
   const precisionOfMax = measurePrecision(max);
   if (precisionOfMax > maxPrecision) {

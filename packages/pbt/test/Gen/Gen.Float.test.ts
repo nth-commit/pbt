@@ -8,6 +8,46 @@ export namespace LocalGen {
   export const short = (): Gen<number> => Gen.integer().between(U_SHORT_MAX, -U_SHORT_MAX);
 }
 
+test('Gen.float().between(0, 10).betweenPrecision(0, 2)', () => {
+  for (let i = 0; i <= 10; i++) {
+    const gen = dev.Gen.float().between(0, 10).betweenPrecision(0, 2);
+
+    const sample = dev.sampleTrees(gen, { iterations: 1, seed: i });
+
+    expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot(i.toString());
+  }
+});
+
+test('Gen.float().between(0, 10).betweenPrecision(1, 2)', () => {
+  for (let i = 0; i <= 10; i++) {
+    const gen = dev.Gen.float().between(0, 10).betweenPrecision(1, 2);
+
+    const sample = dev.sampleTrees(gen, { iterations: 1, seed: i });
+
+    expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot(i.toString());
+  }
+});
+
+test('Gen.float().between(1, 10).betweenPrecision(0, 2)', () => {
+  for (let i = 0; i <= 10; i++) {
+    const gen = dev.Gen.float().between(1, 10).betweenPrecision(0, 2);
+
+    const sample = dev.sampleTrees(gen, { iterations: 1, seed: 0 });
+
+    expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot();
+  }
+});
+
+test('Gen.float().between(-10, -1).betweenPrecision(0, 2)', () => {
+  for (let i = 0; i <= 10; i++) {
+    const gen = dev.Gen.float().between(-10, -1).betweenPrecision(0, 2);
+
+    const sample = dev.sampleTrees(gen, { iterations: 1, seed: i });
+
+    expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot();
+  }
+});
+
 describe('errors', () => {
   test.property(
     'Gen.float().ofMinPrecision(x), x ∉ ℤ *produces* error; minimum precision must be an integer',
