@@ -62,7 +62,6 @@ export namespace Gen {
    *
    * @param message
    */
-  /* istanbul ignore next */
   export const error = <T>(message: string): Gen<T> => genFactory.error(message);
 
   /**

@@ -2,7 +2,6 @@ import { GenFactory, GenLite, IntegerGen } from '../Abstractions';
 import { Range, ScaleMode } from '../Range';
 import { Shrink } from '../Shrink';
 import { RawGenImpl } from './RawGenImpl';
-import { GenTransformation } from './GenTransformation';
 import { primitive } from './PrimitiveGen';
 
 const MAX_INT_32 = Math.pow(2, 31);
