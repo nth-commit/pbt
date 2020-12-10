@@ -1,9 +1,56 @@
 import { GenTree } from '../../GenTree';
 import { ScaleMode, Range } from '../Range';
 import { Shrink } from '../Shrink';
-import { Gen, ArrayGen, GenFactory } from '../Abstractions';
 import { GenImpl } from './GenImpl';
-import { GenTransformation } from './GenTransformation';
+import { Gen } from '../Gen';
+import { GenTransformation } from '../GenTransformation';
+
+export type ArrayGen<T> = Gen<T[]> & {
+  betweenLengths(min: number, max: number): ArrayGen<T>;
+  ofLength(length: number): ArrayGen<T>;
+  ofMinLength(min: number): ArrayGen<T>;
+  ofMaxLength(max: number): ArrayGen<T>;
+  noBias(): ArrayGen<T>;
+};
+
+export const ArrayGen = {
+  create: <T>(elementGen: Gen<T>): ArrayGen<T> => {
+    class ArrayGenImpl extends GenImpl<T, T[]> implements ArrayGen<T> {
+      constructor(private config: ArrayGenConfig) {
+        super(elementGen, arrayTransformation(config));
+      }
+
+      betweenLengths(min: number, max: number): ArrayGen<T> {
+        return this.withConfig({ min, max });
+      }
+
+      ofLength(length: number): ArrayGen<T> {
+        return this.betweenLengths(length, length);
+      }
+
+      ofMinLength(min: number): ArrayGen<T> {
+        return this.withConfig({ min });
+      }
+
+      ofMaxLength(max: number): ArrayGen<T> {
+        return this.withConfig({ max });
+      }
+
+      noBias(): ArrayGen<T> {
+        return this.withConfig({ scale: 'constant' });
+      }
+
+      private withConfig(config: Partial<ArrayGenConfig>): ArrayGen<T> {
+        return new ArrayGenImpl({
+          ...this.config,
+          ...config,
+        });
+      }
+    }
+
+    return new ArrayGenImpl({ min: null, max: null, scale: null });
+  },
+};
 
 type ArrayGenConfig = Readonly<{
   min: number | null;
@@ -11,49 +58,12 @@ type ArrayGenConfig = Readonly<{
   scale: ScaleMode | null;
 }>;
 
-export const array = <T>(elementGen: Gen<T>, genFactory: GenFactory): ArrayGen<T> => {
-  class ArrayGenImpl extends GenImpl<T, T[]> implements ArrayGen<T> {
-    constructor(private config: ArrayGenConfig) {
-      super(elementGen, arrayTransformation(config, genFactory), genFactory);
-    }
-
-    betweenLengths(min: number, max: number): ArrayGen<T> {
-      return this.withConfig({ min, max });
-    }
-
-    ofLength(length: number): ArrayGen<T> {
-      return this.betweenLengths(length, length);
-    }
-
-    ofMinLength(min: number): ArrayGen<T> {
-      return this.withConfig({ min });
-    }
-
-    ofMaxLength(max: number): ArrayGen<T> {
-      return this.withConfig({ max });
-    }
-
-    noBias(): ArrayGen<T> {
-      return this.withConfig({ scale: 'constant' });
-    }
-
-    private withConfig(config: Partial<ArrayGenConfig>): ArrayGen<T> {
-      return new ArrayGenImpl({
-        ...this.config,
-        ...config,
-      });
-    }
-  }
-
-  return new ArrayGenImpl({ min: null, max: null, scale: null });
-};
-
-const arrayTransformation = <T>(config: ArrayGenConfig, genFactory: GenFactory): GenTransformation<T, T[]> => {
+const arrayTransformation = <T>(config: ArrayGenConfig): GenTransformation<T, T[]> => {
   const min = tryDeriveMin(config.min);
-  if (typeof min === 'string') return () => genFactory.error(min);
+  if (typeof min === 'string') return () => Gen.error(min);
 
   const max = tryDeriveMax(config.max);
-  if (typeof max === 'string') return () => genFactory.error(max);
+  if (typeof max === 'string') return () => Gen.error(max);
 
   const range = Range.createFrom(min, max, Math.min(min, max), config.scale || 'linear');
 

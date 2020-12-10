@@ -1,47 +1,41 @@
-import { StateMachineGen, GenFactory, Gen, GenLite } from '../Abstractions';
 import { RawGenImpl } from './RawGenImpl';
+import { Gen } from '../Gen';
 
-export const stateMachine = <State, Transition>(
-  genFactory: GenFactory,
-  initialState: State,
-  generateTransition: StateMachineGen.GenerateTransitionFunction<State, Transition>,
-  applyTransition: StateMachineGen.ApplyTransitionFunction<State, Transition>,
-): StateMachineGen<State> =>
-  new RawGenImpl<State[]>(stateMachineGen(genFactory, initialState, generateTransition, applyTransition), genFactory);
+export type StateMachineGen<State, Transition> = Gen<State[]>;
+
+export const StateMachineGen = {
+  create: <State, Transition>(
+    initialState: State,
+    generateTransition: (state: State) => Gen<Transition>,
+    applyTransition: (state: State, transition: Transition) => State,
+  ): StateMachineGen<State, Transition> =>
+    new RawGenImpl<State[]>(stateMachineGen(initialState, generateTransition, applyTransition)),
+};
 
 const stateMachineGen = <State, Transition>(
-  genFactory: GenFactory,
   initialState: State,
-  generateTransition: StateMachineGen.GenerateTransitionFunction<State, Transition>,
-  applyTransition: StateMachineGen.ApplyTransitionFunction<State, Transition>,
-): GenLite<State[]> =>
-  genFactory
-    .integer()
+  generateTransition: (state: State) => Gen<Transition>,
+  applyTransition: (state: State, transition: Transition) => State,
+): Gen<State[]> =>
+  Gen.integer()
     .between(0, 25)
     .flatMap((transitionCount) =>
-      applyTransitionsRec(genFactory, generateTransition, applyTransition, [initialState], transitionCount),
+      applyTransitionsRec(generateTransition, applyTransition, [initialState], transitionCount),
     );
 
 const applyTransitionsRec = <State, Transition>(
-  genFactory: GenFactory,
-  generateTransition: StateMachineGen.GenerateTransitionFunction<State, Transition>,
-  applyTransition: StateMachineGen.ApplyTransitionFunction<State, Transition>,
+  generateTransition: (state: State) => Gen<Transition>,
+  applyTransition: (state: State, transition: Transition) => State,
   states: State[],
   transitionCount: number,
 ): Gen<State[]> => {
   if (transitionCount <= 0) {
-    return genFactory.constant(states);
+    return Gen.constant(states);
   }
 
   const fromState = states[states.length - 1];
   return generateTransition(fromState).flatMap((transition) => {
     const toState = applyTransition(fromState, transition);
-    return applyTransitionsRec(
-      genFactory,
-      generateTransition,
-      applyTransition,
-      [...states, toState],
-      transitionCount - 1,
-    );
+    return applyTransitionsRec(generateTransition, applyTransition, [...states, toState], transitionCount - 1);
   });
 };

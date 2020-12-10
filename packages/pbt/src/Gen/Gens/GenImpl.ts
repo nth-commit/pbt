@@ -9,19 +9,20 @@ import {
 import { Rng, Size, takeWhileInclusive as takeWhileInclusiveIter } from '../../Core';
 import { GenTree } from '../../GenTree';
 import { NodeId } from '../../GenTree/NodeId';
-import { ArrayGen, Gen, GenLite, GenConfig, GenFactory, GenStream } from '../Abstractions';
+import { Gen } from '../Gen';
 import { GenIteration } from '../GenIteration';
-import { GenTransformation } from './GenTransformation';
+import { GenConfig, GenRunnable, GenStream } from '../GenRunnable';
+import { GenTransformation } from '../GenTransformation';
+import { ArrayGen } from './ArrayGen';
 
 export class GenImpl<TInit, TCurr> implements Gen<TCurr> {
   constructor(
-    private readonly gen: GenLite<TInit>,
+    private readonly gen: GenRunnable<TInit>,
     private readonly transformation: GenTransformation<TInit, TCurr>,
-    private readonly genFactory: GenFactory,
   ) {}
 
   array(): ArrayGen<TCurr> {
-    return this.genFactory.array(this);
+    return Gen.array(this);
   }
 
   map<TNext>(mapper: (x: TCurr) => TNext): Gen<TNext> {
@@ -47,7 +48,7 @@ export class GenImpl<TInit, TCurr> implements Gen<TCurr> {
 
   private transform<TNext>(transformation: GenTransformation<TCurr, TNext>): Gen<TNext> {
     const nextTransformation: GenTransformation<TInit, TNext> = (gen) => transformation(this.transformation(gen));
-    return new GenImpl<TInit, TNext>(this.gen, nextTransformation, this.genFactory);
+    return new GenImpl<TInit, TNext>(this.gen, nextTransformation);
   }
 }
 

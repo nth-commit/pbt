@@ -1,17 +1,14 @@
 import { Rng, Size } from '../../Core';
-import { GenConfig, GenFactory, GenLite, GenStream } from '../Abstractions';
+import { GenConfig, GenRunnable, GenStream } from '../GenRunnable';
+import { GenTransformation } from '../GenTransformation';
 import { GenImpl } from './GenImpl';
-import { GenTransformation } from './GenTransformation';
 
 export class RawGenImpl<T> extends GenImpl<T, T> {
-  static fromRunFunction<T>(
-    run: (rng: Rng, size: Size, config: GenConfig) => GenStream<T>,
-    genFactory: GenFactory,
-  ): RawGenImpl<T> {
-    return new RawGenImpl({ run }, genFactory);
+  static fromRunFunction<T>(run: (rng: Rng, size: Size, config: GenConfig) => GenStream<T>): RawGenImpl<T> {
+    return new RawGenImpl({ run });
   }
 
-  constructor(gen: GenLite<T>, genFactory: GenFactory) {
-    super(gen, GenTransformation.none(), genFactory);
+  constructor(gen: GenRunnable<T>) {
+    super(gen, GenTransformation.none());
   }
 }

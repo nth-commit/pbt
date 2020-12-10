@@ -1,35 +1,54 @@
 import { GenTree } from '../GenTree';
-import {
-  Gen as G,
-  GenFactory,
-  ArrayGen,
-  IntegerGen,
-  ElementGen,
-  StateMachineGen,
-  PrimitiveGen,
-  FloatGen,
-} from './Abstractions';
 import { GenIteration } from './GenIteration';
-import { array, integer, element, primitive, stateMachine, float } from './Gens';
+import { GenRunnable } from './GenRunnable';
+import { ArrayGen } from './Gens/ArrayGen';
+import { ElementGen } from './Gens/ElementGen';
+import { FloatGen } from './Gens/FloatGen';
+import { IntegerGen } from './Gens/IntegerGen';
+import { PrimitiveGen } from './Gens/PrimitiveGen';
 import { RawGenImpl } from './Gens/RawGenImpl';
+import { StateMachineGen } from './Gens/StateMachineGen';
 import { Shrink } from './Shrink';
 
-const genFactory: GenFactory = {
-  primitive: (generate, shrink, measure) => primitive(generate, shrink, measure, genFactory),
-  constant: (value) => genFactory.primitive(() => value, Shrink.none(), GenTree.CalculateComplexity.none()),
-  error: (message: string) =>
-    RawGenImpl.fromRunFunction((rng, size) => [GenIteration.error(message, rng, rng, size, size)], genFactory),
-  integer: () => integer(genFactory),
-  float: () => float(genFactory),
-  array: (elementGen) => array(elementGen, genFactory),
-  element: (collection) => element(collection, genFactory),
-  stateMachine: (initialState, generateTransition, applyTransition) =>
-    stateMachine(genFactory, initialState, generateTransition, applyTransition),
-};
-
-export type Gen<T> = G<T>;
-
 export type Gens<Ts extends any[]> = { [P in keyof Ts]: Gen<Ts[P]> };
+
+export type Gen<T> = GenRunnable<T> & {
+  /**
+   * Creates a new generator of type T[], using the source generator to generate the elements of the array.
+   */
+  array(): ArrayGen<T>;
+
+  /**
+   * Creates a new generator, where the instances of the source generator are transformed by a mapper function. The
+   * generator calls the mapper function for each iteration of the source generator.
+   *
+   * @param mapper The mapper function.
+   */
+  map<U>(mapper: (x: T) => U): Gen<U>;
+
+  /**
+   * Creates a new generator, which is dependent on the instances of the source generator. The generator calls the
+   * mapper function for each successful iteration of the source generator, and pipes those instances into the stream
+   * of the resultant generator.
+   *
+   * @param mapper The mapper function.
+   */
+  flatMap<U>(mapper: (x: T) => Gen<U>): Gen<U>;
+
+  /**
+   * Creates a new generator, whose instances have been filtered by a predicate. The generator calls the predicate for
+   * each iteration of the source generator.
+   *
+   * @param predicate
+   */
+  filter(predicate: (x: T) => boolean): Gen<T>;
+
+  /**
+   * Creates a new generator, whose instances do not shrink. Useful for creating generators for data that doesn't have
+   * a natural order or size.
+   */
+  noShrink(): Gen<T>;
+};
 
 export namespace Gen {
   export type StatefulGenFunction<T> = PrimitiveGen.StatefulGenFunction<T>;
@@ -46,14 +65,15 @@ export namespace Gen {
     generate: StatefulGenFunction<T>,
     shrink: Shrink<T>,
     measure: GenTree.CalculateComplexity<T> = GenTree.CalculateComplexity.none(),
-  ): Gen<T> => genFactory.primitive(generate, shrink, measure);
+  ): Gen<T> => PrimitiveGen.create(generate, shrink, measure);
 
   /**
    * Creates a generator that always returns the given value, and does not shrink.
    *
    * @param value
    */
-  export const constant = <T>(value: T): Gen<T> => genFactory.constant(value);
+  export const constant = <T>(value: T): Gen<T> =>
+    PrimitiveGen.create(() => value, Shrink.none(), GenTree.CalculateComplexity.none());
 
   /**
    * Creates a generator that produces a single error signal, then terminates. This is the recommended way to exit from
@@ -62,24 +82,31 @@ export namespace Gen {
    *
    * @param message
    */
-  export const error = <T>(message: string): Gen<T> => genFactory.error(message);
+  export const error = <T>(message: string): Gen<T> =>
+    RawGenImpl.fromRunFunction((rng, size) => [GenIteration.error(message, rng, rng, size, size)]);
+
+  export type Integer = IntegerGen;
 
   /**
    * Creates a generator for integers.
    */
-  export const integer = (): IntegerGen => genFactory.integer();
+  export const integer = (): IntegerGen => IntegerGen.create();
+
+  export type Float = FloatGen;
 
   /**
    * Creates a generator for floats.
    */
-  export const float = (): FloatGen => genFactory.float();
+  export const float = (): FloatGen => FloatGen.create();
+
+  export type Array<T> = ArrayGen<T>;
 
   /**
    * Creates a generator for arrays, where the elements of the array are values from the given generator.
    *
    * @param elementGen
    */
-  export const array = <T>(elementGen: Gen<T>): ArrayGen<T> => genFactory.array(elementGen);
+  export const array = <T>(elementGen: Gen<T>): ArrayGen<T> => ArrayGen.create(elementGen);
 
   /**
    * Creates a generator for tuples, where the elements of the tuple are values from the given generators, and are
@@ -165,14 +192,9 @@ export namespace Gen {
    *
    * @param collection
    */
-  export const element = <T>(collection: ElementGen.Collection<T>): ElementGen<T> => genFactory.element(collection);
+  export const element = <T>(collection: ElementGen.Collection<T>): ElementGen<T> => ElementGen.create(collection);
 
-  export type GenerateTransitionFunction<State, Transition> = StateMachineGen.GenerateTransitionFunction<
-    State,
-    Transition
-  >;
-
-  export type ApplyTransitionFunction<State, Transition> = StateMachineGen.ApplyTransitionFunction<State, Transition>;
+  export type StateMachine<State, Transition> = StateMachineGen<State, Transition>;
 
   /**
    * Creates a generator, where the values are states of a finite state machine. The state machine is defined by two
@@ -183,7 +205,7 @@ export namespace Gen {
    */
   export const stateMachine = <State, Transition>(
     initialState: State,
-    generateTransition: GenerateTransitionFunction<State, Transition>,
-    applyTransition: ApplyTransitionFunction<State, Transition>,
-  ): StateMachineGen<State> => genFactory.stateMachine(initialState, generateTransition, applyTransition);
+    generateTransition: (state: State) => Gen<Transition>,
+    applyTransition: (state: State, transition: Transition) => State,
+  ): StateMachine<State, Transition> => StateMachineGen.create(initialState, generateTransition, applyTransition);
 }
