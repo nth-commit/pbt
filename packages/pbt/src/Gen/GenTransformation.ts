@@ -1,14 +1,14 @@
 import { OperatorFunction } from 'ix/interfaces';
 import { pipe } from 'ix/iterable';
 import { map } from 'ix/iterable/operators';
-import { Rng, Size } from '../../Core';
-import { GenTree } from '../../GenTree';
-import { GenConfig, GenLite, GenStream } from '../Abstractions';
-import { GenIteration } from '../GenIteration';
-import { Range } from '../Range';
-import { Shrink } from '../Shrink';
+import { Rng, Size } from '../Core';
+import { GenTree } from '../GenTree';
+import { GenIteration } from './GenIteration';
+import { GenConfig, GenRunnable, GenStream } from './GenRunnable';
+import { Range } from './Range';
+import { Shrink } from './Shrink';
 
-export type GenTransformation<TInit, TCurr> = (g: GenLite<TInit>) => GenLite<TCurr>;
+export type GenTransformation<TInit, TCurr> = (g: GenRunnable<TInit>) => GenRunnable<TCurr>;
 
 export namespace GenTransformation {
   export const none = <T>(): GenTransformation<T, T> => (x) => x;
@@ -76,7 +76,7 @@ export namespace GenTransformation {
   ];
 
   const collectLength = function* <T>(
-    gen: GenLite<T>,
+    gen: GenRunnable<T>,
     lengthRng: Rng,
     size: Size,
     config: GenConfig,

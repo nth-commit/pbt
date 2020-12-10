@@ -1,7 +1,18 @@
-import { GenFactory, GenLite, FloatGen } from '../Abstractions';
 import { Gen } from '../Gen';
+import { GenRunnable } from '../GenRunnable';
 import { ScaleMode } from '../Range';
 import { RawGenImpl } from './RawGenImpl';
+
+export type FloatGen = Gen<number> & {
+  between(min: number, max: number): FloatGen;
+  greaterThanEqual(min: number): FloatGen;
+  lessThanEqual(max: number): FloatGen;
+  betweenPrecision(min: number, max: number): FloatGen;
+  ofMinPrecision(max: number): FloatGen;
+  ofMaxPrecision(max: number): FloatGen;
+  origin(origin: number): FloatGen;
+  noBias(): FloatGen;
+};
 
 const FLOAT_BITS = 16;
 const DEFAULT_MIN_PRECISION = 0;
@@ -23,65 +34,67 @@ type FloatGenConfig = Readonly<{
 // TODO: Negative ranges do not shrink to the origin e.g. Gen.float().between(-10, -1) does not minimise to -1 (it minimises to -2, off-by-one)
 // TODO: Memoize powers of 10
 
-export const float = (genFactory: GenFactory): FloatGen => {
-  class FloatGenImpl extends RawGenImpl<number> implements FloatGen {
-    constructor(private readonly config: Readonly<FloatGenConfig>) {
-      super(floatGen(config), genFactory);
+export const FloatGen = {
+  create: (): FloatGen => {
+    class FloatGenImpl extends RawGenImpl<number> implements FloatGen {
+      constructor(private readonly config: Readonly<FloatGenConfig>) {
+        super(genFloat(config));
+      }
+
+      between(min: number, max: number): FloatGen {
+        return this.withConfig({ min, max });
+      }
+
+      greaterThanEqual(min: number): FloatGen {
+        return this.withConfig({ min });
+      }
+
+      lessThanEqual(max: number): FloatGen {
+        return this.withConfig({ max });
+      }
+
+      /* istanbul ignore next */
+      origin(origin: number): FloatGen {
+        return this.withConfig({ origin });
+      }
+
+      betweenPrecision(min: number, max: number): FloatGen {
+        return this.withConfig({ minPrecision: min, maxPrecision: max });
+      }
+
+      ofMinPrecision(min: number): FloatGen {
+        return this.withConfig({ minPrecision: min });
+      }
+
+      ofMaxPrecision(max: number): FloatGen {
+        return this.withConfig({ maxPrecision: max });
+      }
+
+      /* istanbul ignore next */
+      noBias(): FloatGen {
+        return this.withConfig({ scale: 'constant' });
+      }
+
+      private withConfig(config: Partial<FloatGenConfig>): FloatGen {
+        return new FloatGenImpl({
+          ...this.config,
+          ...config,
+        });
+      }
     }
 
-    between(min: number, max: number): FloatGen {
-      return this.withConfig({ min, max });
-    }
-
-    greaterThanEqual(min: number): FloatGen {
-      return this.withConfig({ min });
-    }
-
-    lessThanEqual(max: number): FloatGen {
-      return this.withConfig({ max });
-    }
-
-    /* istanbul ignore next */
-    origin(origin: number): FloatGen {
-      return this.withConfig({ origin });
-    }
-
-    betweenPrecision(min: number, max: number): FloatGen {
-      return this.withConfig({ minPrecision: min, maxPrecision: max });
-    }
-
-    ofMinPrecision(min: number): FloatGen {
-      return this.withConfig({ minPrecision: min });
-    }
-
-    ofMaxPrecision(max: number): FloatGen {
-      return this.withConfig({ maxPrecision: max });
-    }
-
-    /* istanbul ignore next */
-    noBias(): FloatGen {
-      return this.withConfig({ scale: 'constant' });
-    }
-
-    private withConfig(config: Partial<FloatGenConfig>): FloatGen {
-      return new FloatGenImpl({
-        ...this.config,
-        ...config,
-      });
-    }
-  }
-
-  return new FloatGenImpl({
-    min: null,
-    max: null,
-    origin: null,
-    minPrecision: null,
-    maxPrecision: null,
-    scale: null,
-  });
+    return new FloatGenImpl({
+      min: null,
+      max: null,
+      origin: null,
+      minPrecision: null,
+      maxPrecision: null,
+      scale: null,
+    });
+  },
 };
 
-const floatGen = (args: FloatGenConfig): GenLite<number> => {
+const genFloat = (args: FloatGenConfig): GenRunnable<number> => {
   const minPrecision = tryDeriveMinPrecision(args.minPrecision);
   if (typeof minPrecision === 'string') {
     return Gen.error(minPrecision);
