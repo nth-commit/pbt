@@ -1,15 +1,39 @@
+import { pipe } from 'ix/iterable';
+import { filter, take, takeWhile } from 'ix/iterable/operators';
 import * as dev from '../../src';
+import { GenIteration } from '../../src/Gen';
+import { ExhaustionStrategy } from '../../src/Runners/ExhaustionStrategy';
 
 export type GenExpectations<T> = {
+  assertOnValues: (assertFn: (x: T) => void) => void;
+  assertOnMinimum: (
+    predicate: (x: T) => boolean,
+    assertFn: (x: T) => void,
+    config?: Partial<dev.MinimalConfig>,
+  ) => void;
+
   toHaveMinimum: (value: T, predicate: (x: T) => boolean, config?: Partial<dev.MinimalConfig>) => void;
-  onMinimum: (predicate: (x: T) => boolean, assertFn: (x: T) => void, config?: Partial<dev.MinimalConfig>) => void;
   toEqual: (expectedGen: dev.Gen<T>) => void;
   toEqualConstant: (value: T) => void;
   toError: (message: string) => void;
 };
 
 export const expectGen = <T>(gen: dev.Gen<T>): GenExpectations<T> => {
+  const withDeterministicSeed = <T>(f: (seed: number) => T): T[] => [...Array(10).keys()].map((seed) => f(seed));
+
   return {
+    assertOnValues: (assertFn) =>
+      withDeterministicSeed((seed) => {
+        const size = 50;
+        const iterations = 10;
+
+        const sample = dev.sample(gen, { seed, size, iterations });
+
+        for (const value of sample.values) {
+          assertFn(value);
+        }
+      }),
+
     toHaveMinimum: (value, predicate, config) => {
       const minimum = findMinimum(gen, predicate, config);
       try {
@@ -19,7 +43,8 @@ export const expectGen = <T>(gen: dev.Gen<T>): GenExpectations<T> => {
         throw e;
       }
     },
-    onMinimum: (predicate, assertFn, config) => {
+
+    assertOnMinimum: (predicate, assertFn, config) => {
       const minimum = findMinimum(gen, predicate, config);
       try {
         assertFn(minimum.value);
@@ -28,6 +53,7 @@ export const expectGen = <T>(gen: dev.Gen<T>): GenExpectations<T> => {
         throw e;
       }
     },
+
     toEqual: (expectedGen) => {
       const actualSample = dev.sample(gen, { iterations: 1 });
       const expectedSample = dev.sample(expectedGen, { seed: actualSample.seed, iterations: 1 });
@@ -38,6 +64,7 @@ export const expectGen = <T>(gen: dev.Gen<T>): GenExpectations<T> => {
         throw e;
       }
     },
+
     toEqualConstant: (value) => {
       const actualSample = dev.sample(gen, { iterations: 1 });
       try {
@@ -47,6 +74,7 @@ export const expectGen = <T>(gen: dev.Gen<T>): GenExpectations<T> => {
         throw e;
       }
     },
+
     toError: (message) => {
       const seed = Date.now();
       const size = 50;

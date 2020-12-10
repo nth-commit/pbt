@@ -25,14 +25,14 @@ type FloatGenConfig = Readonly<{
   origin: number | null;
   minPrecision: number | null;
   maxPrecision: number | null;
-  scale: ScaleMode | null;
+  noBias: boolean;
 }>;
 
 // TODO: Origin validation (defer to genFactory.integer())
 // TODO: Handle decimal min/max by destructuring into min/max integer component and min/max fractional component
 // TODO: Handle a min/max range of less than 2
 // TODO: Negative ranges do not shrink to the origin e.g. Gen.float().between(-10, -1) does not minimise to -1 (it minimises to -2, off-by-one)
-// TODO: Memoize powers of 10
+// TODO: Add "unsafe" filter, a filter that does not produce discards. Use internally in float gen
 
 export const FloatGen = {
   create: (): FloatGen => {
@@ -72,7 +72,7 @@ export const FloatGen = {
 
       /* istanbul ignore next */
       noBias(): FloatGen {
-        return this.withConfig({ scale: 'constant' });
+        return this.withConfig({ noBias: true });
       }
 
       private withConfig(config: Partial<FloatGenConfig>): FloatGen {
@@ -89,7 +89,7 @@ export const FloatGen = {
       origin: null,
       minPrecision: null,
       maxPrecision: null,
-      scale: null,
+      noBias: false,
     });
   },
 };
@@ -138,7 +138,7 @@ const genFloat = (args: FloatGenConfig): GenRunnable<number> => {
    * precisions will be generated, producing "less complex" fractions.
    */
   const genFractionalComponent = (precision: number): Gen<number> => {
-    const maxFractionalComponentAsInteger = Math.pow(10, precision) - 1;
+    const maxFractionalComponentAsInteger = tenPowX(precision) - 1;
     return Gen.integer().between(0, maxFractionalComponentAsInteger).noBias();
   };
 
@@ -150,7 +150,7 @@ const genFloat = (args: FloatGenConfig): GenRunnable<number> => {
 };
 
 const makeDecimal = (integerComponent: number, fractionalComponentAsInteger: number, precision: number): number => {
-  const integerToFractionRatio = Math.pow(10, precision);
+  const integerToFractionRatio = tenPowX(precision);
   const fractionalComponent = fractionalComponentAsInteger / integerToFractionRatio;
   switch (Math.sign(integerComponent)) {
     /* istanbul ignore next */
@@ -207,39 +207,47 @@ const tryDeriveMaxPrecision = (maxPrecision: number | null): number | string => 
 };
 
 const tryDeriveMin = (min: number | null, minPrecision: number, maxPrecision: number): number | string => {
-  if (min === null) return -MAX_INT_32; // TODO: Ensure this fits into minPrecision
+  if (min !== null) {
+    const precisionOfMin = measurePrecision(min);
+    if (precisionOfMin > maxPrecision) {
+      return `Bound violates maximum precision constraint, minPrecision = ${minPrecision}, maxPrecision = ${maxPrecision}, min = ${min}`;
+    }
 
-  const precisionOfMin = measurePrecision(min);
-  if (precisionOfMin > maxPrecision) {
-    return `Bound must be within precision range, minPrecision = ${minPrecision}, maxPrecision = ${maxPrecision}, min = ${min}`;
+    const precisionMagnitude = magnitudeOfPrecision(minPrecision);
+    if (min < -precisionMagnitude) {
+      return `Bound violates minimum precision constraint, minPrecision = ${minPrecision}, minMin = -${precisionMagnitude}, receivedMin = ${min}`;
+    }
   }
 
-  const precisionMagnitude = magnitudeOfPrecision(minPrecision);
-  if (min < -precisionMagnitude) {
-    return `Bound violates minimum precision constraint, minPrecision = ${minPrecision}, minMin = -${precisionMagnitude}, receivedMin = ${min}`;
+  if (min === null && minPrecision > 0) {
+    return -tenPowX(FLOAT_BITS - minPrecision);
   }
 
-  return min;
+  return min === null ? -MAX_INT_32 : roundToInteger(min);
 };
 
 const tryDeriveMax = (max: number | null, minPrecision: number, maxPrecision: number): number | string => {
-  if (max === null) return MAX_INT_32; // TODO: Ensure this fits into minPrecision
+  if (max !== null) {
+    const precisionOfMax = measurePrecision(max);
+    if (precisionOfMax > maxPrecision) {
+      return `Bound violates maximum precision constraint, minPrecision = ${minPrecision}, maxPrecision = ${maxPrecision}, max = ${max}`;
+    }
 
-  const precisionOfMax = measurePrecision(max);
-  if (precisionOfMax > maxPrecision) {
-    return `Bound must be within precision range, minPrecision = ${minPrecision}, maxPrecision = ${maxPrecision}, max = ${max}`;
+    const precisionMagnitude = magnitudeOfPrecision(minPrecision);
+    if (max > precisionMagnitude) {
+      return `Bound violates minimum precision constraint, minPrecision = ${minPrecision}, maxMax = ${precisionMagnitude}, receivedMax = ${max}`;
+    }
   }
 
-  const precisionMagnitude = magnitudeOfPrecision(minPrecision);
-  if (max > precisionMagnitude) {
-    return `Bound violates minimum precision constraint, minPrecision = ${minPrecision}, maxMax = ${precisionMagnitude}, receivedMax = ${max}`;
+  if (max === null && minPrecision > 0) {
+    return tenPowX(FLOAT_BITS - minPrecision);
   }
 
-  return max;
+  return max === null ? MAX_INT_32 : roundToInteger(max);
 };
 
 const measurePrecision = (x: number): number => {
-  const xStr = x.toPrecision(1);
+  const xStr = x.toPrecision();
   const match = xStr.match(/e-(\d+)/);
 
   /*istanbul ignore next */
@@ -247,26 +255,42 @@ const measurePrecision = (x: number): number => {
     return Number(match[1]);
   }
 
-  let count = 0;
-  x = Math.abs(x);
-
-  while (x % 1 > 0) {
-    count++;
-    x = x * 10;
-
-    /*istanbul ignore next */
-    if (count > 100) {
-      throw new Error(`Fatal: Exceeded calculation limit whilst measuring precision, x = ${x}`);
-    }
-  }
-
-  return count;
+  const fractionalComponentStr = xStr.split('.')[1];
+  return fractionalComponentStr === undefined ? 0 : fractionalComponentStr.length;
 };
 
-const unitOfPrecision = (precision: number): number => Math.pow(10, -precision);
+const unitOfPrecision = (precision: number): number => tenPowX(-precision);
 
 const magnitudeOfPrecision = (precision: number): number => {
   if (precision === 0) return Infinity;
-  const max = Math.pow(10, FLOAT_BITS - precision) - unitOfPrecision(precision);
-  return max;
+  return tenPowX(FLOAT_BITS - precision) - unitOfPrecision(precision);
+};
+
+const tenPowX = (() => {
+  const memo = new Map<number, number>();
+
+  return (x: number): number => {
+    let result = memo.get(x);
+
+    if (!result) {
+      result = Math.pow(10, x);
+      memo.set(x, result);
+    }
+
+    return result;
+  };
+})();
+
+const roundToInteger = (x: number): number => {
+  switch (Math.sign(x)) {
+    case 0:
+      return 0;
+    case 1:
+      return Math.round(x);
+    case -1:
+      return -Math.round(-x);
+    /* istanbul ignore next */
+    default:
+      throw new Error('Fatal: Unhandled result from Math.sign');
+  }
 };
