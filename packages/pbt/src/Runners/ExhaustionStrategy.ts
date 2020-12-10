@@ -1,4 +1,5 @@
 import { OperatorFunction } from 'ix/interfaces';
+import { pipe } from 'ix/iterable';
 import { flatMap } from 'ix/iterable/operators';
 
 export const Exhausted = Symbol('Exhausted');
@@ -12,9 +13,9 @@ export type ExhaustionStrategy = {
 };
 
 export namespace ExhaustionStrategy {
-  export const apply = <Iteration>(
-    exhaustionStrategy: ExhaustionStrategy,
+  export const asOperator = <Iteration>(
     isDiscard: (iteration: Iteration) => boolean,
+    exhaustionStrategy: ExhaustionStrategy = defaultStrategy(),
   ): OperatorFunction<Iteration, Exhaustible<Iteration>> =>
     flatMap((iteration) => {
       if (exhaustionStrategy.isExhausted()) {
@@ -29,6 +30,12 @@ export namespace ExhaustionStrategy {
 
       return exhaustionStrategy.isExhausted() ? [iteration, { kind: 'exhausted' }] : [iteration];
     });
+
+  export const apply = <Iteration>(
+    stream: Iterable<Iteration>,
+    isDiscard: (iteration: Iteration) => boolean,
+    exhaustionStrategy: ExhaustionStrategy = defaultStrategy(),
+  ): Iterable<Exhaustible<Iteration>> => pipe(stream, asOperator(isDiscard, exhaustionStrategy));
 
   export const whenDiscardRateExceeds = (rate: number): ExhaustionStrategy => {
     if (rate < 0 || rate > 1) throw new Error('Fatal: Discard rate out-of-range');

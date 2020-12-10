@@ -1,12 +1,7 @@
+import { Big } from 'big.js';
 import { Gen } from 'pbt';
 import * as dev from '../../src';
 import { expectGen } from '../Helpers/expectGen';
-
-export namespace LocalGen {
-  const U_SHORT_MAX = Math.pow(2, 15);
-
-  export const short = (): Gen<number> => Gen.integer().between(U_SHORT_MAX, -U_SHORT_MAX);
-}
 
 test('Gen.float().between(0, 10).betweenPrecision(0, 2)', () => {
   for (let i = 0; i <= 10; i++) {
@@ -51,12 +46,11 @@ test('Gen.float().between(-10, -1).betweenPrecision(0, 2)', () => {
 describe('errors', () => {
   test.property(
     'Gen.float().ofMinPrecision(x), x ∉ ℤ *produces* error; minimum precision must be an integer',
-    Gen.integer().greaterThanEqual(0),
+    Gen.float().greaterThanEqual(0).ofMinPrecision(1),
     (x) => {
-      const x0 = x + 0.1;
-      const gen = dev.Gen.float().ofMinPrecision(x0);
+      const gen = dev.Gen.float().ofMinPrecision(x);
 
-      expectGen(gen).toError(`Minimum precision must be an integer, minPrecision = ${x0}`);
+      expectGen(gen).toError(`Minimum precision must be an integer, minPrecision = ${x}`);
     },
   );
 
@@ -82,12 +76,11 @@ describe('errors', () => {
 
   test.property(
     'Gen.float().ofMaxPrecision(x), x ∉ ℤ *produces* error; maximum precision must be an integer',
-    Gen.integer().greaterThanEqual(0),
+    Gen.float().greaterThanEqual(0).ofMinPrecision(1),
     (x) => {
-      const x0 = x + 0.1;
-      const gen = dev.Gen.float().ofMaxPrecision(x0);
+      const gen = dev.Gen.float().ofMaxPrecision(x);
 
-      expectGen(gen).toError(`Maximum precision must be an integer, maxPrecision = ${x0}`);
+      expectGen(gen).toError(`Maximum precision must be an integer, maxPrecision = ${x}`);
     },
   );
 
@@ -112,29 +105,37 @@ describe('errors', () => {
   );
 
   test.property(
-    'Gen.float().greaterThanEqual(x).ofMaxPrecision(y), fractionalPrecisionOf(x) > y *produces* error; bound must be within precision',
-    LocalGen.short(),
-    Gen.integer().between(0, 10),
-    (x, p) => {
-      const x0 = x + Math.pow(10, -p - 1);
-      const gen = dev.Gen.float().greaterThanEqual(x0).ofMaxPrecision(p);
+    'Gen.float().greaterThanEqual(x).ofMaxPrecision(y), fractionalPrecisionOf(x) > y *produces* error; bound violates maximum precision constraint',
+    Gen.integer()
+      .between(0, 5)
+      .flatMap((maxPrecision) =>
+        Gen.float()
+          .ofMinPrecision(maxPrecision + 2) // TODO: This should be +1, but there is a bug in current version of float gen
+          .map((min) => [min, maxPrecision]),
+      ),
+    ([min, maxPrecision]) => {
+      const gen = dev.Gen.float().greaterThanEqual(min).ofMaxPrecision(maxPrecision);
 
       expectGen(gen).toError(
-        `Bound must be within precision range, minPrecision = 0, maxPrecision = ${p}, min = ${x0}`,
+        `Bound violates maximum precision constraint, minPrecision = 0, maxPrecision = ${maxPrecision}, min = ${min}`,
       );
     },
   );
 
   test.property(
-    'Gen.float().lessThanEqual(x).ofMaxPrecision(y), fractionalPrecisionOf(x) > y *produces* error; bound must be within precision',
-    LocalGen.short(),
-    Gen.integer().between(0, 10),
-    (x, p) => {
-      const x0 = x + Math.pow(10, -p - 1);
-      const gen = dev.Gen.float().lessThanEqual(x0).ofMaxPrecision(p);
+    'Gen.float().lessThanEqual(x).ofMaxPrecision(y), fractionalPrecisionOf(x) > y *produces* error; bound violates maximum precision constraint',
+    Gen.integer()
+      .between(0, 5)
+      .flatMap((maxPrecision) =>
+        Gen.float()
+          .ofMinPrecision(maxPrecision + 2) // TODO: This should be +1, but there is a bug in current version of float gen
+          .map((max) => [max, maxPrecision]),
+      ),
+    ([max, maxPrecision]) => {
+      const gen = dev.Gen.float().lessThanEqual(max).ofMaxPrecision(maxPrecision);
 
       expectGen(gen).toError(
-        `Bound must be within precision range, minPrecision = 0, maxPrecision = ${p}, max = ${x0}`,
+        `Bound violates maximum precision constraint, minPrecision = 0, maxPrecision = ${maxPrecision}, max = ${max}`,
       );
     },
   );
@@ -173,3 +174,17 @@ describe('errors', () => {
     },
   );
 });
+
+test.property(
+  'Gen.float().ofMinPrecision(p) *produces* values where fractional precision >= p',
+  Gen.integer().between(1, 16),
+  (p) => {
+    const gen = dev.Gen.float().ofMinPrecision(p);
+
+    expectGen(gen).assertOnValues((x) => {
+      const rounded = Big(x).round(p - 1);
+
+      expect(x).not.toEqual(rounded.toNumber());
+    });
+  },
+);

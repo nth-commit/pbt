@@ -29,7 +29,7 @@ describe('about simple n-ary switches', () => {
 
       const gen = dev.Gen.stateMachine(initialState, generateTransition, applyTransition);
 
-      expectGen(gen).onMinimum(
+      expectGen(gen).assertOnMinimum(
         (states) => new Set(states).size === 2,
         (minimum) => {
           expect(minimum).toHaveLength(2);
@@ -48,7 +48,7 @@ describe('about simple n-ary switches', () => {
 
       const gen = dev.Gen.stateMachine(initialState, generateTransition, applyTransition);
 
-      expectGen(gen).onMinimum(
+      expectGen(gen).assertOnMinimum(
         (states) => new Set(states).size === 3,
         (minimum) => {
           expect(minimum).toHaveLength(3);

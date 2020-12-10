@@ -118,7 +118,7 @@ const accumulateIterations = <Ts extends any[]>(property: Property<Ts>, config: 
   last(
     pipe(
       property.run(config.seed, config.iterations, { size: config.size, path: config.path }),
-      ExhaustionStrategy.apply(ExhaustionStrategy.defaultStrategy(), (iteration) => iteration.kind === 'discard'),
+      ExhaustionStrategy.asOperator((iteration) => iteration.kind === 'discard'),
       scan<Exhaustible<Property.PropertyIteration<Ts>>, IterationAccumulator<Ts>>({
         seed: {
           lastIteration: {
