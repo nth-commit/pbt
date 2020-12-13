@@ -19,3 +19,12 @@ export type GenRunnable<T> = {
    */
   run(rng: Rng, size: Size, config: GenConfig): GenStream<T>;
 };
+
+export const GenRunnable = {
+  delay: <T>(f: () => GenRunnable<T>): GenRunnable<T> => ({
+    run: (rng, size, config) => {
+      const inner = f();
+      return inner.run(rng, size, config);
+    },
+  }),
+};

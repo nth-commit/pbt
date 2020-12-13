@@ -4,6 +4,7 @@ import { Shrink } from '../Shrink';
 import { GenImpl } from './GenImpl';
 import { Gen } from '../Gen';
 import { GenTransformation } from '../GenTransformation';
+import { NATIVE_CALCULATOR } from '../../Number';
 
 export type ArrayGen<T> = Gen<T[]> & {
   betweenLengths(min: number, max: number): ArrayGen<T>;
@@ -65,7 +66,7 @@ const arrayTransformation = <T>(config: ArrayGenConfig): GenTransformation<T, T[
   const max = tryDeriveMax(config.max);
   if (typeof max === 'string') return () => Gen.error(max);
 
-  const range = Range.createFrom(min, max, Math.min(min, max), config.scale || 'linear');
+  const range = Range.createFrom(NATIVE_CALCULATOR, min, max, Math.min(min, max), config.scale || 'linear');
 
   return GenTransformation.collect(range, Shrink.array(range.origin, getOrderOfTree));
 };

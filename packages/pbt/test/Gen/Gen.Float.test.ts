@@ -152,7 +152,7 @@ describe('errors', () => {
       const gen = dev.Gen.float().lessThanEqual(max).ofMinPrecision(fractionalPrecision);
 
       expectGen(gen).toError(
-        `Bound violates minimum precision constraint, minPrecision = ${fractionalPrecision}, maxMax = ${maxMax}, receivedMax = ${max}`,
+        `Bound violates minimum precision constraint, minPrecision = ${fractionalPrecision}, max = ${max}`,
       );
     },
   );
@@ -169,7 +169,7 @@ describe('errors', () => {
       const gen = dev.Gen.float().greaterThanEqual(min).ofMinPrecision(fractionalPrecision);
 
       expectGen(gen).toError(
-        `Bound violates minimum precision constraint, minPrecision = ${fractionalPrecision}, minMin = ${minMin}, receivedMin = ${min}`,
+        `Bound violates minimum precision constraint, minPrecision = ${fractionalPrecision}, min = ${min}`,
       );
     },
   );

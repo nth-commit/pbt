@@ -1,5 +1,6 @@
 import fc from 'fast-check';
 import { Bounds, Range, ScaleMode } from '../../src/Gen/Range';
+import { NATIVE_CALCULATOR } from '../../src/Number';
 import * as domainGen from '../Helpers/domainGen';
 
 namespace LocalGen {
@@ -47,9 +48,9 @@ const genShuffledRangeParams = (): fc.Arbitrary<{ ordered: RangeParams; unordere
 it('reflects [min, max, origin]', () => {
   fc.assert(
     fc.property(genRangeParams(), LocalGen.scaleMode(), ({ min, max, origin }, scaleMode) => {
-      const range = Range.createFrom(min, max, origin, scaleMode);
+      const range = Range.createFrom(NATIVE_CALCULATOR, min, max, origin, scaleMode);
 
-      const expectedRange: Partial<Range> = {
+      const expectedRange: Partial<Range<number>> = {
         bounds: [min, max],
         origin,
       };
@@ -61,8 +62,8 @@ it('reflects [min, max, origin]', () => {
 it('has resilience to parameter ordering', () => {
   fc.assert(
     fc.property(genShuffledRangeParams(), LocalGen.scaleMode(), ({ ordered, unordered }, scaleMode) => {
-      const range1 = Range.createFrom(ordered.min, ordered.max, ordered.origin, scaleMode);
-      const range2 = Range.createFrom(unordered.x, unordered.y, unordered.z, scaleMode);
+      const range1 = Range.createFrom(NATIVE_CALCULATOR, ordered.min, ordered.max, ordered.origin, scaleMode);
+      const range2 = Range.createFrom(NATIVE_CALCULATOR, unordered.x, unordered.y, unordered.z, scaleMode);
 
       expect(range1.origin).toEqual(range2.origin);
       expect(range1.bounds).toEqual(range2.bounds);
@@ -77,7 +78,7 @@ describe('getProportionalDistance', () => {
         genRangeParams(),
         LocalGen.scaleMode().filter((s) => s === 'constant'),
         ({ min, max, origin }, scaleMode) => {
-          const range = Range.createFrom(min, max, origin, scaleMode);
+          const range = Range.createFrom(NATIVE_CALCULATOR, min, max, origin, scaleMode);
 
           const distance = range.getProportionalDistance(origin);
 
@@ -94,7 +95,7 @@ describe('getProportionalDistance', () => {
         genRangeParams().filter((x) => x.min < x.origin),
         LocalGen.scaleMode(),
         ({ min, max, origin }, scaleMode) => {
-          const range = Range.createFrom(min, max, origin, scaleMode);
+          const range = Range.createFrom(NATIVE_CALCULATOR, min, max, origin, scaleMode);
 
           const distance = range.getProportionalDistance(min);
 
@@ -111,7 +112,7 @@ describe('getProportionalDistance', () => {
         genRangeParams().filter((x) => x.max > x.origin),
         LocalGen.scaleMode(),
         ({ min, max, origin }, scaleMode) => {
-          const range = Range.createFrom(min, max, origin, scaleMode);
+          const range = Range.createFrom(NATIVE_CALCULATOR, min, max, origin, scaleMode);
 
           const distance = range.getProportionalDistance(max);
 
@@ -130,7 +131,7 @@ describe('getProportionalDistance', () => {
   ])('examples', ({ min, max, origin, n, expectedDistance }) => {
     fc.assert(
       fc.property(LocalGen.scaleMode(), (scaleMode) => {
-        const range = Range.createFrom(min, max, origin, scaleMode);
+        const range = Range.createFrom(NATIVE_CALCULATOR, min, max, origin, scaleMode);
 
         const distance = range.getProportionalDistance(n);
 
@@ -145,11 +146,11 @@ describe('constant ranges', () => {
     it('returns [min,max] when 0 <= size <= 100 ', () => {
       fc.assert(
         fc.property(genRangeParams(), domainGen.size(), ({ min, max, origin }, size) => {
-          const range = Range.createFrom(min, max, origin, 'constant');
+          const range = Range.createFrom(NATIVE_CALCULATOR, min, max, origin, 'constant');
 
           const bounds = range.getSizedBounds(size);
 
-          const expectedBounds: Bounds = [min, max];
+          const expectedBounds: Bounds<number> = [min, max];
           expect(bounds).toMatchObject(expectedBounds);
         }),
       );
@@ -162,11 +163,11 @@ describe('linear ranges', () => {
     it('returns [origin,origin] when given size = 0', () => {
       fc.assert(
         fc.property(genRangeParams(), ({ min, max, origin }) => {
-          const range = Range.createFrom(min, max, origin, 'linear');
+          const range = Range.createFrom(NATIVE_CALCULATOR, min, max, origin, 'linear');
 
           const bounds = range.getSizedBounds(0);
 
-          const expectedBounds: Bounds = [origin, origin];
+          const expectedBounds: Bounds<number> = [origin, origin];
           expect(bounds).toMatchObject(expectedBounds);
         }),
       );
@@ -175,11 +176,11 @@ describe('linear ranges', () => {
     it('returns [min,max] when given size = 100', () => {
       fc.assert(
         fc.property(genRangeParams(), ({ min, max, origin }) => {
-          const range = Range.createFrom(min, max, origin, 'linear');
+          const range = Range.createFrom(NATIVE_CALCULATOR, min, max, origin, 'linear');
 
           const bounds = range.getSizedBounds(100);
 
-          const expectedBounds: Bounds = [min, max];
+          const expectedBounds: Bounds<number> = [min, max];
           expect(bounds).toMatchObject(expectedBounds);
         }),
       );
@@ -191,7 +192,7 @@ describe('linear ranges', () => {
         { size: 5, expectedBounds: [-1, 1] },
         { size: 50, expectedBounds: [-5, 5] },
       ])('a symmetrical range around 0', ({ size, expectedBounds }) => {
-        const range = Range.createFrom(-10, 0, 10, 'linear');
+        const range = Range.createFrom(NATIVE_CALCULATOR, -10, 0, 10, 'linear');
 
         const bounds = range.getSizedBounds(size);
 
@@ -203,7 +204,7 @@ describe('linear ranges', () => {
         { size: 5, expectedBounds: [-1, 1] },
         { size: 50, expectedBounds: [-5, 10] },
       ])('a non-symmetrical range around 0', ({ size, expectedBounds }) => {
-        const range = Range.createFrom(-10, 0, 20, 'linear');
+        const range = Range.createFrom(NATIVE_CALCULATOR, -10, 0, 20, 'linear');
 
         const bounds = range.getSizedBounds(size);
 
@@ -215,7 +216,7 @@ describe('linear ranges', () => {
         { size: 5, expectedBounds: [0, 2] },
         { size: 50, expectedBounds: [-4, 6] },
       ])('a symmetrical range not around 0', ({ size, expectedBounds }) => {
-        const range = Range.createFrom(-9, 1, 11, 'linear');
+        const range = Range.createFrom(NATIVE_CALCULATOR, -9, 1, 11, 'linear');
 
         const bounds = range.getSizedBounds(size);
 

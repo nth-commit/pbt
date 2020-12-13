@@ -1,13 +1,14 @@
+import { NATIVE_CALCULATOR, BIG_JS_CALCULATOR, Calculator } from '../Number';
 import { GenTree } from '../GenTree';
 import { GenIteration } from './GenIteration';
 import { GenRunnable } from './GenRunnable';
 import { ArrayGen } from './Gens/ArrayGen';
 import { ElementGen } from './Gens/ElementGen';
 import { FloatGen } from './Gens/FloatGen';
-import { IntegerGen } from './Gens/IntegerGen';
 import { PrimitiveGen } from './Gens/PrimitiveGen';
 import { RawGenImpl } from './Gens/RawGenImpl';
 import { StateMachineGen } from './Gens/StateMachineGen';
+import { IntegralGen } from './Gens/IntegralGen';
 import { Shrink } from './Shrink';
 
 export type Gens<Ts extends any[]> = { [P in keyof Ts]: Gen<Ts[P]> };
@@ -85,19 +86,21 @@ export namespace Gen {
   export const error = <T>(message: string): Gen<T> =>
     RawGenImpl.fromRunFunction((rng, size) => [GenIteration.error(message, rng, rng, size, size)]);
 
-  export type Integer = IntegerGen;
+  export const integral = <TNumber>(calculator: Calculator<TNumber>) => IntegralGen.create(calculator);
+
+  export type Integer = IntegralGen<number>;
 
   /**
    * Creates a generator for integers.
    */
-  export const integer = (): IntegerGen => IntegerGen.create();
+  export const integer = (): Integer => IntegralGen.create(NATIVE_CALCULATOR);
 
   export type Float = FloatGen;
 
   /**
    * Creates a generator for floats.
    */
-  export const float = (): FloatGen => FloatGen.create();
+  export const float = (): FloatGen => FloatGen.create(BIG_JS_CALCULATOR);
 
   export type Array<T> = ArrayGen<T>;
 
@@ -123,6 +126,7 @@ export namespace Gen {
         const [gen] = gens;
         return gen.map((x) => [x] as Ts);
       }
+
       default: {
         const [gen, ...nextGens] = gens;
         return gen.flatMap((x) => zip(...nextGens).map((xs) => [x, ...xs] as Ts));

@@ -54,7 +54,9 @@ export namespace GenTransformation {
       tree: f(instance.tree),
     }));
 
-  export const collect = <T>(range: Range, shrink: Shrink<GenTree<T>[]>): GenTransformation<T, T[]> => (gen0) => {
+  export const collect = <T>(range: Range<number>, shrink: Shrink<GenTree<T>[]>): GenTransformation<T, T[]> => (
+    gen0,
+  ) => {
     const transform0 = GenTransformation.repeat<T[]>();
 
     const transform1: GenTransformation<T, T[]> = (gen1) => ({
@@ -82,7 +84,7 @@ export namespace GenTransformation {
     config: GenConfig,
     shrinker: Shrink<GenTree<T>[]>,
     length: number,
-    range: Range,
+    range: Range<number>,
   ): GenStream<T[]> {
     const initRng = lengthRng.next();
 

@@ -5,7 +5,7 @@ import { GenIteration } from '../../src/Gen';
 import { ExhaustionStrategy } from '../../src/Runners/ExhaustionStrategy';
 
 export type GenExpectations<T> = {
-  assertOnValues: (assertFn: (x: T) => void) => void;
+  assertOnValues: (assertFn: (x: T) => void, seed?: number) => void;
   assertOnMinimum: (
     predicate: (x: T) => boolean,
     assertFn: (x: T) => void,
@@ -22,17 +22,23 @@ export const expectGen = <T>(gen: dev.Gen<T>): GenExpectations<T> => {
   const withDeterministicSeed = <T>(f: (seed: number) => T): T[] => [...Array(10).keys()].map((seed) => f(seed));
 
   return {
-    assertOnValues: (assertFn) =>
-      withDeterministicSeed((seed) => {
+    assertOnValues: (assertFn, seed0) => {
+      const testF = (seed: number): void => {
         const size = 50;
-        const iterations = 10;
-
-        const sample = dev.sample(gen, { seed, size, iterations });
+        const sample = dev.sample(gen, { seed, size, iterations: 1 });
 
         for (const value of sample.values) {
-          assertFn(value);
+          try {
+            assertFn(value);
+          } catch (e: unknown) {
+            augmentError(e, `seed = ${seed}`);
+            throw e;
+          }
         }
-      }),
+      };
+
+      return seed0 === undefined ? withDeterministicSeed(testF) : testF(seed0);
+    },
 
     toHaveMinimum: (value, predicate, config) => {
       const minimum = findMinimum(gen, predicate, config);
