@@ -1,6 +1,7 @@
 import { last, pipe } from 'ix/iterable';
 import { scan } from 'ix/iterable/operators';
-import { Rng, Size, takeWhileInclusive } from '../Core';
+import { Size, takeWhileInclusive } from '../Core';
+import { Rng } from '../Number';
 import { Property } from '../Property';
 import { getDefaultConfig } from './DefaultConfig';
 import { Exhaustible, ExhaustionStrategy } from './ExhaustionStrategy';

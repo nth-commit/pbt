@@ -3,7 +3,7 @@ import { mean } from 'simple-statistics';
 import * as dev from '../../src';
 import * as domainGen from '../Helpers/domainGen';
 
-test('snapshot', () => {
+test('Gen.integer().between(0, 10)', () => {
   for (let i = 0; i <= 10; i++) {
     const gen = dev.Gen.integer().between(0, 10);
 
@@ -13,7 +13,7 @@ test('snapshot', () => {
   }
 });
 
-test('snapshot, positive range', () => {
+test('Gen.integer().between(1, 10)', () => {
   const gen = dev.Gen.integer().between(1, 10);
 
   const sample = dev.sampleTrees(gen, { iterations: 1, seed: 0 });
@@ -21,7 +21,7 @@ test('snapshot, positive range', () => {
   expect(dev.GenTree.format(sample.values[0])).toMatchSnapshot();
 });
 
-test('snapshot, negative range', () => {
+test('Gen.integer().between(-10, -1)', () => {
   const gen = dev.Gen.integer().between(-10, -1);
 
   const sample = dev.sampleTrees(gen, { iterations: 1, seed: 0 });

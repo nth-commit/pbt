@@ -1,4 +1,5 @@
-import { Rng, Size } from '../../Core';
+import { Size } from '../../Core';
+import { Rng } from '../../Number';
 import { GenConfig, GenRunnable, GenStream } from '../GenRunnable';
 import { GenTransformation } from '../GenTransformation';
 import { GenImpl } from './GenImpl';

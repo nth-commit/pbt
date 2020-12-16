@@ -14,6 +14,8 @@
     "lib/"
   ],
   "dependencies": {
+    "@types/big.js": "^6.0.0",
+    "big.js": "^6.0.3",
     "ix": "^4.0.0"
   },
   "devDependencies": {

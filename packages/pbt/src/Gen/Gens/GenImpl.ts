@@ -6,9 +6,10 @@ import {
   take as takeIter,
   skip as skipIter,
 } from 'ix/iterable/operators';
-import { Rng, Size, takeWhileInclusive as takeWhileInclusiveIter } from '../../Core';
+import { Size, takeWhileInclusive as takeWhileInclusiveIter } from '../../Core';
 import { GenTree } from '../../GenTree';
 import { NodeId } from '../../GenTree/NodeId';
+import { Rng } from '../../Number';
 import { Gen } from '../Gen';
 import { GenIteration } from '../GenIteration';
 import { GenConfig, GenRunnable, GenStream } from '../GenRunnable';

@@ -1,7 +1,7 @@
 import { Gen } from 'pbt';
 
 export namespace DomainGenV2 {
-  export const anything = (): Gen<unknown> => Gen.constant({});
+  export const anything = (): Gen<unknown> => choose<unknown>(Gen.constant({}), Gen.integer(), Gen.float());
 
   export const seed = (): Gen<number> => Gen.integer().noBias().noShrink();
 

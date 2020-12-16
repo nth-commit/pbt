@@ -1,33 +1,48 @@
 import { concat, empty, generate, of, pipe } from 'ix/iterable';
 import { flatMap, map, skip } from 'ix/iterable/operators';
 import { indexed } from '../Core/iterableOperators';
+import { Calculator, Integer, nativeCalculator } from '../Number';
 
 export type Shrink<T> = (value: T) => Iterable<T>;
 
 export namespace Shrink {
-  const halves = (value: number): Iterable<number> => {
-    const sign = Math.sign(value);
-    const absValue = Math.abs(value);
-    const end = absValue < 1 ? empty() : of(1);
+  const halves = <TNumber>(calculator: Calculator<TNumber>, value: Integer<TNumber>): Iterable<Integer<TNumber>> => {
+    const sign = calculator.signOf(value);
+    const absValue = calculator.absoluteOf(value);
+    const end = calculator.lessThan(absValue, calculator.one) ? empty() : of(calculator.one);
+    const two = calculator.add(calculator.one, calculator.one);
 
     return pipe(
       concat(
         generate(
           absValue,
-          (x) => x > 1,
-          (x) => Math.round(x / 2),
+          (x) => calculator.greaterThan(x, calculator.one),
+          (x) => calculator.round(calculator.div(x, two), calculator.zero),
           (x) => x,
         ),
         end,
       ),
-      map((x) => x * sign),
+      map((x) => {
+        switch (sign) {
+          case -1:
+            return calculator.negationOf(x);
+          case 1:
+            return x;
+          /*istanbul ignore next */
+          case 0:
+            return calculator.zero;
+        }
+      }),
     );
   };
 
-  export const towardsNumber = (target: number): Shrink<number> => (value) =>
+  export const towardsNumber = <TNumber>(
+    calculator: Calculator<TNumber>,
+    target: Integer<TNumber>,
+  ): Shrink<Integer<TNumber>> => (value) =>
     pipe(
-      halves(value - target),
-      map((x) => value - x),
+      halves(calculator, calculator.sub(value, target)),
+      map((x) => calculator.sub(value, x)),
     );
 
   export const combinations = <T>(k0: number): Shrink<T[]> => (arr0) => {
@@ -59,7 +74,7 @@ export namespace Shrink {
     const { length } = arr;
 
     const shrunkLengths = pipe(
-      halves(length - targetLength),
+      halves(nativeCalculator, (length - targetLength) as Integer<number>),
       map((dropCount) => length - dropCount),
     );
 

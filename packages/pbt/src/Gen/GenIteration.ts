@@ -1,5 +1,6 @@
-import { Rng, Size } from '../Core';
+import { Size } from '../Core';
 import { GenTree } from '../GenTree';
+import { Rng } from '../Number';
 
 export namespace GenIteration {
   export type Base = {

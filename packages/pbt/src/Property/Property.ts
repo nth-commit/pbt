@@ -2,9 +2,10 @@
 
 import { pipe } from 'ix/iterable';
 import { map } from 'ix/iterable/operators';
-import { indexed, Rng, Size } from '../Core';
+import { indexed, Size } from '../Core';
 import { Gen, Gens, GenIteration } from '../Gen';
 import { GenTree } from '../GenTree';
+import { Rng } from '../Number';
 import { Property, PropertyConfig } from './Abstractions';
 import { calculatePropertySizes } from './calculatePropertySizes';
 

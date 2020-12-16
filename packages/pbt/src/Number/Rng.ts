@@ -1,10 +1,11 @@
 import { mersenne, uniformIntDistribution } from 'pure-rand';
+import { Calculator, Integer } from './Calculator';
 
 // TODO: Investigate caching strategies, but should take some performance metrics first
 
 export type Rng = {
   next(): Rng;
-  value(min: number, max: number): number;
+  value<TNumber>(calculator: Calculator<TNumber>, min: Integer<TNumber>, max: Integer<TNumber>): Integer<TNumber>;
   readonly seed: number;
   readonly family: number;
   readonly order: number;
@@ -21,7 +22,11 @@ export namespace Rng {
         const nextSeed = value(innerRng.min(), innerRng.max());
         return createInternal(nextSeed, family, order + 1);
       },
-      value,
+      value: (calculator, min, max) => {
+        const minUnloaded = calculator.unloadInteger(min);
+        const maxUnloaded = calculator.unloadInteger(max);
+        return calculator.loadIntegerUnchecked(value(minUnloaded, maxUnloaded));
+      },
       seed,
       family,
       order,
@@ -29,8 +34,6 @@ export namespace Rng {
   };
 
   export const create = (seed: number): Rng => createInternal(seed, seed, 0);
-
-  export const spawn = () => create(Date.now());
 
   export const stream = function* (rng: Rng): Iterable<Rng> {
     do {
