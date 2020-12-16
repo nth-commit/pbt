@@ -1,4 +1,4 @@
-export { Rng, Size } from './Core';
+export { Size } from './Core';
 export { GenTree } from './GenTree';
 export { Gen, Shrink } from './Gen';
 export { property, Property } from './Property';

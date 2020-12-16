@@ -1,11 +1,11 @@
 import { OperatorFunction } from 'ix/interfaces';
 import { pipe } from 'ix/iterable';
 import { map } from 'ix/iterable/operators';
-import { Rng, Size } from '../Core';
+import { Size } from '../Core';
 import { GenTree } from '../GenTree';
+import { Rng, Range, Calculator, Natural, nativeCalculator } from '../Number';
 import { GenIteration } from './GenIteration';
 import { GenConfig, GenRunnable, GenStream } from './GenRunnable';
-import { Range } from './Range';
 import { Shrink } from './Shrink';
 
 export type GenTransformation<TInit, TCurr> = (g: GenRunnable<TInit>) => GenRunnable<TCurr>;
@@ -54,16 +54,22 @@ export namespace GenTransformation {
       tree: f(instance.tree),
     }));
 
-  export const collect = <T>(range: Range, shrink: Shrink<GenTree<T>[]>): GenTransformation<T, T[]> => (gen0) => {
+  export const collect = <T>(range: Range<number>, shrink: Shrink<GenTree<T>[]>): GenTransformation<T, T[]> => (
+    gen0,
+  ) => {
+    const calculator = nativeCalculator;
+
     const transform0 = GenTransformation.repeat<T[]>();
 
     const transform1: GenTransformation<T, T[]> = (gen1) => ({
       run: (rng, size, config) => {
-        const length = rng.value(...range.getSizedBounds(size));
-        if (length === 0) {
+        const length = calculator.loadNaturalUnchecked(
+          rng.value(calculator, ...range.getSizedBounds(calculator.loadIntegerUnchecked(size))),
+        );
+        if (calculator.equals(length, calculator.zero)) {
           return collectNone<T>(rng, size);
         } else {
-          return collectLength<T>(gen1, rng, size, config, shrink, length, range);
+          return collectLength<T>(calculator, gen1, rng, size, config, shrink, length, range);
         }
       },
     });
@@ -76,13 +82,14 @@ export namespace GenTransformation {
   ];
 
   const collectLength = function* <T>(
+    calculator: Calculator<number>,
     gen: GenRunnable<T>,
     lengthRng: Rng,
     size: Size,
     config: GenConfig,
     shrinker: Shrink<GenTree<T>[]>,
-    length: number,
-    range: Range,
+    length: Natural<number>,
+    range: Range<number>,
   ): GenStream<T[]> {
     const initRng = lengthRng.next();
 
@@ -98,13 +105,15 @@ export namespace GenTransformation {
       }
 
       instances = [...instances, iteration];
-      if (instances.length >= length) break;
+      if (calculator.greaterThanEquals(calculator.loadNaturalUnchecked(instances.length), length)) break;
     }
 
     const lastInstance = instances[instances.length - 1];
     const forest = instances.map((r) => r.tree);
+    const getProportionalDistance = (n: number) => range.getProportionalDistance(calculator.loadNaturalUnchecked(n));
+
     yield GenIteration.instance(
-      GenTree.concat(forest, range.getProportionalDistance, shrinker),
+      GenTree.concat(forest, getProportionalDistance, shrinker),
       lengthRng,
       lastInstance.nextRng,
       size,

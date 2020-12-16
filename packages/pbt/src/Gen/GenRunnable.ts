@@ -1,4 +1,5 @@
-import { Rng, Size } from '../Core';
+import { Size } from '../Core';
+import { Rng } from '../Number';
 import { GenIteration } from './GenIteration';
 
 export type GenStream<T> = Iterable<GenIteration<T>>;
@@ -18,4 +19,13 @@ export type GenRunnable<T> = {
    * @param config Super advanced usage only. An optional configuration object.
    */
   run(rng: Rng, size: Size, config: GenConfig): GenStream<T>;
+};
+
+export const GenRunnable = {
+  delay: <T>(f: () => GenRunnable<T>): GenRunnable<T> => ({
+    run: (rng, size, config) => {
+      const inner = f();
+      return inner.run(rng, size, config);
+    },
+  }),
 };

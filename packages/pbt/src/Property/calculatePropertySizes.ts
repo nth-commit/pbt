@@ -5,7 +5,8 @@ import { Size } from '../Core';
 const arrayRange = (n: number): number[] => [...Array(n).keys()];
 
 export const calculatePropertySizes = (iterations: number, requestedSize?: Size): Iterable<Size> => {
-  if (iterations < 0 || !Number.isInteger(iterations)) throw new Error('Fatal: Iterations must be positive integer');
+  if (iterations < 0 || !Number.isInteger(iterations))
+    throw new Error(`Fatal: Iterations must be positive integer, iterations = ${iterations} `);
 
   if (requestedSize !== undefined) {
     if (requestedSize < 0 || requestedSize > 99 || !Number.isInteger(requestedSize))

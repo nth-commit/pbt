@@ -1,4 +1,5 @@
 import * as dev from '../../src';
+import { nativeCalculator } from '../../src/Number';
 
 test.each([
   { value: 0, target: 0, expectedShrinks: [] },
@@ -9,9 +10,11 @@ test.each([
   { value: -100, target: 0, expectedShrinks: [0, -50, -75, -87, -93, -96, -98, -99] },
   { value: 0, target: -10, expectedShrinks: [-10, -5, -3, -2, -1] },
 ])('towardsNumber', ({ value, target, expectedShrinks }) => {
-  const shrinker = dev.Shrink.towardsNumber(target);
+  const shrinker = dev.Shrink.towardsNumber(nativeCalculator, nativeCalculator.loadIntegerUnchecked(target));
 
-  const shrinks = Array.from(shrinker(value));
+  const shrinks = Array.from(shrinker(nativeCalculator.loadIntegerUnchecked(value))).map(
+    nativeCalculator.unloadInteger,
+  );
 
   expect(shrinks).toEqual(expectedShrinks);
 });
@@ -120,11 +123,19 @@ test.each([
 });
 
 test.each([
-  { value: [], elementShrinker: dev.Shrink.towardsNumber(0), expectedShrinks: [] },
-  { value: [1], elementShrinker: dev.Shrink.towardsNumber(0), expectedShrinks: [[0]] },
+  {
+    value: [],
+    elementShrinker: dev.Shrink.towardsNumber(nativeCalculator, nativeCalculator.zero),
+    expectedShrinks: [],
+  },
+  {
+    value: [1],
+    elementShrinker: dev.Shrink.towardsNumber(nativeCalculator, nativeCalculator.zero),
+    expectedShrinks: [[0]],
+  },
   {
     value: [1, 2],
-    elementShrinker: dev.Shrink.towardsNumber(0),
+    elementShrinker: dev.Shrink.towardsNumber(nativeCalculator, nativeCalculator.zero),
     expectedShrinks: [
       [0, 2],
       [1, 0],
@@ -133,7 +144,7 @@ test.each([
   },
   {
     value: [1, 1, 0],
-    elementShrinker: dev.Shrink.towardsNumber(0),
+    elementShrinker: dev.Shrink.towardsNumber(nativeCalculator, nativeCalculator.zero),
     expectedShrinks: [
       [0, 1, 0],
       [1, 0, 0],
@@ -142,7 +153,9 @@ test.each([
 ])('elements', ({ value, elementShrinker, expectedShrinks }) => {
   const shrinker = dev.Shrink.elements(elementShrinker);
 
-  const shrinks = Array.from(shrinker(value));
+  const shrinks = Array.from(shrinker(value.map(nativeCalculator.loadIntegerUnchecked))).map((xs) =>
+    xs.map(nativeCalculator.loadIntegerUnchecked),
+  );
 
   expect(shrinks).toEqual(expectedShrinks);
 });

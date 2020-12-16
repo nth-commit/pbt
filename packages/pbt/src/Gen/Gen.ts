@@ -3,12 +3,13 @@ import { GenIteration } from './GenIteration';
 import { GenRunnable } from './GenRunnable';
 import { ArrayGen } from './Gens/ArrayGen';
 import { ElementGen } from './Gens/ElementGen';
-import { FloatGen } from './Gens/FloatGen';
 import { IntegerGen } from './Gens/IntegerGen';
+import { FloatGen } from './Gens/FloatGen';
 import { PrimitiveGen } from './Gens/PrimitiveGen';
 import { RawGenImpl } from './Gens/RawGenImpl';
 import { StateMachineGen } from './Gens/StateMachineGen';
 import { Shrink } from './Shrink';
+import { nativeCalculator, bigJsCalculator } from '../Number';
 
 export type Gens<Ts extends any[]> = { [P in keyof Ts]: Gen<Ts[P]> };
 
@@ -51,8 +52,8 @@ export type Gen<T> = GenRunnable<T> & {
 };
 
 export namespace Gen {
-  export type StatefulGenFunction<T> = PrimitiveGen.StatefulGenFunction<T>;
-  export type NextIntFunction = PrimitiveGen.NextIntFunction;
+  export type NextIntFunction = (min: number, max: number) => number;
+  export type StatefulGenFunction<T> = (useNextInt: NextIntFunction, size: number) => T;
 
   /**
    * Creates a generator from a series of functions.
@@ -61,11 +62,22 @@ export namespace Gen {
    * @param shrink
    * @param measure
    */
+  /* istanbul ignore next */
   export const create = <T>(
     generate: StatefulGenFunction<T>,
     shrink: Shrink<T>,
     measure: GenTree.CalculateComplexity<T> = GenTree.CalculateComplexity.none(),
-  ): Gen<T> => PrimitiveGen.create(generate, shrink, measure);
+  ): Gen<T> => {
+    const calculator = nativeCalculator;
+
+    const generate0: PrimitiveGen.StatefulGenFunction<T, number> = (useNextInt0, size) => {
+      const useNextInt: NextIntFunction = (min, max) =>
+        useNextInt0(calculator.loadIntegerUnchecked(min), calculator.loadIntegerUnchecked(max));
+      return generate(useNextInt, size);
+    };
+
+    return PrimitiveGen.create(calculator, generate0, shrink, (x) => calculator.loadUnchecked(measure(x)));
+  };
 
   /**
    * Creates a generator that always returns the given value, and does not shrink.
@@ -73,7 +85,7 @@ export namespace Gen {
    * @param value
    */
   export const constant = <T>(value: T): Gen<T> =>
-    PrimitiveGen.create(() => value, Shrink.none(), GenTree.CalculateComplexity.none());
+    create(() => value, Shrink.none(), GenTree.CalculateComplexity.none());
 
   /**
    * Creates a generator that produces a single error signal, then terminates. This is the recommended way to exit from
@@ -85,19 +97,19 @@ export namespace Gen {
   export const error = <T>(message: string): Gen<T> =>
     RawGenImpl.fromRunFunction((rng, size) => [GenIteration.error(message, rng, rng, size, size)]);
 
-  export type Integer = IntegerGen;
+  export type Integer = IntegerGen<number>;
 
   /**
    * Creates a generator for integers.
    */
-  export const integer = (): IntegerGen => IntegerGen.create();
+  export const integer = (): Integer => IntegerGen.create(nativeCalculator);
 
   export type Float = FloatGen;
 
   /**
    * Creates a generator for floats.
    */
-  export const float = (): FloatGen => FloatGen.create();
+  export const float = (): FloatGen => FloatGen.create(bigJsCalculator);
 
   export type Array<T> = ArrayGen<T>;
 
@@ -123,6 +135,7 @@ export namespace Gen {
         const [gen] = gens;
         return gen.map((x) => [x] as Ts);
       }
+
       default: {
         const [gen, ...nextGens] = gens;
         return gen.flatMap((x) => zip(...nextGens).map((xs) => [x, ...xs] as Ts));
