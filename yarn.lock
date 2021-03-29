@@ -6366,9 +6366,9 @@ signal-exit@^3.0.0, signal-exit@^3.0.2:
   integrity sha512-VUJ49FC8U1OxwZLxIbTTrDvLnf/6TDgxZcK8wxR8zs13xpx7xbG60ndBlhNrFi2EMuFRoeDoJO7wthSLq42EjA==
 
 simple-statistics@^7.3.0:
-  version "7.4.1"
-  resolved "https://registry.yarnpkg.com/simple-statistics/-/simple-statistics-7.4.1.tgz#bc5fc1971fe319ee6209e42ab5a78da883f56738"
-  integrity sha512-OWOsEXPkuvWR7meRfl5vX4g0LO3zlL8oBeG/AyctL39UIueHprwzEQfbOQKwhyrltM/Ra9jea653Ap5KvQnKyQ==
+  version "7.6.0"
+  resolved "https://registry.yarnpkg.com/simple-statistics/-/simple-statistics-7.6.0.tgz#f438041b5d9d29d94bf595188d543e8042f55c6b"
+  integrity sha512-fY+fpegHJC5aBZHnyRTHpyoXS1AYjMnz7ojpATdP67WVQGA5D0muM5N9eLhzyrzIiLStjN/a3tILAj7nS+oBqA==
 
 sisteransi@^1.0.5:
   version "1.0.5"
