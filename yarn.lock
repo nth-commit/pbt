@@ -4032,9 +4032,9 @@ istanbul-reports@^3.0.2:
     istanbul-lib-report "^3.0.0"
 
 ix@^4.0.0:
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/ix/-/ix-4.0.0.tgz#5907ff780c8ce0190c2199326ace499b100aedaa"
-  integrity sha512-uLV4o/iCaRifFOTwPIj9ZRrBq25j7UG5tgSPxrndeZsCfsFx5NlnEwaGI45ndOziz3azAKeYVbWw/rzloAwzGA==
+  version "4.3.1"
+  resolved "https://registry.yarnpkg.com/ix/-/ix-4.3.1.tgz#4e4cd4f879140d3ac14aefefadf7c198ff437cea"
+  integrity sha512-6MwV1lS3fk5EhYKjwcwdw+f9AKYdZT9mAs47rRIwsfQ8Lvlm568PeWrUV65S7c3t6JEQgte/e7+Hdh2M7AALAw==
   dependencies:
     "@types/node" "^13.7.4"
     tslib "2.0.0"
