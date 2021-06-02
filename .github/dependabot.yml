@@ -1,0 +1,34 @@
+version: 2
+updates:
+- package-ecosystem: npm
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "17:00"
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: typescript
+    versions:
+    - 4.2.2
+    - 4.2.3
+  - dependency-name: ts-jest
+    versions:
+    - 26.5.0
+    - 26.5.1
+    - 26.5.2
+    - 26.5.3
+    - 26.5.4
+  - dependency-name: simple-statistics
+    versions:
+    - 7.5.0
+    - 7.6.0
+  - dependency-name: ix
+    versions:
+    - 4.2.0
+    - 4.3.0
+  - dependency-name: fast-check
+    versions:
+    - 2.12.0
+    - 2.12.1
+    - 2.12.2
+    - 2.13.0
